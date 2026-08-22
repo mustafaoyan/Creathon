@@ -1,5 +1,5 @@
 {
-  "name": "@my-app/web",
+  "name": "@rubrix/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -18,7 +18,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.5",
-    "lucide-react": "^0.468.0"
+    "lucide-react": "^0.468.0",
+    "@rubrix/shared-types": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^0.1.10",

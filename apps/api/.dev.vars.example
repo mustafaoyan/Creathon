@@ -1,2 +1,6 @@
 # `cp .dev.vars.example .dev.vars` ile kopyala, gerçek değerleri gir.
 # Bu dosya sadece `wrangler dev` sırasında lokal ortam değişkeni olarak okunur.
+# Prod'da bunlar yerine `wrangler secret put <NAME>` kullanılır.
+
+GOOGLE_CLIENT_SECRET=
+ANTHROPIC_API_KEY=

@@ -5,7 +5,13 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import path from "node:path";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), cloudflare()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // rubrix-api runs as an auxiliary worker in the same Miniflare instance so the
+    // API service binding (see wrangler.jsonc) resolves in `vite dev`, not just when deployed.
+    cloudflare({ auxiliaryWorkers: [{ configPath: "../api/wrangler.jsonc" }] }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

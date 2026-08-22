@@ -4,7 +4,7 @@ import { defineConfig } from "drizzle-kit";
 // (miniflare/sqlite) dosyasını kullanır, bu config sadece migration
 // dosyalarını üretmek (db:generate) için gereklidir.
 export default defineConfig({
-  schema: "./src/db/schema.ts",
+  schema: "./src/shared/db/schema/index.ts",
   out: "./drizzle",
   dialect: "sqlite",
 });

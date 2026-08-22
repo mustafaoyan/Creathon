@@ -1,0 +1,30 @@
+export type Bindings = {
+  // Data
+  DB: D1Database;
+  BUCKET: R2Bucket;
+  VECTORIZE: VectorizeIndex;
+  AI: Ai;
+  DOC_QUEUE: Queue<DocumentProcessingMessage>;
+
+  // Config / secrets (wrangler vars + `wrangler secret put`)
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_REDIRECT_URI: string;
+  SESSION_COOKIE_SECURE: string; // "true" | "false" — "false" only for local http dev
+  ANTHROPIC_API_KEY: string;
+  CF_ACCOUNT_ID: string;
+  CF_AI_GATEWAY_ID: string;
+  AI_PROVIDER: string; // "anthropic" | "openai" — resolved by ai.factory.ts
+};
+
+export type DocumentProcessingMessage = {
+  documentId: string;
+};
+
+export type AppEnv = {
+  Bindings: Bindings;
+  Variables: {
+    userId: string;
+    userRole: string | null;
+  };
+};

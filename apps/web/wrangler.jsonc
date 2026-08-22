@@ -1,12 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "my-app-web",
+  "name": "rubrix-web",
   "main": "src/worker/index.tsx",
   "compatibility_date": "2025-01-01",
   "assets": {
     "directory": "./dist/client",
     "binding": "ASSETS"
   },
+  // Service binding to rubrix-api — same-origin proxying for /api/*, see worker/index.tsx.
+  // Local dev: run `pnpm --filter @rubrix/api dev` alongside this so the binding resolves.
+  "services": [{ "binding": "API", "service": "rubrix-api" }],
   "observability": {
     "enabled": true
   }

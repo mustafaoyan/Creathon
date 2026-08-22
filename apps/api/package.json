@@ -1,5 +1,5 @@
 {
-  "name": "@my-app/api",
+  "name": "@rubrix/api",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,12 +9,14 @@
     "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply my-app-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply my-app-db --remote"
+    "db:migrate:local": "wrangler d1 migrations apply rubrix-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply rubrix-db --remote"
   },
   "dependencies": {
     "hono": "^4.6.14",
-    "drizzle-orm": "^0.36.4"
+    "drizzle-orm": "^0.36.4",
+    "unpdf": "^0.12.1",
+    "@rubrix/shared-types": "workspace:*"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241218.0",

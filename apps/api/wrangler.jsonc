@@ -1,25 +1,59 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "my-app-api",
+  "name": "rubrix-api",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
-  // `wrangler d1 create my-app-db` çalıştırdıktan sonra dönen database_id'yi buraya yapıştır.
+
+  // `wrangler d1 create rubrix-db` çalıştırıp dönen database_id'yi buraya yapıştır.
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "my-app-db",
+      "database_name": "rubrix-db",
       "database_id": "REPLACE_WITH_D1_DATABASE_ID",
       "migrations_dir": "drizzle"
     }
   ],
-  // `wrangler r2 bucket create my-app-bucket` ile bucket'ı oluştur.
+
+  // `wrangler r2 bucket create rubrix-documents` ile bucket'ı oluştur (kaynak PDF/metinler).
   "r2_buckets": [
     {
       "binding": "BUCKET",
-      "bucket_name": "my-app-bucket"
+      "bucket_name": "rubrix-documents"
     }
   ],
+
+  // `wrangler vectorize create rubrix-embeddings --dimensions=1024 --metric=cosine`
+  // (bge-m3 1024 boyutlu embedding üretir).
+  "vectorize": [
+    {
+      "binding": "VECTORIZE",
+      "index_name": "rubrix-embeddings"
+    }
+  ],
+
+  // Workers AI — çok dilli embedding modeli (bge-m3) için, ayrı kurulum gerektirmez.
+  "ai": {
+    "binding": "AI"
+  },
+
+  // `wrangler queues create rubrix-doc-processing` ile kuyruğu oluştur.
+  "queues": {
+    "producers": [{ "binding": "DOC_QUEUE", "queue": "rubrix-doc-processing" }],
+    "consumers": [{ "queue": "rubrix-doc-processing", "max_batch_size": 5, "max_retries": 3 }]
+  },
+
+  // Gizli olmayan config. Gizli değerler (`wrangler secret put <NAME>`):
+  //   GOOGLE_CLIENT_SECRET, ANTHROPIC_API_KEY
+  "vars": {
+    "GOOGLE_CLIENT_ID": "REPLACE_WITH_GOOGLE_OAUTH_CLIENT_ID",
+    "GOOGLE_REDIRECT_URI": "http://localhost:8787/api/auth/google/callback",
+    "SESSION_COOKIE_SECURE": "false",
+    "CF_ACCOUNT_ID": "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID",
+    "CF_AI_GATEWAY_ID": "REPLACE_WITH_AI_GATEWAY_ID",
+    "AI_PROVIDER": "anthropic"
+  },
+
   "observability": {
     "enabled": true
   }

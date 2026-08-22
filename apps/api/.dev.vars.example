@@ -1,0 +1,2 @@
+# `cp .dev.vars.example .dev.vars` ile kopyala, gerçek değerleri gir.
+# Bu dosya sadece `wrangler dev` sırasında lokal ortam değişkeni olarak okunur.

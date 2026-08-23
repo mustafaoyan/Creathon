@@ -5,12 +5,11 @@
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // `wrangler d1 create rubrix-db` çalıştırıp dönen database_id'yi buraya yapıştır.
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "rubrix-db",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "database_id": "f586216e-5b03-4650-b898-590cc39f272c",
       "migrations_dir": "drizzle"
     }
   ],
@@ -49,7 +48,7 @@
     "GOOGLE_CLIENT_ID": "REPLACE_WITH_GOOGLE_OAUTH_CLIENT_ID",
     "GOOGLE_REDIRECT_URI": "http://localhost:8787/api/auth/google/callback",
     "SESSION_COOKIE_SECURE": "false",
-    "CF_ACCOUNT_ID": "REPLACE_WITH_CLOUDFLARE_ACCOUNT_ID",
+    "CF_ACCOUNT_ID": "4c93a1fdd11680cf952f1bf1c7f8f9b9",
     "CF_AI_GATEWAY_ID": "REPLACE_WITH_AI_GATEWAY_ID",
     "AI_PROVIDER": "anthropic"
   },

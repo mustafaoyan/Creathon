@@ -73,16 +73,27 @@ apps/web/src/
 **Doğrulandı:** typecheck temiz, D1 migration lokalde uygulandı, iki worker service binding
 üzerinden birlikte çalışıyor, SSR + rol koruması uçtan uca test edildi.
 
+**Tamamlanan ek işler:**
+- Sınav ekranında çoktan seçmeli soru arayüzü eklendi — `ExamRunnerPage.tsx` artık `multiple_choice`
+  sorular için radio-button seçenekleri, `open_ended` için textarea gösteriyor. Backend
+  (`exams.repository.ts`/`exams.service.ts`) `startAttempt` yanıtına `isCorrect` sızdırmadan
+  seçenekleri (`id`, `label`, `body`) ekliyor.
+- Admin panelinde rol atama arayüzü eklendi — `UserManagementPage.tsx` (`/admin/users`),
+  `PATCH /api/users/:id/role` ve `POST /api/users/:id/suspend` uçlarına bağlı.
+- Wrangler v3 → v4 güncellemesi yapıldı (`wrangler@4.125.0`, `@cloudflare/vite-plugin@1.53.1`,
+  `@cloudflare/workers-types@5.x`, `vite@6.4.3`, `@vitejs/plugin-react@4.7.0`). Her iki worker'ın
+  `wrangler.jsonc`'u `wrangler types` ile offline doğrulandı, `auxiliaryWorkers` service-binding
+  kurulumu değişmeden çalışıyor.
+
 **Bekliyor (henüz yapılmadı):**
 - `apps/api/wrangler.jsonc` ve `apps/web/wrangler.jsonc`'taki placeholder değerler — gerçek
   Google OAuth client id/secret, Cloudflare account id, AI Gateway id.
 - Gerçek Cloudflare kaynaklarının oluşturulması: `rubrix-db` (D1), `rubrix-documents` (R2),
   `rubrix-embeddings` (Vectorize), `rubrix-doc-processing` (Queue).
-- Sınav ekranında çoktan seçmeli soru arayüzü (şu an her soru tipi textarea ile gösteriliyor,
-  `apps/web/src/features/exam-taking/ExamRunnerPage.tsx`).
-- Admin panelinde rol atama arayüzü (API hazır, frontend'den bağlanmadı).
-- Wrangler v3 → v4 güncellemesi.
 - Production'a deploy (henüz public domain yok).
+- (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın
+  ürettiği runtime type'larına geçiş — şimdilik deprecated ama çalışır durumda, bilinçli olarak
+  yapılmadı.
 
 ## Geliştirme
 

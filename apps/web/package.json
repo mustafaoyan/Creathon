@@ -22,15 +22,15 @@
     "@rubrix/shared-types": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^0.1.10",
-    "@cloudflare/workers-types": "^4.20241218.0",
+    "@cloudflare/vite-plugin": "^1.53.1",
+    "@cloudflare/workers-types": "^5.20260823.1",
     "@tailwindcss/vite": "^4.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^4.7.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2",
-    "vite": "^6.0.3",
-    "wrangler": "^3.99.0"
+    "vite": "^6.4.3",
+    "wrangler": "^4.125.0"
   }
 }

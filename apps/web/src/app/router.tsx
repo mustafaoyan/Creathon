@@ -7,6 +7,7 @@ import { CreateExamPage } from "@/features/exam-management/CreateExamPage";
 import { GradingReviewPage } from "@/features/exam-management/GradingReviewPage";
 import { ExamRunnerPage } from "@/features/exam-taking/ExamRunnerPage";
 import { DashboardPage } from "@/features/admin-dashboard/DashboardPage";
+import { UserManagementPage } from "@/features/admin-dashboard/UserManagementPage";
 
 export type AppRoute = {
   path: string;
@@ -23,6 +24,7 @@ export const ROUTES: AppRoute[] = [
   { path: "/exams/grading", component: GradingReviewPage, roles: ["instructor"] },
   { path: "/exams/take", component: ExamRunnerPage, roles: ["student"] },
   { path: "/dashboard", component: DashboardPage, roles: ["admin"] },
+  { path: "/admin/users", component: UserManagementPage, roles: ["admin"] },
 ];
 
 export function resolveRoute(pathname: string): AppRoute | null {

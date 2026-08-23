@@ -17,19 +17,24 @@ export function DashboardPage() {
   if (!data) return <p className="text-muted-foreground">Yükleniyor...</p>;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <StatCard
-        label="Sınav Tamamlanma"
-        value={`${data.examCompletion.submitted}/${data.examCompletion.totalAssignments}`}
-      />
-      <StatCard
-        label="AI Soru Kabul Oranı"
-        value={`${data.aiQuestionAcceptance.approved}/${data.aiQuestionAcceptance.totalAiGenerated}`}
-      />
-      <StatCard
-        label="AI-Eğitmen Puan Sapması"
-        value={data.aiScoringDeviation.avgAbsDeviation?.toFixed(1) ?? "-"}
-      />
+    <div className="flex flex-col gap-4">
+      <a href="/admin/users" className="self-end text-sm font-medium text-primary underline">
+        Kullanıcı Yönetimi
+      </a>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Sınav Tamamlanma"
+          value={`${data.examCompletion.submitted}/${data.examCompletion.totalAssignments}`}
+        />
+        <StatCard
+          label="AI Soru Kabul Oranı"
+          value={`${data.aiQuestionAcceptance.approved}/${data.aiQuestionAcceptance.totalAiGenerated}`}
+        />
+        <StatCard
+          label="AI-Eğitmen Puan Sapması"
+          value={data.aiScoringDeviation.avgAbsDeviation?.toFixed(1) ?? "-"}
+        />
+      </div>
     </div>
   );
 }

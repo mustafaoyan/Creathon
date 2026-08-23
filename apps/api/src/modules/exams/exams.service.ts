@@ -57,7 +57,16 @@ export const examsService = {
     }
 
     const examQuestions = await examsRepository.questionsFor(db, examId);
-    return { attempt, questions: examQuestions };
+    const questions = await Promise.all(
+      examQuestions.map(async (question) => ({
+        ...question,
+        options:
+          question.type === "multiple_choice"
+            ? await examsRepository.optionsForQuestion(db, question.questionId)
+            : undefined,
+      })),
+    );
+    return { attempt, questions };
   },
 
   async answer(

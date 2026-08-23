@@ -3,7 +3,15 @@ import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
 type Assignment = { id: string; examId: string; title: string; status: string };
-type ExamQuestion = { id: string; questionId: string; body: string; type: string; points: number };
+type ExamOption = { id: string; label: string; body: string };
+type ExamQuestion = {
+  id: string;
+  questionId: string;
+  body: string;
+  type: string;
+  points: number;
+  options?: ExamOption[];
+};
 
 export function ExamRunnerPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -23,10 +31,10 @@ export function ExamRunnerPage() {
     setActive({ examId, attemptId: result.attempt.id, questions: result.questions });
   }
 
-  async function saveAnswer(questionId: string, value: string) {
-    setAnswers((prev) => ({ ...prev, [questionId]: value }));
+  async function saveAnswer(questionId: string, payload: { selectedOptionId?: string; answerText?: string }) {
+    setAnswers((prev) => ({ ...prev, [questionId]: payload.selectedOptionId ?? payload.answerText ?? "" }));
     if (!active) return;
-    await apiClient.post(`/api/exams/attempts/${active.attemptId}/answers`, { questionId, answerText: value });
+    await apiClient.post(`/api/exams/attempts/${active.attemptId}/answers`, { questionId, ...payload });
   }
 
   async function submit() {
@@ -41,13 +49,29 @@ export function ExamRunnerPage() {
         {active.questions.map((question) => (
           <div key={question.id}>
             <p className="font-medium">{question.body}</p>
-            {/* NOT: çoktan seçmeli seçenek UI'ı sonraki iterasyonda eklenecek; şimdilik tüm soru
-                tipleri serbest metin alanıyla yanıtlanıyor. */}
-            <textarea
-              className="mt-2 w-full rounded-md border border-input px-3 py-2"
-              value={answers[question.questionId] ?? ""}
-              onChange={(event) => saveAnswer(question.questionId, event.target.value)}
-            />
+            {question.type === "multiple_choice" && question.options ? (
+              <div className="mt-2 flex flex-col gap-2">
+                {question.options.map((option) => (
+                  <label key={option.id} className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name={question.questionId}
+                      checked={answers[question.questionId] === option.id}
+                      onChange={() => saveAnswer(question.questionId, { selectedOptionId: option.id })}
+                    />
+                    <span>
+                      {option.label}. {option.body}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <textarea
+                className="mt-2 w-full rounded-md border border-input px-3 py-2"
+                value={answers[question.questionId] ?? ""}
+                onChange={(event) => saveAnswer(question.questionId, { answerText: event.target.value })}
+              />
+            )}
           </div>
         ))}
         <Button onClick={submit}>Sınavı Bitir</Button>

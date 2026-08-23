@@ -180,4 +180,13 @@ export const examsRepository = {
       .from(questionOptions)
       .where(and(eq(questionOptions.questionId, questionId), eq(questionOptions.isCorrect, true)));
   },
+
+  // Student-facing: excludes isCorrect so the answer key never reaches the client.
+  optionsForQuestion(db: Database, questionId: string) {
+    return db
+      .select({ id: questionOptions.id, label: questionOptions.label, body: questionOptions.body })
+      .from(questionOptions)
+      .where(eq(questionOptions.questionId, questionId))
+      .orderBy(questionOptions.orderIndex);
+  },
 };

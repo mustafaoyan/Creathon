@@ -49,12 +49,14 @@ questionsRoutes.patch("/:id", requireRole("content_creator", "instructor"), asyn
   return c.json({ ok: true });
 });
 
-questionsRoutes.post("/:id/approve", requireRole("content_creator", "instructor"), async (c) => {
+// Brif'e göre AI taslağını onaylama/reddetme sadece İçerik Uzmanı'nın yetkisi —
+// eğitmen havuzu düzenleyebilir (üstteki PATCH) ama onay kararını vermez.
+questionsRoutes.post("/:id/approve", requireRole("content_creator"), async (c) => {
   await questionsService.review(c.env, c.req.param("id"), "approved", c.get("userId"));
   return c.json({ ok: true });
 });
 
-questionsRoutes.post("/:id/reject", requireRole("content_creator", "instructor"), async (c) => {
+questionsRoutes.post("/:id/reject", requireRole("content_creator"), async (c) => {
   await questionsService.review(c.env, c.req.param("id"), "rejected", c.get("userId"));
   return c.json({ ok: true });
 });

@@ -23,7 +23,7 @@ export const ROUTES: AppRoute[] = [
   { path: "/content/upload", component: UploadDocumentPage, roles: ["content_creator"] },
   { path: "/content/outcomes", component: LearningOutcomesPage, roles: ["content_creator"] },
   { path: "/content/generate", component: GenerateQuestionsPage, roles: ["content_creator"] },
-  { path: "/content/review", component: QuestionReviewPanel, roles: ["content_creator", "instructor"] },
+  { path: "/content/review", component: QuestionReviewPanel, roles: ["content_creator"] },
   { path: "/exams/new", component: CreateExamPage, roles: ["instructor"] },
   { path: "/exams/grading", component: GradingReviewPage, roles: ["instructor"] },
   { path: "/exams/take", component: ExamRunnerPage, roles: ["student"] },

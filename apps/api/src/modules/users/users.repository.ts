@@ -26,15 +26,20 @@ export const usersRepository = {
   ) {
     const id = newId("user");
     const now = new Date();
+    // Eğitmen/Öğrenci girişi ile seçilen rol hemen uygulanır (self-servis) — bunlar
+    // giriş ekranında zaten sadece bu ikisi seçilebildiği için güvenli; içerik uzmanı/admin
+    // giriş ekranında seçilemez, o hesaplar hâlâ admin onayıyla (pending) açılır.
+    const isSelfServiceRole = profile.requestedRole === "instructor" || profile.requestedRole === "student";
+
     await db.insert(users).values({
       id,
       googleId: profile.googleId,
       email: profile.email,
       name: profile.name,
       avatarUrl: profile.avatarUrl ?? null,
-      role: null,
+      role: isSelfServiceRole ? profile.requestedRole : null,
       requestedRole: profile.requestedRole ?? null,
-      status: "pending",
+      status: isSelfServiceRole ? "active" : "pending",
       createdAt: now,
       updatedAt: now,
     });

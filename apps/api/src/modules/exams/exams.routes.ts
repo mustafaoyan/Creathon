@@ -9,6 +9,10 @@ export const examsRoutes = new Hono<AppEnv>();
 
 examsRoutes.use("*", requireAuth);
 
+examsRoutes.get("/", requireRole("instructor"), async (c) => {
+  return c.json({ exams: await examsService.list(c.env) });
+});
+
 examsRoutes.post("/", requireRole("instructor"), async (c) => {
   const body = await c.req.json<{
     title: string;

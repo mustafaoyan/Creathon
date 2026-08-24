@@ -8,14 +8,20 @@ import { usersService } from "./users.service";
 
 export const usersRoutes = new Hono<AppEnv>();
 
-// Only the Eğitim Yöneticisi (admin) manages accounts and role assignment.
-usersRoutes.use("*", requireAuth, requireRole("admin"));
+usersRoutes.use("*", requireAuth);
 
-usersRoutes.get("/", async (c) => {
+// Eğitmenin sınav atarken öğrenci seçebilmesi için — tam liste değil, sadece
+// aktif öğrenciler (isim/e-posta). Hesap yönetimi hâlâ sadece admin'de.
+usersRoutes.get("/students", requireRole("instructor", "admin"), async (c) => {
+  return c.json({ students: await usersService.listStudents(c.env) });
+});
+
+// Aşağıdakiler sadece Eğitim Yöneticisi (admin) — hesap yönetimi.
+usersRoutes.get("/", requireRole("admin"), async (c) => {
   return c.json({ users: await usersService.list(c.env) });
 });
 
-usersRoutes.patch("/:id/role", async (c) => {
+usersRoutes.patch("/:id/role", requireRole("admin"), async (c) => {
   const { role } = await c.req.json<{ role: string }>();
   if (!USER_ROLES.includes(role as UserRole)) {
     throw new HttpError(422, "invalid_role");
@@ -25,7 +31,7 @@ usersRoutes.patch("/:id/role", async (c) => {
   return c.json({ user });
 });
 
-usersRoutes.post("/:id/suspend", async (c) => {
+usersRoutes.post("/:id/suspend", requireRole("admin"), async (c) => {
   await usersService.suspend(c.env, c.req.param("id"));
   return c.json({ ok: true });
 });

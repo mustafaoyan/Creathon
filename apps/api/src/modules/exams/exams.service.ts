@@ -32,6 +32,10 @@ export const examsService = {
     return examId;
   },
 
+  list(env: Bindings) {
+    return examsRepository.list(createDb(env.DB));
+  },
+
   async publish(env: Bindings, examId: string) {
     await examsRepository.publish(createDb(env.DB), examId);
   },

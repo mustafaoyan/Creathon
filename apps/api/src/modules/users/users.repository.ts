@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import type { Database } from "../../shared/db/client";
 import { users, type UserRole } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
@@ -43,6 +43,15 @@ export const usersRepository = {
 
   list(db: Database) {
     return db.select().from(users).orderBy(desc(users.createdAt));
+  },
+
+  /** Narrow, non-admin-only lookup — e.g. an instructor picking students to assign an exam to. */
+  listByRole(db: Database, role: UserRole) {
+    return db
+      .select({ id: users.id, name: users.name, email: users.email })
+      .from(users)
+      .where(and(eq(users.role, role), eq(users.status, "active")))
+      .orderBy(users.name);
   },
 
   async assignRole(db: Database, id: string, role: UserRole) {

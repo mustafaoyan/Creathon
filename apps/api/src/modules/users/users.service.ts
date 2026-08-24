@@ -9,6 +9,10 @@ export const usersService = {
     return usersRepository.list(createDb(env.DB));
   },
 
+  listStudents(env: Bindings) {
+    return usersRepository.listByRole(createDb(env.DB), "student");
+  },
+
   async assignRole(env: Bindings, userId: string, role: UserRole) {
     const db = createDb(env.DB);
     const user = await usersRepository.findById(db, userId);

@@ -65,8 +65,17 @@ export const questionsService = {
     }
   },
 
-  list(env: Bindings, status?: QuestionStatus) {
-    return questionsRepository.listByStatus(createDb(env.DB), status);
+  async list(env: Bindings, status?: QuestionStatus) {
+    const db = createDb(env.DB);
+    const rows = await questionsRepository.listByStatus(db, status);
+
+    return Promise.all(
+      rows.map(async (question) => ({
+        ...question,
+        options:
+          question.type === "multiple_choice" ? await questionsRepository.optionsForQuestion(db, question.id) : undefined,
+      })),
+    );
   },
 
   async update(env: Bindings, id: string, body: string) {

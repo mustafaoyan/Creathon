@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
@@ -16,55 +16,67 @@ const ROLE_COPY: Record<Role, { title: string; description: string }> = {
 };
 
 export function LoginPage() {
+  const [showRoles, setShowRoles] = useState(false);
+  const rolesRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (showRoles) rolesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [showRoles]);
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <TeknofestNav />
+    <div className="flex flex-col">
+      <TeknofestNav onLoginClick={() => setShowRoles(true)} />
       <HeroCarousel />
 
-      <div id="giris" className="flex flex-1 flex-col items-center justify-center gap-10 px-4 py-12">
-        <div className="flex flex-col items-center gap-2">
-          <span className="inline-block h-1.5 w-16 rounded-full bg-primary" />
-          <h1 className="text-3xl font-bold">RubriX</h1>
-          <p className="text-muted-foreground">
-            Yapay Zekâ Destekli Ölçme ve Değerlendirme Sistemi — TEKNOFEST T3 Vakfı
-          </p>
-        </div>
+      {showRoles && (
+        <div
+          ref={rolesRef}
+          id="giris"
+          className="rbx-reveal flex flex-col items-center justify-center gap-10 px-4 py-16"
+        >
+          <div className="flex flex-col items-center gap-2">
+            <span className="inline-block h-1.5 w-16 rounded-full bg-primary" />
+            <h1 className="text-3xl font-bold">RubriX</h1>
+            <p className="text-muted-foreground">Hangi rolle giriş yapmak istiyorsun?</p>
+          </div>
 
-        <div className="grid w-full max-w-3xl gap-6 sm:grid-cols-2">
-          <RoleLoginCard role="instructor" />
-          <RoleLoginCard role="student" />
+          <div className="grid w-full max-w-3xl gap-6 sm:grid-cols-2">
+            <RoleLoginCard role="instructor" />
+            <RoleLoginCard role="student" />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function TeknofestNav() {
+function TeknofestNav({ onLoginClick }: { onLoginClick: () => void }) {
   return (
     <nav
       className="rbx-starfield relative overflow-hidden bg-cover bg-center px-6 py-4 text-white"
       style={{ backgroundImage: 'url("/hero/space-globe.jpg")' }}
     >
       <div className="absolute inset-0 bg-gradient-to-r from-[#050b24]/90 via-[#0b1f4d]/75 to-[#123a7a]/65" />
-      <div className="relative z-10 mx-auto flex max-w-6xl items-center justify-between gap-4">
+      <div className="relative z-10 flex items-center justify-between gap-4">
         <span className="flex items-center gap-2 text-lg font-extrabold tracking-wide">
           <span aria-hidden="true">🚀</span> RUBRIX
         </span>
-        <div className="hidden items-center gap-6 text-sm font-semibold sm:flex">
-          <a href="#nedir" className="hover:text-primary">
-            RUBRIX NEDİR
-          </a>
-          <a href="#roller" className="hover:text-primary">
-            ROLLER
-          </a>
-        </div>
-        <div className="flex items-center gap-3">
-          <a
-            href="#giris"
+        <div className="flex items-center gap-6">
+          <div className="hidden items-center gap-6 text-sm font-semibold sm:flex">
+            <a href="#nedir" className="hover:text-primary">
+              RUBRIX NEDİR
+            </a>
+            <a href="#roller" className="hover:text-primary">
+              ROLLER
+            </a>
+          </div>
+          <button
+            type="button"
+            onClick={onLoginClick}
             className="rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow hover:bg-primary/90"
           >
             GİRİŞ YAP 🚀
-          </a>
+          </button>
           <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold">2026</span>
         </div>
       </div>
@@ -72,46 +84,41 @@ function TeknofestNav() {
   );
 }
 
-// TODO: yeni fotoğraf geldikçe bu diziye `url("/hero/<dosya>.jpg")` olarak ekle.
-const HERO_SLIDES = ['url("/hero/student-desk.jpg")', 'url("/hero/ai-workspace.jpg")'];
-
-const HERO_QUOTES = [
-  "Bilgiyi ölçmek değil, öğrenmeyi anlamak.",
-  "Her soru bir kazanımı, her kazanım bir geleceği şekillendirir.",
-  "Yapay zekâ önerir, kararı eğitmen verir.",
-  "TEKNOFEST ruhuyla, sınıfın ötesinde bir değerlendirme deneyimi.",
+// Fotoğraf + söz birebir eşleşiyor ve birlikte değişiyor — biri değişirken diğeri de değişmeli,
+// bu yüzden ayrı dizi yerine tek dizi (senkron bozulmasın diye).
+const HERO_SLIDES = [
+  { image: 'url("/hero/student-desk.jpg")', quote: "Bilgiyi ölçmek değil, öğrenmeyi anlamak." },
+  { image: 'url("/hero/ai-workspace.jpg")', quote: "Yapay zekâ önerir, kararı eğitmen verir." },
 ];
 
-const SLIDE_SECONDS = 4;
+const SLIDE_SECONDS = 6;
 
 function HeroCarousel() {
   const cycleStyle = { "--rbx-cycle": `${HERO_SLIDES.length * SLIDE_SECONDS}s` } as CSSProperties;
 
   return (
     <section
-      className="relative isolate flex min-h-[320px] items-center justify-center overflow-hidden text-white sm:min-h-[400px]"
+      className="relative isolate flex min-h-screen items-center justify-center overflow-hidden text-white"
       style={cycleStyle}
     >
-      {HERO_SLIDES.map((image, index) => (
+      {HERO_SLIDES.map((slide, index) => (
         <div
-          key={image}
+          key={slide.image}
           className="rbx-hero-slide"
-          style={{ backgroundImage: image, animationDelay: `${index * SLIDE_SECONDS}s` }}
+          style={{ backgroundImage: slide.image, animationDelay: `${index * SLIDE_SECONDS}s` }}
         />
       ))}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/40" />
 
-      <div className="relative z-10 h-16 w-full max-w-2xl px-6 sm:h-14">
-        {HERO_QUOTES.map((quote, index) => (
-          <p
-            key={quote}
-            className="rbx-hero-quote text-xl font-semibold text-white sm:text-2xl"
-            style={{ animationDelay: `${index * SLIDE_SECONDS}s` }}
-          >
-            “{quote}”
-          </p>
-        ))}
-      </div>
+      {HERO_SLIDES.map((slide, index) => (
+        <div
+          key={slide.quote}
+          className="rbx-hero-quote absolute inset-0 flex items-center justify-center px-6"
+          style={{ animationDelay: `${index * SLIDE_SECONDS}s` }}
+        >
+          <p className="max-w-2xl text-center text-2xl font-semibold sm:text-4xl">“{slide.quote}”</p>
+        </div>
+      ))}
     </section>
   );
 }

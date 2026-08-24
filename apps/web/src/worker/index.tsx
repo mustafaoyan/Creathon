@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { renderToReadableStream } from "react-dom/server";
 import { App } from "@/app/App";
 import type { SessionUser } from "@/lib/auth-client";
+import { ROLE_HOME } from "@/lib/role-home";
 
 type Bindings = {
   ASSETS: Fetcher;
@@ -39,6 +40,13 @@ app.get("*", async (c) => {
     fetchSessionUser(c.env.API, c.req.raw),
     resolveClientAssets(c.env.ASSETS, c.req.url),
   ]);
+
+  // Post-login, "/" isn't itself a screen — send the user straight to the
+  // one their role actually starts on (brief describes a role-specific
+  // landing, not a generic "hello + one button" middle page).
+  if (url.pathname === "/" && user?.status === "active" && user.role) {
+    return c.redirect(ROLE_HOME[user.role], 302);
+  }
 
   const stream = await renderToReadableStream(
     <App url={c.req.path} initialUser={user} clientAssets={clientAssets} />,

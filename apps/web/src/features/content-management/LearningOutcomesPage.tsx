@@ -61,9 +61,14 @@ export function LearningOutcomesPage() {
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">Kazanım Tanımla</h1>
-          <a href="/content/upload" className="text-sm font-medium text-primary underline">
-            İçerik Yükle
-          </a>
+          <div className="flex gap-4 text-sm font-medium">
+            <a href="/content/upload" className="text-primary underline">
+              İçerik Yükle
+            </a>
+            <a href="/content/generate" className="text-primary underline">
+              Soru Üret
+            </a>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground">
           Kaynak içerikle ilişkili öğrenme kazanımlarını burada tanımlarsın — soru üretimi bu kazanıma göre yapılır.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { TeknofestNav } from "@/components/layout/TeknofestNav";
+import { TeknofestNav, NAV_HEIGHT_CLASS } from "@/components/layout/TeknofestNav";
 
 type Role = "content_creator" | "instructor" | "student";
 
@@ -29,7 +29,7 @@ export function LoginPage() {
   }, [showRoles]);
 
   return (
-    <div className="flex flex-col">
+    <div className={`flex flex-col ${NAV_HEIGHT_CLASS}`}>
       <TeknofestNav action={{ label: "GİRİŞ YAP 🚀", onClick: () => setShowRoles(true) }} />
       <HeroCarousel />
 
@@ -61,6 +61,11 @@ export function LoginPage() {
 const HERO_SLIDES = [
   { image: 'url("/hero/student-desk.jpg")', quote: "Bilgiyi ölçmek değil, öğrenmeyi anlamak." },
   { image: 'url("/hero/ai-workspace.jpg")', quote: "Yapay zekâ önerir, kararı eğitmen verir." },
+  { image: 'url("/hero/ai-analytics.jpg")', quote: "Her veri, bir öğrenme hikâyesi anlatır." },
+  { image: 'url("/hero/ai-insight.jpg")', quote: "Kaynaktan bilgiye, bilgiden soruya." },
+  { image: 'url("/hero/ai-grading.jpg")', quote: "Doğru soru, doğru zamanda, doğru yerde." },
+  { image: 'url("/hero/ai-network.jpg")', quote: "Bilgi sınır tanımaz, değerlendirme titizlik ister." },
+  { image: 'url("/hero/ai-ecosystem.jpg")', quote: "Teknoloji araçtır, karar hep insanın." },
 ];
 
 const SLIDE_SECONDS = 6;
@@ -70,7 +75,7 @@ function HeroCarousel() {
 
   return (
     <section
-      className="relative isolate flex min-h-screen items-center justify-center overflow-hidden text-white"
+      className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden text-white"
       style={cycleStyle}
     >
       {HERO_SLIDES.map((slide, index) => (

@@ -2,18 +2,24 @@ export const SPACE_BG_URL = '/hero/space-globe.jpg';
 
 type NavAction = { label: string; onClick?: () => void; href?: string };
 
+/** Height in px — must match the top padding every page that renders this nav
+ * adds to its content (NAV_HEIGHT_CLASS below), since the nav is `fixed` and
+ * no longer reserves space in normal document flow. */
+export const NAV_HEIGHT_CLASS = "pt-16";
+
 /** Shared top nav — used on the login page (action = reveal role choice) and
  * on every authenticated screen (action = log out), so the look is consistent
- * everywhere, not just on "/login". Sticky so it stays visible while the page
- * scrolls (e.g. down to the reveal role-choice section on login). */
+ * everywhere, not just on "/login". `fixed` (not `sticky`) so it is always
+ * pinned above the page — immune to any scroll position or stacking-context
+ * quirks in the sections rendered below it (e.g. the full-screen hero). */
 export function TeknofestNav({ action }: { action: NavAction }) {
   return (
     <nav
-      className="rbx-starfield sticky top-0 z-50 overflow-hidden bg-cover bg-center px-6 py-4 text-white"
+      className="rbx-starfield fixed inset-x-0 top-0 z-50 flex h-16 items-center overflow-hidden bg-cover bg-center px-6 text-white"
       style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}
     >
       <div className="absolute inset-0 bg-gradient-to-r from-[#050b24]/90 via-[#0b1f4d]/75 to-[#123a7a]/65" />
-      <div className="relative z-10 flex items-center justify-between gap-4">
+      <div className="relative z-10 flex w-full items-center justify-between gap-4">
         <span className="flex items-center gap-2 text-lg font-extrabold tracking-wide">
           <span aria-hidden="true">🚀</span> RUBRIX
         </span>

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { SessionUser, UserRole } from "@/lib/auth-client";
 import { logout } from "@/lib/auth-client";
-import { TeknofestNav, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
+import { TeknofestNav, SPACE_BG_URL, NAV_HEIGHT_CLASS } from "@/components/layout/TeknofestNav";
 import { Sidebar } from "@/components/layout/Sidebar";
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -87,7 +87,7 @@ function AuthenticatedLayout({
       className="flex min-h-screen flex-col bg-fixed bg-cover bg-center"
       style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}
     >
-      <div className="flex min-h-screen flex-1 flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75">
+      <div className={`flex min-h-screen flex-1 flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75 ${NAV_HEIGHT_CLASS}`}>
         <TeknofestNav action={{ label: "ÇIKIŞ YAP", onClick: handleLogout }} />
         <Sidebar user={user} open={sidebarOpen} onOpenChange={setSidebarOpen} />
         <div
@@ -120,7 +120,7 @@ function Backdrop({
 }) {
   return (
     <div className="flex min-h-screen flex-col bg-fixed bg-cover bg-center" style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}>
-      <div className="flex min-h-screen flex-1 flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75">
+      <div className={`flex min-h-screen flex-1 flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75 ${NAV_HEIGHT_CLASS}`}>
         <TeknofestNav action={action} />
         <div className="flex flex-1 flex-col">{children}</div>
       </div>

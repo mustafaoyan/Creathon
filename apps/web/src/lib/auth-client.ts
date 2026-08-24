@@ -3,8 +3,10 @@ import { apiClient } from "./api-client";
 
 export type { UserRole, SessionUser };
 
-/** requestedRole is only a hint shown on the admin approval screen — it never
- * assigns the real role. Only "instructor"/"student" are accepted server-side. */
+/** "instructor"/"student" are self-service — passing one activates that role
+ * immediately on first login. Omit requestedRole for content_creator/admin
+ * candidates: the account is created as pending and an existing admin must
+ * assign the real role from the Kullanıcı Yönetimi panel. */
 export function getGoogleLoginUrl(requestedRole?: "instructor" | "student") {
   return requestedRole ? `/api/auth/google?role=${requestedRole}` : "/api/auth/google";
 }

@@ -45,6 +45,14 @@ export function LoginPage() {
             <RoleLoginCard role="instructor" primary />
             <RoleLoginCard role="student" />
           </div>
+
+          <a
+            href={getGoogleLoginUrl()}
+            className="cursor-pointer text-center text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+          >
+            İçerik Uzmanı veya Eğitim Yöneticisi misin? Buradan giriş yap — hesabın onay için
+            yöneticiye düşer.
+          </a>
         </div>
       )}
     </div>

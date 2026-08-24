@@ -1,10 +1,12 @@
 import { RoleGuardedLayout } from "@/components/layout/RoleGuardedLayout";
+import { HomePage } from "@/features/home/HomePage";
 import { resolveRoute } from "./router";
 import type { SessionUser } from "@/lib/auth-client";
 
 export function App({ url, initialUser }: { url: string; initialUser: SessionUser | null }) {
   const route = resolveRoute(url);
   const Page = route?.component;
+  const isHome = url === "/";
 
   return (
     <html lang="tr">
@@ -20,9 +22,13 @@ export function App({ url, initialUser }: { url: string; initialUser: SessionUse
       </head>
       <body>
         <div id="root">
-          <RoleGuardedLayout user={initialUser} requiredRoles={route?.roles ?? []}>
-            {Page ? <Page /> : <NotFound />}
-          </RoleGuardedLayout>
+          {isHome ? (
+            <HomePage user={initialUser} />
+          ) : (
+            <RoleGuardedLayout user={initialUser} requiredRoles={route?.roles ?? []}>
+              {Page ? <Page /> : <NotFound />}
+            </RoleGuardedLayout>
+          )}
         </div>
       </body>
     </html>

@@ -66,7 +66,7 @@ export function CreateExamPage() {
 
   if (createdExamId) {
     return (
-      <div className="flex max-w-lg flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
         <h1 className="text-xl font-bold">Sınavı Yayınla ve Öğrenci Ata</h1>
         <p className="text-sm text-muted-foreground">{status}</p>
 
@@ -96,7 +96,7 @@ export function CreateExamPage() {
   }
 
   return (
-    <div className="flex max-w-lg flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-4">
       <h1 className="text-xl font-bold">Yeni Sınav Oluştur</h1>
       <input
         className="rounded-md border border-input px-3 py-2"

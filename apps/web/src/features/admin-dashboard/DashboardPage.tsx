@@ -16,6 +16,8 @@ type AuditEntry = {
   createdAt: string;
 };
 
+type OutcomeStat = { outcomeId: string; title: string; averageScore: number; sampleSize: number };
+
 const ROLE_VIEWS = [
   { href: "/content/upload", label: "İçerik Uzmanı gözüyle" },
   { href: "/exams/new", label: "Eğitmen gözüyle" },
@@ -25,10 +27,12 @@ const ROLE_VIEWS = [
 export function DashboardPage() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [auditLog, setAuditLog] = useState<AuditEntry[] | null>(null);
+  const [outcomes, setOutcomes] = useState<OutcomeStat[] | null>(null);
 
   useEffect(() => {
     apiClient.get<Dashboard>("/api/reporting/dashboard").then(setData);
     apiClient.get<{ entries: AuditEntry[] }>("/api/reporting/audit-log").then((res) => setAuditLog(res.entries));
+    apiClient.get<{ outcomes: OutcomeStat[] }>("/api/reporting/outcomes").then((res) => setOutcomes(res.outcomes));
   }, []);
 
   if (!data) return <p className="text-muted-foreground">Yükleniyor...</p>;
@@ -72,6 +76,22 @@ export function DashboardPage() {
               {view.label}
             </a>
           ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="mb-2 text-lg font-semibold">Öğrenme Çıktıları (Sınıf Geneli)</h2>
+        <p className="mb-3 text-sm text-muted-foreground">En zayıf kazanımlar üstte — sadece değerlendirilmiş yanıtlar sayılır.</p>
+        <div className="flex flex-col gap-1.5">
+          {(outcomes ?? []).map((outcome) => (
+            <div key={outcome.outcomeId} className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm">
+              <span>{outcome.title}</span>
+              <span className={outcome.averageScore < 60 ? "font-semibold text-destructive" : "font-semibold text-primary"}>
+                {outcome.averageScore.toFixed(0)} / 100 ({outcome.sampleSize} yanıt)
+              </span>
+            </div>
+          ))}
+          {outcomes?.length === 0 && <p className="text-muted-foreground">Henüz değerlendirilmiş yanıt yok.</p>}
         </div>
       </div>
 

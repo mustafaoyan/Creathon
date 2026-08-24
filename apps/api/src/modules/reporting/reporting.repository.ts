@@ -68,6 +68,24 @@ export const reportingRepository = {
       .where(eq(examAssignments.studentId, studentId));
   },
 
+  /** Same shape as studentOutcomeRows but across every student — for the admin's
+   * class-wide "hangi kazanımlar zayıf/güçlü" view. */
+  classOutcomeRows(db: Database) {
+    return db
+      .select({
+        outcomeId: learningOutcomes.id,
+        outcomeTitle: learningOutcomes.title,
+        questionType: questions.type,
+        isCorrect: questionOptions.isCorrect,
+        finalScore: finalGrades.score,
+      })
+      .from(studentAnswers)
+      .innerJoin(questions, eq(questions.id, studentAnswers.questionId))
+      .innerJoin(learningOutcomes, eq(learningOutcomes.id, questions.learningOutcomeId))
+      .leftJoin(finalGrades, eq(finalGrades.studentAnswerId, studentAnswers.id))
+      .leftJoin(questionOptions, eq(questionOptions.id, studentAnswers.selectedOptionId));
+  },
+
   /** Login/logout trail for the admin's audit view — newest first. */
   recentAuditLogs(db: Database, limit: number) {
     return db

@@ -5,23 +5,37 @@ import { requireAuth, SESSION_COOKIE_NAME } from "../../shared/middleware/auth";
 import { HttpError } from "../../shared/middleware/error-handler";
 import { createDb } from "../../shared/db/client";
 import { newId } from "../../shared/lib/id";
+import { USER_ROLES, type UserRole } from "../../shared/db/schema";
 import { usersRepository } from "../users/users.repository";
 import { authService } from "./auth.service";
 
 export const authRoutes = new Hono<AppEnv>();
 
 const OAUTH_STATE_COOKIE = "rubrix_oauth_state";
+const OAUTH_REQUESTED_ROLE_COOKIE = "rubrix_oauth_requested_role";
 const POST_LOGIN_REDIRECT = "/"; // SSR web app is served same-origin behind the same domain
+
+// Only these two are choosable from the public login screen — content_creator/admin are assigned internally.
+const REQUESTABLE_ROLES: UserRole[] = ["instructor", "student"];
 
 authRoutes.get("/google", (c) => {
   const state = newId("state");
-  setCookie(c, OAUTH_STATE_COOKIE, state, {
+  const requestedRole = c.req.query("role");
+  const cookieOpts = {
     httpOnly: true,
     maxAge: 600,
-    sameSite: "Lax",
+    sameSite: "Lax" as const,
     secure: c.env.SESSION_COOKIE_SECURE === "true",
     path: "/",
-  });
+  };
+
+  setCookie(c, OAUTH_STATE_COOKIE, state, cookieOpts);
+  if (requestedRole && REQUESTABLE_ROLES.includes(requestedRole as UserRole)) {
+    setCookie(c, OAUTH_REQUESTED_ROLE_COOKIE, requestedRole, cookieOpts);
+  } else {
+    deleteCookie(c, OAUTH_REQUESTED_ROLE_COOKIE, { path: "/" });
+  }
+
   return c.redirect(authService.buildLoginUrl(c.env, state));
 });
 
@@ -34,8 +48,15 @@ authRoutes.get("/google/callback", async (c) => {
     throw new HttpError(400, "invalid_oauth_state");
   }
 
-  const { sessionId } = await authService.handleGoogleCallback(c.env, code);
+  const requestedRoleCookie = getCookie(c, OAUTH_REQUESTED_ROLE_COOKIE);
+  const requestedRole =
+    requestedRoleCookie && USER_ROLES.includes(requestedRoleCookie as UserRole)
+      ? (requestedRoleCookie as UserRole)
+      : null;
+
+  const { sessionId } = await authService.handleGoogleCallback(c.env, code, requestedRole);
   deleteCookie(c, OAUTH_STATE_COOKIE, { path: "/" });
+  deleteCookie(c, OAUTH_REQUESTED_ROLE_COOKIE, { path: "/" });
   setCookie(c, SESSION_COOKIE_NAME, sessionId, {
     httpOnly: true,
     sameSite: "Lax",

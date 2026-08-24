@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { SessionUser, UserRole } from "@/lib/auth-client";
-import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
 export function RoleGuardedLayout({
@@ -20,8 +19,8 @@ export function RoleGuardedLayout({
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p>Bu sayfayı görüntülemek için giriş yapmalısın.</p>
-        <a href={getGoogleLoginUrl()}>
-          <Button>Google ile Giriş Yap</Button>
+        <a href="/login">
+          <Button>Giriş Yap</Button>
         </a>
       </div>
     );
@@ -42,8 +41,11 @@ export function RoleGuardedLayout({
 
   return (
     <div className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-border px-6 py-3">
-        <span className="font-bold">RubriX</span>
+      <header className="flex items-center justify-between border-b-2 border-primary px-6 py-3">
+        <span className="flex items-center gap-2 font-bold">
+          <span className="inline-block h-4 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+          RubriX
+        </span>
         <span className="text-sm text-muted-foreground">
           {user.name} · {user.role}
         </span>

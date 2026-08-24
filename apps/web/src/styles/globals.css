@@ -1,45 +1,51 @@
 @import "tailwindcss";
 
+/* TEKNOFEST/T3 Vakfı kırmızısı — tek accent, tüm ekranlarda tutarlı. */
 @theme {
   --color-border: hsl(0 0% 89.8%);
   --color-input: hsl(0 0% 89.8%);
-  --color-ring: hsl(0 0% 3.9%);
+  --color-ring: hsl(355 85% 46%);
   --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(0 0% 3.9%);
-  --color-primary: hsl(0 0% 9%);
-  --color-primary-foreground: hsl(0 0% 98%);
+  --color-foreground: hsl(215 30% 12%);
+  --color-primary: hsl(355 85% 46%);
+  --color-primary-foreground: hsl(0 0% 100%);
   --color-secondary: hsl(0 0% 96.1%);
-  --color-secondary-foreground: hsl(0 0% 9%);
+  --color-secondary-foreground: hsl(215 30% 12%);
   --color-muted: hsl(0 0% 96.1%);
-  --color-muted-foreground: hsl(0 0% 45.1%);
-  --color-accent: hsl(0 0% 96.1%);
-  --color-accent-foreground: hsl(0 0% 9%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-muted-foreground: hsl(215 12% 42%);
+  --color-accent: hsl(355 85% 96%);
+  --color-accent-foreground: hsl(355 85% 30%);
+  --color-destructive: hsl(24 90% 50%);
+  --color-destructive-foreground: hsl(0 0% 100%);
   --radius: 0.5rem;
 }
 
 @media (prefers-color-scheme: dark) {
   @theme {
-    --color-border: hsl(0 0% 14.9%);
-    --color-input: hsl(0 0% 14.9%);
-    --color-ring: hsl(0 0% 83.1%);
-    --color-background: hsl(0 0% 3.9%);
-    --color-foreground: hsl(0 0% 98%);
-    --color-primary: hsl(0 0% 98%);
-    --color-primary-foreground: hsl(0 0% 9%);
-    --color-secondary: hsl(0 0% 14.9%);
-    --color-secondary-foreground: hsl(0 0% 98%);
-    --color-muted: hsl(0 0% 14.9%);
-    --color-muted-foreground: hsl(0 0% 63.9%);
-    --color-accent: hsl(0 0% 14.9%);
-    --color-accent-foreground: hsl(0 0% 98%);
-    --color-destructive: hsl(0 62.8% 30.6%);
-    --color-destructive-foreground: hsl(0 0% 98%);
+    --color-border: hsl(215 20% 20%);
+    --color-input: hsl(215 20% 20%);
+    --color-ring: hsl(355 90% 58%);
+    --color-background: hsl(215 30% 8%);
+    --color-foreground: hsl(0 0% 96%);
+    --color-primary: hsl(355 90% 58%);
+    --color-primary-foreground: hsl(0 0% 100%);
+    --color-secondary: hsl(215 20% 16%);
+    --color-secondary-foreground: hsl(0 0% 96%);
+    --color-muted: hsl(215 20% 16%);
+    --color-muted-foreground: hsl(215 10% 65%);
+    --color-accent: hsl(355 50% 20%);
+    --color-accent-foreground: hsl(355 90% 85%);
+    --color-destructive: hsl(24 90% 55%);
+    --color-destructive-foreground: hsl(0 0% 100%);
   }
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
+}
+
+/* Her ekranda metinler ortalı — form alanlarına dokunmuyor (yazma UX'i bozulmasın). */
+h1, h2, h3, h4, h5, h6, p, label {
+  text-align: center;
 }

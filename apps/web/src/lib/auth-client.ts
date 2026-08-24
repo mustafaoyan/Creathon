@@ -3,8 +3,10 @@ import { apiClient } from "./api-client";
 
 export type { UserRole, SessionUser };
 
-export function getGoogleLoginUrl() {
-  return "/api/auth/google";
+/** requestedRole is only a hint shown on the admin approval screen — it never
+ * assigns the real role. Only "instructor"/"student" are accepted server-side. */
+export function getGoogleLoginUrl(requestedRole?: "instructor" | "student") {
+  return requestedRole ? `/api/auth/google?role=${requestedRole}` : "/api/auth/google";
 }
 
 export function fetchCurrentUser() {

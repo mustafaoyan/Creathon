@@ -16,7 +16,13 @@ export const usersRepository = {
 
   async createFromGoogle(
     db: Database,
-    profile: { googleId: string; email: string; name: string; avatarUrl?: string | null },
+    profile: {
+      googleId: string;
+      email: string;
+      name: string;
+      avatarUrl?: string | null;
+      requestedRole?: UserRole | null;
+    },
   ) {
     const id = newId("user");
     const now = new Date();
@@ -27,6 +33,7 @@ export const usersRepository = {
       name: profile.name,
       avatarUrl: profile.avatarUrl ?? null,
       role: null,
+      requestedRole: profile.requestedRole ?? null,
       status: "pending",
       createdAt: now,
       updatedAt: now,

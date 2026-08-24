@@ -3,7 +3,14 @@ import { USER_ROLES, type UserRole, type UserStatus } from "@rubrix/shared-types
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
-type UserRow = { id: string; name: string; email: string; role: UserRole | null; status: UserStatus };
+type UserRow = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole | null;
+  requestedRole: UserRole | null;
+  status: UserStatus;
+};
 
 const ROLE_LABELS: Record<UserRole, string> = {
   content_creator: "İçerik Uzmanı",
@@ -45,6 +52,9 @@ export function UserManagementPage() {
               <p className="text-sm text-muted-foreground">
                 {user.email} · {user.status}
               </p>
+              {user.requestedRole && !user.role && (
+                <p className="text-sm text-primary">İstenen rol: {ROLE_LABELS[user.requestedRole]}</p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <select

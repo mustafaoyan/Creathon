@@ -5,6 +5,11 @@ import { cloudflare } from "@cloudflare/vite-plugin";
 import path from "node:path";
 
 export default defineConfig({
+  environments: {
+    // Named "manifest.json" (not the default ".vite/manifest.json") so it isn't
+    // treated as a dotfile by anything that skips hidden paths when uploading assets.
+    client: { build: { manifest: "manifest.json" } },
+  },
   plugins: [
     react(),
     tailwindcss(),

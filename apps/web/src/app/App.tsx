@@ -3,7 +3,18 @@ import { HomePage } from "@/features/home/HomePage";
 import { resolveRoute } from "./router";
 import type { SessionUser } from "@/lib/auth-client";
 
-export function App({ url, initialUser }: { url: string; initialUser: SessionUser | null }) {
+export function App({
+  url,
+  initialUser,
+  clientAssets,
+}: {
+  url: string;
+  initialUser: SessionUser | null;
+  /** Resolved once per request in worker/index.tsx — literal `/src/...` paths in dev
+   * (Vite's dev server transforms them), hashed `/assets/...` paths in production
+   * (read from the built manifest, since `vite build` never emits the source paths). */
+  clientAssets: { script: string; css: string[] };
+}) {
   const route = resolveRoute(url);
   const Page = route?.component;
   const isHome = url === "/";
@@ -14,10 +25,14 @@ export function App({ url, initialUser }: { url: string; initialUser: SessionUse
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>RubriX</title>
-        <link rel="stylesheet" href="/src/styles/globals.css" />
+        {clientAssets.css.map((href) => (
+          <link key={href} rel="stylesheet" href={href} />
+        ))}
         <script
-          // Hydration needs the exact same user object the server rendered with.
-          dangerouslySetInnerHTML={{ __html: `window.__INITIAL_USER__ = ${JSON.stringify(initialUser)};` }}
+          // Hydration needs the exact same user + asset paths the server rendered with.
+          dangerouslySetInnerHTML={{
+            __html: `window.__INITIAL_USER__ = ${JSON.stringify(initialUser)}; window.__CLIENT_ASSETS__ = ${JSON.stringify(clientAssets)};`,
+          }}
         />
       </head>
       <body>

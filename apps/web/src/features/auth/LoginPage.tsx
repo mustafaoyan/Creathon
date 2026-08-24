@@ -41,8 +41,8 @@ export function LoginPage() {
             <p className="text-muted-foreground">Hangi rolle giriş yapmak istiyorsun?</p>
           </div>
 
-          <div className="grid w-full max-w-3xl gap-6 sm:grid-cols-2">
-            <RoleLoginCard role="instructor" />
+          <div className="flex w-full max-w-xl flex-col gap-6">
+            <RoleLoginCard role="instructor" primary />
             <RoleLoginCard role="student" />
           </div>
         </div>
@@ -90,24 +90,30 @@ function HeroCarousel() {
   );
 }
 
-function RoleLoginCard({ role }: { role: Role }) {
+function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
   const [showT3Notice, setShowT3Notice] = useState(false);
   const copy = ROLE_COPY[role];
 
   return (
-    <div className="flex flex-col items-center gap-4 rounded-lg border-2 border-border bg-secondary/40 p-6">
+    <div
+      className={`flex flex-col items-center gap-4 rounded-lg p-6 transition-shadow ${
+        primary
+          ? "border-2 border-primary bg-secondary/60 shadow-lg shadow-primary/10"
+          : "border-2 border-border bg-secondary/30"
+      }`}
+    >
       <div className="flex flex-col items-center gap-1">
-        <h2 className="text-lg font-semibold">{copy.title}</h2>
+        <h2 className={primary ? "text-xl font-bold" : "text-lg font-semibold"}>{copy.title}</h2>
         <p className="text-sm text-muted-foreground">{copy.description}</p>
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        <a href={getGoogleLoginUrl(role)} className="w-full">
-          <Button className="w-full">Google ile Giriş Yap</Button>
-        </a>
         <Button variant="outline" className="w-full" onClick={() => setShowT3Notice(true)}>
-          T3 Hesabıyla Giriş Yap
+          T3 Hesabı ile Giriş Yap
         </Button>
+        <a href={getGoogleLoginUrl(role)} className="w-full">
+          <Button className="w-full">Google Hesabı ile Giriş Yap</Button>
+        </a>
       </div>
 
       {showT3Notice && (

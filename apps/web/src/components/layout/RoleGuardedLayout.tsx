@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { SessionUser, UserRole } from "@/lib/auth-client";
 import { logout } from "@/lib/auth-client";
 import { TeknofestNav, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
+import { Sidebar } from "@/components/layout/Sidebar";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   content_creator: "İçerik Uzmanı",
@@ -65,21 +66,48 @@ export function RoleGuardedLayout({
     );
   }
 
+  return <AuthenticatedLayout user={user} viewingAsAdmin={viewingAsAdmin} requiredRoles={requiredRoles}>{children}</AuthenticatedLayout>;
+}
+
+function AuthenticatedLayout({
+  user,
+  viewingAsAdmin,
+  requiredRoles,
+  children,
+}: {
+  user: SessionUser;
+  viewingAsAdmin: boolean;
+  requiredRoles: UserRole[];
+  children: ReactNode;
+}) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <Backdrop action={{ label: "ÇIKIŞ YAP", onClick: handleLogout }}>
-      {viewingAsAdmin && (
-        <div className="bg-accent px-6 py-1.5 text-xs font-medium text-accent-foreground">
-          Yönetici olarak görüntülüyorsun — bu ekran normalde şu role özel:{" "}
-          {requiredRoles.map((role) => ROLE_LABELS[role]).join(", ")}.
+    <div
+      className="flex min-h-screen flex-col bg-fixed bg-cover bg-center"
+      style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}
+    >
+      <div className="flex min-h-screen flex-1 flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75">
+        <TeknofestNav action={{ label: "ÇIKIŞ YAP", onClick: handleLogout }} />
+        <Sidebar user={user} open={sidebarOpen} onOpenChange={setSidebarOpen} />
+        <div
+          className={`flex flex-1 flex-col transition-[margin] duration-300 ${sidebarOpen ? "ml-64" : "ml-0"}`}
+        >
+          {viewingAsAdmin && (
+            <div className="bg-accent px-6 py-1.5 text-xs font-medium text-accent-foreground">
+              Yönetici olarak görüntülüyorsun — bu ekran normalde şu role özel:{" "}
+              {requiredRoles.map((role) => ROLE_LABELS[role]).join(", ")}.
+            </div>
+          )}
+          <div className="px-6 pt-3 text-right text-sm text-white/80">
+            {user.name} · {ROLE_LABELS[user.role as UserRole]}
+          </div>
+          <main className="flex-1 p-6">
+            <div className="mx-auto max-w-5xl rounded-lg bg-background p-6 shadow-2xl">{children}</div>
+          </main>
         </div>
-      )}
-      <div className="px-6 pt-3 text-right text-sm text-white/80">
-        {user.name} · {ROLE_LABELS[user.role as UserRole]}
       </div>
-      <main className="flex-1 p-6">
-        <div className="mx-auto max-w-5xl rounded-lg bg-background p-6 shadow-2xl">{children}</div>
-      </main>
-    </Backdrop>
+    </div>
   );
 }
 

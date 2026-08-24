@@ -84,12 +84,22 @@ apps/web/src/
   `@cloudflare/workers-types@5.x`, `vite@6.4.3`, `@vitejs/plugin-react@4.7.0`). Her iki worker'ın
   `wrangler.jsonc`'u `wrangler types` ile offline doğrulandı, `auxiliaryWorkers` service-binding
   kurulumu değişmeden çalışıyor.
+- Gerçek Cloudflare kaynakları oluşturuldu: `rubrix-db` (D1, `database_id` `apps/api/wrangler.jsonc`'a
+  yazıldı), `rubrix-embeddings` (Vectorize, 1024 boyut/cosine), `rubrix-doc-processing` (Queue)
+  — bkz. commit `b0a630a`. `CF_ACCOUNT_ID` de aynı commit'te placeholder'dan gerçek değere geçti.
+  `rubrix-documents` (R2) o commit'te ödeme yöntemi eksikliği nedeniyle ertelenmişti; 2026-08-24'te
+  hesaba ödeme yöntemi eklenip `wrangler r2 bucket create rubrix-documents` ile oluşturuldu. Dört
+  kaynağın tamamı `wrangler ... list` ve doğrudan Cloudflare API sorgusuyla canlı doğrulandı.
+
+- Google OAuth client'ı gerçek değerlerle bağlandı: `GOOGLE_CLIENT_ID` `apps/api/wrangler.jsonc`'a,
+  `GOOGLE_CLIENT_SECRET` (git'e girmeyen) `apps/api/.dev.vars`'a yazıldı. Redirect URI hâlâ
+  `http://localhost:8787/api/auth/google/callback` (lokal) — prod'a deploy edilince Google Cloud
+  Console'daki OAuth client'a prod URL'nin de authorized redirect URI olarak eklenmesi gerekiyor.
+- `rubrix-gateway` adında gerçek bir Cloudflare AI Gateway oluşturuldu (Cloudflare API üzerinden,
+  2026-08-24) ve `CF_AI_GATEWAY_ID` `apps/api/wrangler.jsonc`'a yazıldı. Artık `wrangler.jsonc`'ta
+  `REPLACE_WITH_*` placeholder kalmadı.
 
 **Bekliyor (henüz yapılmadı):**
-- `apps/api/wrangler.jsonc` ve `apps/web/wrangler.jsonc`'taki placeholder değerler — gerçek
-  Google OAuth client id/secret, Cloudflare account id, AI Gateway id.
-- Gerçek Cloudflare kaynaklarının oluşturulması: `rubrix-db` (D1), `rubrix-documents` (R2),
-  `rubrix-embeddings` (Vectorize), `rubrix-doc-processing` (Queue).
 - Production'a deploy (henüz public domain yok).
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın
   ürettiği runtime type'larına geçiş — şimdilik deprecated ama çalışır durumda, bilinçli olarak

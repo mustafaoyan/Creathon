@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "rubrix-web",
+  "account_id": "4c93a1fdd11680cf952f1bf1c7f8f9b9",
   "main": "src/worker/index.tsx",
   "compatibility_date": "2025-01-01",
   "assets": {

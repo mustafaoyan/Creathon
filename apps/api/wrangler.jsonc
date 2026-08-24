@@ -1,6 +1,9 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "rubrix-api",
+  // Ekip tek bir Cloudflare hesabını paylaşıyor; birden fazla hesaba erişimi olan
+  // kullanıcılarda wrangler'ın doğru hesabı otomatik seçmesi için sabitlendi.
+  "account_id": "4c93a1fdd11680cf952f1bf1c7f8f9b9",
   "main": "src/index.ts",
   "compatibility_date": "2025-01-01",
   "compatibility_flags": ["nodejs_compat"],

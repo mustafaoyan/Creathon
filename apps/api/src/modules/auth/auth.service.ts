@@ -3,6 +3,7 @@ import type { Bindings } from "../../config/env";
 import { createDb } from "../../shared/db/client";
 import { sessions, type UserRole } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
+import { recordAuditLog } from "../../shared/lib/audit";
 import { usersRepository } from "../users/users.repository";
 import { buildGoogleAuthUrl, exchangeCodeForTokens, fetchGoogleUserInfo } from "./google-oauth";
 
@@ -39,10 +40,30 @@ export const authService = {
       createdAt: now,
     });
 
+    await recordAuditLog(db, {
+      actorId: user.id,
+      action: "user.login",
+      entityType: "user",
+      entityId: user.id,
+      metadata: { email: user.email },
+    });
+
     return { sessionId, user };
   },
 
   async destroySession(env: Bindings, sessionId: string) {
-    await createDb(env.DB).delete(sessions).where(eq(sessions.id, sessionId));
+    const db = createDb(env.DB);
+    const [session] = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+
+    if (session) {
+      await recordAuditLog(db, {
+        actorId: session.userId,
+        action: "user.logout",
+        entityType: "user",
+        entityId: session.userId,
+      });
+    }
+
+    await db.delete(sessions).where(eq(sessions.id, sessionId));
   },
 };

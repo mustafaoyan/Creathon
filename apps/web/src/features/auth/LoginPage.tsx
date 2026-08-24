@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
@@ -17,20 +17,104 @@ const ROLE_COPY: Record<Role, { title: string; description: string }> = {
 
 export function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-10 px-4 py-12">
-      <div className="flex flex-col items-center gap-2">
-        <span className="inline-block h-1.5 w-16 rounded-full bg-primary" />
-        <h1 className="text-3xl font-bold">RubriX</h1>
-        <p className="text-muted-foreground">
-          Yapay Zekâ Destekli Ölçme ve Değerlendirme Sistemi — TEKNOFEST T3 Vakfı
-        </p>
-      </div>
+    <div className="flex min-h-screen flex-col">
+      <TeknofestNav />
+      <HeroCarousel />
 
-      <div className="grid w-full max-w-3xl gap-6 sm:grid-cols-2">
-        <RoleLoginCard role="instructor" />
-        <RoleLoginCard role="student" />
+      <div id="giris" className="flex flex-1 flex-col items-center justify-center gap-10 px-4 py-12">
+        <div className="flex flex-col items-center gap-2">
+          <span className="inline-block h-1.5 w-16 rounded-full bg-primary" />
+          <h1 className="text-3xl font-bold">RubriX</h1>
+          <p className="text-muted-foreground">
+            Yapay Zekâ Destekli Ölçme ve Değerlendirme Sistemi — TEKNOFEST T3 Vakfı
+          </p>
+        </div>
+
+        <div className="grid w-full max-w-3xl gap-6 sm:grid-cols-2">
+          <RoleLoginCard role="instructor" />
+          <RoleLoginCard role="student" />
+        </div>
       </div>
     </div>
+  );
+}
+
+function TeknofestNav() {
+  return (
+    <nav className="rbx-starfield bg-gradient-to-r from-[#050b24] via-[#0b1f4d] to-[#123a7a] px-6 py-4 text-white">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+        <span className="flex items-center gap-2 text-lg font-extrabold tracking-wide">
+          <span aria-hidden="true">🚀</span> RUBRIX
+        </span>
+        <div className="hidden items-center gap-6 text-sm font-semibold sm:flex">
+          <a href="#nedir" className="hover:text-primary">
+            RUBRIX NEDİR
+          </a>
+          <a href="#roller" className="hover:text-primary">
+            ROLLER
+          </a>
+        </div>
+        <div className="flex items-center gap-3">
+          <a
+            href="#giris"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow hover:bg-primary/90"
+          >
+            GİRİŞ YAP 🚀
+          </a>
+          <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold">2026</span>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+// TODO: gerçek TEKNOFEST / sınav fotoğrafları geldiğinde bu diziyi
+// `background-image: url("/hero/<dosya>.jpg")` şeklinde değiştir.
+const HERO_SLIDES = [
+  "linear-gradient(135deg, #050b24, #123a7a)",
+  "linear-gradient(135deg, #0b1f4d, #1f56b3)",
+  "linear-gradient(135deg, #071233, #2a6fd6)",
+  "linear-gradient(135deg, #0b1330, #163d82)",
+];
+
+const HERO_QUOTES = [
+  "Bilgiyi ölçmek değil, öğrenmeyi anlamak.",
+  "Her soru bir kazanımı, her kazanım bir geleceği şekillendirir.",
+  "Yapay zekâ önerir, kararı eğitmen verir.",
+  "TEKNOFEST ruhuyla, sınıfın ötesinde bir değerlendirme deneyimi.",
+];
+
+const SLIDE_SECONDS = 4;
+
+function HeroCarousel() {
+  const cycleStyle = { "--rbx-cycle": `${HERO_SLIDES.length * SLIDE_SECONDS}s` } as CSSProperties;
+
+  return (
+    <section
+      className="relative isolate flex min-h-[320px] items-center justify-center overflow-hidden text-white sm:min-h-[400px]"
+      style={cycleStyle}
+    >
+      {HERO_SLIDES.map((gradient, index) => (
+        <div
+          key={gradient}
+          className="rbx-hero-slide"
+          style={{ backgroundImage: gradient, animationDelay: `${index * SLIDE_SECONDS}s` }}
+        />
+      ))}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+
+      <div className="relative z-10 h-16 w-full max-w-2xl px-6 sm:h-14">
+        {HERO_QUOTES.map((quote, index) => (
+          <p
+            key={quote}
+            className="rbx-hero-quote text-xl font-semibold text-white sm:text-2xl"
+            style={{ animationDelay: `${index * SLIDE_SECONDS}s` }}
+          >
+            “{quote}”
+          </p>
+        ))}
+      </div>
+    </section>
   );
 }
 

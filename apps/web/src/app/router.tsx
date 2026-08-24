@@ -24,6 +24,7 @@ export const ROUTES: AppRoute[] = [
   { path: "/exams/grading", component: GradingReviewPage, roles: ["instructor"] },
   { path: "/exams/take", component: ExamRunnerPage, roles: ["student"] },
   { path: "/dashboard", component: DashboardPage, roles: ["admin"] },
+  { path: "/admin", component: DashboardPage, roles: ["admin"] },
   { path: "/admin/users", component: UserManagementPage, roles: ["admin"] },
 ];
 

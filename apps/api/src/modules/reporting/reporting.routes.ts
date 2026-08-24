@@ -21,3 +21,8 @@ reportingRoutes.get("/students/:id/outcomes", requireRole("admin", "instructor",
   }
   return c.json({ outcomes: await reportingService.studentOutcomeBreakdown(c.env, targetId) });
 });
+
+// Giriş/çıkış denetim kaydı — sadece admin.
+reportingRoutes.get("/audit-log", requireRole("admin"), async (c) => {
+  return c.json({ entries: await reportingService.auditLog(c.env) });
+});

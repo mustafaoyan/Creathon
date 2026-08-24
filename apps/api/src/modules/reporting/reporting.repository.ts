@@ -1,4 +1,4 @@
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, desc } from "drizzle-orm";
 import type { Database } from "../../shared/db/client";
 import {
   examAssignments,
@@ -9,6 +9,8 @@ import {
   studentAnswers,
   examAttempts,
   questionOptions,
+  auditLogs,
+  users,
 } from "../../shared/db/schema";
 
 export const reportingRepository = {
@@ -64,5 +66,25 @@ export const reportingRepository = {
       .leftJoin(finalGrades, eq(finalGrades.studentAnswerId, studentAnswers.id))
       .leftJoin(questionOptions, eq(questionOptions.id, studentAnswers.selectedOptionId))
       .where(eq(examAssignments.studentId, studentId));
+  },
+
+  /** Login/logout trail for the admin's audit view — newest first. */
+  recentAuditLogs(db: Database, limit: number) {
+    return db
+      .select({
+        id: auditLogs.id,
+        action: auditLogs.action,
+        entityType: auditLogs.entityType,
+        entityId: auditLogs.entityId,
+        metadata: auditLogs.metadata,
+        createdAt: auditLogs.createdAt,
+        actorName: users.name,
+        actorEmail: users.email,
+        actorRole: users.role,
+      })
+      .from(auditLogs)
+      .innerJoin(users, eq(users.id, auditLogs.actorId))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(limit);
   },
 };

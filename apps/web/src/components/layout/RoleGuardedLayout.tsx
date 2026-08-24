@@ -2,6 +2,13 @@ import type { ReactNode } from "react";
 import type { SessionUser, UserRole } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
+const ROLE_LABELS: Record<UserRole, string> = {
+  content_creator: "İçerik Uzmanı",
+  instructor: "Eğitmen",
+  student: "Öğrenci",
+  admin: "Eğitim Yöneticisi",
+};
+
 export function RoleGuardedLayout({
   user,
   requiredRoles,
@@ -26,7 +33,13 @@ export function RoleGuardedLayout({
     );
   }
 
-  if (user.status !== "active" || !user.role || !requiredRoles.includes(user.role)) {
+  const isActive = user.status === "active" && !!user.role;
+  // Admin can browse every role's screens ("eğitmen gözüyle / öğrenci gözüyle") without a
+  // separate login — everyone else still needs their own role in requiredRoles.
+  const viewingAsAdmin = isActive && user.role === "admin" && !requiredRoles.includes("admin");
+  const hasAccess = isActive && (requiredRoles.includes(user.role as UserRole) || viewingAsAdmin);
+
+  if (!hasAccess) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-center">
         <p className="text-lg font-semibold">Erişim yetkiniz yok</p>
@@ -41,6 +54,12 @@ export function RoleGuardedLayout({
 
   return (
     <div className="min-h-screen">
+      {viewingAsAdmin && (
+        <div className="bg-accent px-6 py-1.5 text-xs font-medium text-accent-foreground">
+          Yönetici olarak görüntülüyorsun — bu ekran normalde şu role özel:{" "}
+          {requiredRoles.map((role) => ROLE_LABELS[role]).join(", ")}.
+        </div>
+      )}
       <header className="flex items-center justify-between border-b-2 border-primary px-6 py-3">
         <span className="flex items-center gap-2 font-bold">
           <span className="inline-block h-4 w-1.5 rounded-full bg-primary" aria-hidden="true" />

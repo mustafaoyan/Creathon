@@ -41,4 +41,8 @@ export const reportingService = {
       sampleSize: scores.length,
     }));
   },
+
+  auditLog(env: Bindings, limit = 50) {
+    return reportingRepository.recentAuditLogs(createDb(env.DB), limit);
+  },
 };

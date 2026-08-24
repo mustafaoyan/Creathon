@@ -86,9 +86,12 @@ export const examsRepository = {
         examId: examAssignments.examId,
         status: examAssignments.status,
         title: exams.title,
+        totalScore: examAttempts.totalScore,
+        submittedAt: examAttempts.submittedAt,
       })
       .from(examAssignments)
       .innerJoin(exams, eq(exams.id, examAssignments.examId))
+      .leftJoin(examAttempts, eq(examAttempts.examAssignmentId, examAssignments.id))
       .where(eq(examAssignments.studentId, studentId));
   },
 

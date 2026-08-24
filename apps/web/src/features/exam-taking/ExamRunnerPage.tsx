@@ -2,7 +2,21 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
-type Assignment = { id: string; examId: string; title: string; status: string };
+type Assignment = {
+  id: string;
+  examId: string;
+  title: string;
+  status: string;
+  totalScore: number | null;
+  submittedAt: string | null;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  assigned: "Atandı",
+  in_progress: "Devam ediyor",
+  submitted: "Gönderildi — açık uçlu sorular değerlendiriliyor",
+  graded: "Değerlendirildi",
+};
 type ExamOption = { id: string; label: string; body: string };
 type ExamQuestion = {
   id: string;
@@ -84,9 +98,17 @@ export function ExamRunnerPage() {
       <h1 className="text-xl font-bold">Atanan Sınavlarım</h1>
       {assignments.map((assignment) => (
         <div key={assignment.id} className="flex items-center justify-between rounded-md border border-border p-4">
-          <span>
-            {assignment.title} — {assignment.status}
-          </span>
+          <div>
+            <p>{assignment.title}</p>
+            <p className="text-sm text-muted-foreground">{STATUS_LABELS[assignment.status] ?? assignment.status}</p>
+            {(assignment.status === "submitted" || assignment.status === "graded") &&
+              assignment.totalScore !== null && (
+                <p className="text-sm font-semibold text-primary">
+                  Puan: {assignment.totalScore.toFixed(1)}
+                  {assignment.status === "submitted" && " (kısmi — açık uçlu sorular onaylanınca güncellenecek)"}
+                </p>
+              )}
+          </div>
           {assignment.status === "assigned" || assignment.status === "in_progress" ? (
             <Button size="sm" onClick={() => start(assignment.examId)}>
               Sınava Başla

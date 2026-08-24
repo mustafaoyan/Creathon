@@ -3,12 +3,16 @@ import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { TeknofestNav } from "@/components/layout/TeknofestNav";
 
-type Role = "instructor" | "student";
+type Role = "content_creator" | "instructor" | "student";
 
 const ROLE_COPY: Record<Role, { title: string; description: string }> = {
   instructor: {
     title: "Eğitmen Girişi",
     description: "Sınav oluştur, soru havuzunu onayla, AI puanlamalarını değerlendir.",
+  },
+  content_creator: {
+    title: "İçerik Uzmanı Girişi",
+    description: "Kaynak içerik yükle, kazanım tanımla, soru ve rubrik havuzunu oluştur.",
   },
   student: {
     title: "Öğrenci Girişi",
@@ -43,16 +47,9 @@ export function LoginPage() {
 
           <div className="flex w-full max-w-xl flex-col gap-6">
             <RoleLoginCard role="instructor" primary />
+            <RoleLoginCard role="content_creator" />
             <RoleLoginCard role="student" />
           </div>
-
-          <a
-            href={getGoogleLoginUrl()}
-            className="cursor-pointer text-center text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
-          >
-            İçerik Uzmanı veya Eğitim Yöneticisi misin? Buradan giriş yap — hesabın onay için
-            yöneticiye düşer.
-          </a>
         </div>
       )}
     </div>

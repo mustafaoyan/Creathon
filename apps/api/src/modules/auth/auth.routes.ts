@@ -16,7 +16,7 @@ const OAUTH_REQUESTED_ROLE_COOKIE = "rubrix_oauth_requested_role";
 const POST_LOGIN_REDIRECT = "/"; // SSR web app is served same-origin behind the same domain
 
 // Only these two are choosable from the public login screen — content_creator/admin are assigned internally.
-const REQUESTABLE_ROLES: UserRole[] = ["instructor", "student"];
+const REQUESTABLE_ROLES: UserRole[] = ["content_creator", "instructor", "student"];
 
 authRoutes.get("/google", (c) => {
   const state = newId("state");

@@ -3,11 +3,11 @@ import { apiClient } from "./api-client";
 
 export type { UserRole, SessionUser };
 
-/** "instructor"/"student" are self-service — passing one activates that role
- * immediately on first login. Omit requestedRole for content_creator/admin
- * candidates: the account is created as pending and an existing admin must
- * assign the real role from the Kullanıcı Yönetimi panel. */
-export function getGoogleLoginUrl(requestedRole?: "instructor" | "student") {
+/** "content_creator"/"instructor"/"student" are self-service — passing one
+ * activates that role immediately on first login. There is no self-service
+ * entry for "admin": that role is only ever granted to an already-registered
+ * user by an existing admin from the Kullanıcı Yönetimi panel. */
+export function getGoogleLoginUrl(requestedRole?: "content_creator" | "instructor" | "student") {
   return requestedRole ? `/api/auth/google?role=${requestedRole}` : "/api/auth/google";
 }
 

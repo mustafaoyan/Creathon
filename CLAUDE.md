@@ -45,13 +45,19 @@ konuşma geçmişini bilmeyen biri (başka bir makine, başka biri) buradan hız
 `admin` (Eğitim Yöneticisi). Roller birbirinin işini yapamaz (içerik uzmanı sınav oluşturamaz,
 eğitmen soru üretemez, vb.) — bu bir öneri değil, üzerine kod yazılan sabit bir gereksinim.
 
-**Eğitmen/Öğrenci rolleri self-servis, anında aktif** (bilinçli olarak admin-onay akışından
-değiştirildi — kullanıcı test sürecinde onay beklemenin gereksiz sürtünme yarattığını belirtti):
-login ekranında "Eğitmen Girişi" / "Öğrenci Girişi" hangi buton tıklanırsa `requestedRole` o
-olarak Google OAuth'a taşınıyor, `users.repository.ts#createFromGoogle` bu iki rol için
-kullanıcıyı direkt `status: active, role: <talep edilen rol>` ile oluşturuyor — admin onayı yok.
-`content_creator`/`admin` rolleri hâlâ sadece mevcut bir admin tarafından atanabiliyor
-(`PATCH /api/users/:id/role`), self-servis değil.
+**İçerik Uzmanı/Eğitmen/Öğrenci rolleri self-servis, anında aktif** (bilinçli olarak admin-onay
+akışından değiştirildi — kullanıcı test sürecinde onay beklemenin gereksiz sürtünme yarattığını
+belirtti): login ekranında bu 3 rolün her birinin kendi kartı/butonu var, hangisi tıklanırsa
+`requestedRole` o olarak Google OAuth'a taşınıyor, `users.repository.ts#createFromGoogle` bu 3 rol
+için kullanıcıyı direkt `status: active, role: <talep edilen rol>` ile oluşturuyor — admin onayı
+yok, `pending` durumu hiç oluşmuyor.
+
+**`admin` (Eğitim Yöneticisi) hâlâ ve bilinçli olarak self-servis DEĞİL** — login ekranında bu rol
+için hiçbir buton/link yok (tam kontrol yetkisi verdiği için herkese açık olmamalı). Bu role sadece
+mevcut bir admin, zaten var olan aktif bir kullanıcıya panelden (`UserManagementPage.tsx` →
+`PATCH /api/users/:id/role`) sonradan atayabiliyor. Bu tasarımın sonucu: yeni admin adayları için
+ayrı bir public giriş/onay akışı yok — `pending` ekranı artık hiçbir gerçek kullanıcı girişinde
+karşılaşılmıyor.
 
 AI çıktısı (üretilen soru, önerilen puan) **hiçbir zaman doğrudan yayına/nota dönüşmez** —
 her zaman `pending_review`/`ai_evaluation` gibi bir ara durumda insan onayı bekler

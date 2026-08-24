@@ -49,7 +49,7 @@
   //   GOOGLE_CLIENT_SECRET, ANTHROPIC_API_KEY
   "vars": {
     "GOOGLE_CLIENT_ID": "920108344500-e5e30hsr3f6kb9rirpthhkk5ojaq2g30.apps.googleusercontent.com",
-    "GOOGLE_REDIRECT_URI": "http://localhost:8787/api/auth/google/callback",
+    "GOOGLE_REDIRECT_URI": "http://localhost:5173/api/auth/google/callback",
     "SESSION_COOKIE_SECURE": "false",
     "CF_ACCOUNT_ID": "4c93a1fdd11680cf952f1bf1c7f8f9b9",
     "CF_AI_GATEWAY_ID": "rubrix-gateway",

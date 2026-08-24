@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import { TeknofestNav } from "@/components/layout/TeknofestNav";
 
 type Role = "instructor" | "student";
 
@@ -25,7 +26,7 @@ export function LoginPage() {
 
   return (
     <div className="flex flex-col">
-      <TeknofestNav onLoginClick={() => setShowRoles(true)} />
+      <TeknofestNav action={{ label: "GİRİŞ YAP 🚀", onClick: () => setShowRoles(true) }} />
       <HeroCarousel />
 
       {showRoles && (
@@ -47,40 +48,6 @@ export function LoginPage() {
         </div>
       )}
     </div>
-  );
-}
-
-function TeknofestNav({ onLoginClick }: { onLoginClick: () => void }) {
-  return (
-    <nav
-      className="rbx-starfield relative overflow-hidden bg-cover bg-center px-6 py-4 text-white"
-      style={{ backgroundImage: 'url("/hero/space-globe.jpg")' }}
-    >
-      <div className="absolute inset-0 bg-gradient-to-r from-[#050b24]/90 via-[#0b1f4d]/75 to-[#123a7a]/65" />
-      <div className="relative z-10 flex items-center justify-between gap-4">
-        <span className="flex items-center gap-2 text-lg font-extrabold tracking-wide">
-          <span aria-hidden="true">🚀</span> RUBRIX
-        </span>
-        <div className="flex items-center gap-6">
-          <div className="hidden items-center gap-6 text-sm font-semibold sm:flex">
-            <a href="#nedir" className="hover:text-primary">
-              RUBRIX NEDİR
-            </a>
-            <a href="#roller" className="hover:text-primary">
-              ROLLER
-            </a>
-          </div>
-          <button
-            type="button"
-            onClick={onLoginClick}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow hover:bg-primary/90"
-          >
-            GİRİŞ YAP 🚀
-          </button>
-          <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold">2026</span>
-        </div>
-      </div>
-    </nav>
   );
 }
 

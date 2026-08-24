@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { SessionUser, UserRole } from "@/lib/auth-client";
-import { Button } from "@/components/ui/button";
+import { logout } from "@/lib/auth-client";
+import { TeknofestNav, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
 
 const ROLE_LABELS: Record<UserRole, string> = {
   content_creator: "İçerik Uzmanı",
@@ -8,6 +9,11 @@ const ROLE_LABELS: Record<UserRole, string> = {
   student: "Öğrenci",
   admin: "Eğitim Yöneticisi",
 };
+
+async function handleLogout() {
+  await logout();
+  window.location.href = "/login";
+}
 
 export function RoleGuardedLayout({
   user,
@@ -24,12 +30,17 @@ export function RoleGuardedLayout({
 
   if (!user) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-        <p>Bu sayfayı görüntülemek için giriş yapmalısın.</p>
-        <a href="/login">
-          <Button>Giriş Yap</Button>
-        </a>
-      </div>
+      <Backdrop action={{ label: "GİRİŞ YAP 🚀", href: "/login" }}>
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center text-white">
+          <p>Bu sayfayı görüntülemek için giriş yapmalısın.</p>
+          <a
+            href="/login"
+            className="rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow hover:bg-primary/90"
+          >
+            Giriş Yap
+          </a>
+        </div>
+      </Backdrop>
     );
   }
 
@@ -41,35 +52,50 @@ export function RoleGuardedLayout({
 
   if (!hasAccess) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-2 text-center">
-        <p className="text-lg font-semibold">Erişim yetkiniz yok</p>
-        <p className="text-muted-foreground">
-          {user.status === "pending"
-            ? "Hesabınız yönetici onayı bekliyor."
-            : "Bu sayfa için gerekli role sahip değilsiniz."}
-        </p>
-      </div>
+      <Backdrop action={{ label: "ÇIKIŞ YAP", onClick: handleLogout }}>
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-white">
+          <p className="text-lg font-semibold">Erişim yetkiniz yok</p>
+          <p className="text-white/70">
+            {user.status === "pending"
+              ? "Hesabınız yönetici onayı bekliyor."
+              : "Bu sayfa için gerekli role sahip değilsiniz."}
+          </p>
+        </div>
+      </Backdrop>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <Backdrop action={{ label: "ÇIKIŞ YAP", onClick: handleLogout }}>
       {viewingAsAdmin && (
         <div className="bg-accent px-6 py-1.5 text-xs font-medium text-accent-foreground">
           Yönetici olarak görüntülüyorsun — bu ekran normalde şu role özel:{" "}
           {requiredRoles.map((role) => ROLE_LABELS[role]).join(", ")}.
         </div>
       )}
-      <header className="flex items-center justify-between border-b-2 border-primary px-6 py-3">
-        <span className="flex items-center gap-2 font-bold">
-          <span className="inline-block h-4 w-1.5 rounded-full bg-primary" aria-hidden="true" />
-          RubriX
-        </span>
-        <span className="text-sm text-muted-foreground">
-          {user.name} · {user.role}
-        </span>
-      </header>
-      <main className="p-6">{children}</main>
+      <div className="px-6 pt-3 text-right text-sm text-white/80">
+        {user.name} · {ROLE_LABELS[user.role as UserRole]}
+      </div>
+      <main className="flex-1 p-6">
+        <div className="mx-auto max-w-5xl rounded-lg bg-background p-6 shadow-2xl">{children}</div>
+      </main>
+    </Backdrop>
+  );
+}
+
+function Backdrop({
+  action,
+  children,
+}: {
+  action: { label: string; onClick?: () => void; href?: string };
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex min-h-screen flex-col bg-fixed bg-cover bg-center" style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}>
+      <div className="flex min-h-screen flex-1 flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75">
+        <TeknofestNav action={action} />
+        <div className="flex flex-1 flex-col">{children}</div>
+      </div>
     </div>
   );
 }

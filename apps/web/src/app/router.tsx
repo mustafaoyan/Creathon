@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import type { UserRole } from "@/lib/auth-client";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { UploadDocumentPage } from "@/features/content-management/UploadDocumentPage";
+import { LearningOutcomesPage } from "@/features/content-management/LearningOutcomesPage";
 import { QuestionReviewPanel } from "@/features/content-management/QuestionReviewPanel";
 import { CreateExamPage } from "@/features/exam-management/CreateExamPage";
 import { GradingReviewPage } from "@/features/exam-management/GradingReviewPage";
@@ -19,6 +20,7 @@ export type AppRoute = {
 export const ROUTES: AppRoute[] = [
   { path: "/login", component: LoginPage, roles: [] },
   { path: "/content/upload", component: UploadDocumentPage, roles: ["content_creator"] },
+  { path: "/content/outcomes", component: LearningOutcomesPage, roles: ["content_creator"] },
   { path: "/content/review", component: QuestionReviewPanel, roles: ["content_creator", "instructor"] },
   { path: "/exams/new", component: CreateExamPage, roles: ["instructor"] },
   { path: "/exams/grading", component: GradingReviewPage, roles: ["instructor"] },

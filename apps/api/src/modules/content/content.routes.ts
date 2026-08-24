@@ -4,6 +4,7 @@ import { requireAuth } from "../../shared/middleware/auth";
 import { requireRole } from "../../shared/middleware/rbac";
 import { HttpError } from "../../shared/middleware/error-handler";
 import { contentService } from "./content.service";
+import { OUTCOME_LEVELS, type OutcomeLevel } from "../../shared/db/schema";
 
 export const contentRoutes = new Hono<AppEnv>();
 
@@ -34,13 +35,24 @@ contentRoutes.get("/documents", requireRole("content_creator", "instructor", "ad
 });
 
 contentRoutes.post("/learning-outcomes", requireRole("content_creator"), async (c) => {
-  const payload = await c.req.json<{ documentId?: string; title: string; description?: string }>();
+  const payload = await c.req.json<{
+    documentId?: string;
+    title: string;
+    description?: string;
+    topic?: string;
+    level?: string;
+  }>();
   if (!payload.title) throw new HttpError(422, "title_required");
+  if (payload.level && !OUTCOME_LEVELS.includes(payload.level as OutcomeLevel)) {
+    throw new HttpError(422, "invalid_level");
+  }
 
   const id = await contentService.createLearningOutcome(c.env, {
     documentId: payload.documentId ?? null,
     title: payload.title,
     description: payload.description ?? null,
+    topic: payload.topic ?? null,
+    level: (payload.level as OutcomeLevel) ?? null,
     createdBy: c.get("userId"),
   });
 

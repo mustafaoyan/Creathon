@@ -29,11 +29,16 @@ export const documentChunks = sqliteTable("document_chunks", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+export const OUTCOME_LEVELS = ["temel", "orta", "ileri"] as const;
+export type OutcomeLevel = (typeof OUTCOME_LEVELS)[number];
+
 export const learningOutcomes = sqliteTable("learning_outcomes", {
   id: text("id").primaryKey(),
   documentId: text("document_id").references(() => sourceDocuments.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   description: text("description"),
+  topic: text("topic"),
+  level: text("level", { enum: OUTCOME_LEVELS }),
   createdBy: text("created_by")
     .notNull()
     .references(() => users.id),

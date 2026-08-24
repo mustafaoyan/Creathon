@@ -2,6 +2,7 @@ import type { Bindings } from "../../config/env";
 import { createDb } from "../../shared/db/client";
 import { contentRepository } from "./content.repository";
 import { newId } from "../../shared/lib/id";
+import type { OutcomeLevel } from "../../shared/db/schema";
 
 export const contentService = {
   async uploadDocument(env: Bindings, params: { uploadedBy: string; title: string; mimeType: string; body: ArrayBuffer }) {
@@ -29,7 +30,14 @@ export const contentService = {
 
   createLearningOutcome(
     env: Bindings,
-    data: { documentId?: string | null; title: string; description?: string | null; createdBy: string },
+    data: {
+      documentId?: string | null;
+      title: string;
+      description?: string | null;
+      topic?: string | null;
+      level?: OutcomeLevel | null;
+      createdBy: string;
+    },
   ) {
     return contentRepository.createLearningOutcome(createDb(env.DB), data);
   },

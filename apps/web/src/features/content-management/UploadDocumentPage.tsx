@@ -25,7 +25,12 @@ export function UploadDocumentPage() {
 
   return (
     <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-4">
-      <h1 className="text-xl font-bold">Kaynak İçerik Yükle</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">Kaynak İçerik Yükle</h1>
+        <a href="/content/outcomes" className="text-sm font-medium text-primary underline">
+          Kazanım Tanımla
+        </a>
+      </div>
       <input
         className="rounded-md border border-input px-3 py-2"
         placeholder="Başlık"

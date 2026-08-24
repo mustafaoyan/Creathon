@@ -1,6 +1,12 @@
 import { eq, desc } from "drizzle-orm";
 import type { Database } from "../../shared/db/client";
-import { sourceDocuments, documentChunks, learningOutcomes, type DocumentStatus } from "../../shared/db/schema";
+import {
+  sourceDocuments,
+  documentChunks,
+  learningOutcomes,
+  type DocumentStatus,
+  type OutcomeLevel,
+} from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
 
 export const contentRepository = {
@@ -54,7 +60,14 @@ export const contentRepository = {
 
   async createLearningOutcome(
     db: Database,
-    data: { documentId?: string | null; title: string; description?: string | null; createdBy: string },
+    data: {
+      documentId?: string | null;
+      title: string;
+      description?: string | null;
+      topic?: string | null;
+      level?: OutcomeLevel | null;
+      createdBy: string;
+    },
   ) {
     const id = newId("outcome");
     await db.insert(learningOutcomes).values({
@@ -62,6 +75,8 @@ export const contentRepository = {
       documentId: data.documentId ?? null,
       title: data.title,
       description: data.description ?? null,
+      topic: data.topic ?? null,
+      level: data.level ?? null,
       createdBy: data.createdBy,
       createdAt: new Date(),
     });

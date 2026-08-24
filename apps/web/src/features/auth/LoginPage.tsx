@@ -68,7 +68,34 @@ const HERO_SLIDES = [
   { image: 'url("/hero/ai-ecosystem.jpg")', quote: "Teknoloji araçtır, karar hep insanın." },
 ];
 
-const SLIDE_SECONDS = 6;
+const SLIDE_SECONDS = 4;
+
+/** Her slaytın payı 100/N% — sabit yüzde kullanırsak (ör. 2 slayt için ayarlı
+ * bir değer) slayt sayısı değişince pencereler üst üste biner, görsel/yazı
+ * karışır. Bu yüzden keyframe'ler HERO_SLIDES.length'e göre burada hesaplanıp
+ * <style> ile enjekte ediliyor — slayt eklenip çıkarıldıkça kendini ayarlar. */
+function buildCarouselKeyframes(slideCount: number) {
+  const slot = 100 / slideCount;
+  const fade = slot * 0.18;
+  const fadeInEnd = fade.toFixed(2);
+  const holdEnd = (slot - fade).toFixed(2);
+  const slotEnd = slot.toFixed(2);
+
+  return `
+    @keyframes rbx-slide-fade {
+      0% { opacity: 0; }
+      ${fadeInEnd}% { opacity: 1; }
+      ${holdEnd}% { opacity: 1; }
+      ${slotEnd}%, 100% { opacity: 0; }
+    }
+    @keyframes rbx-quote-fade {
+      0% { opacity: 0; transform: translateY(14px); }
+      ${fadeInEnd}% { opacity: 1; transform: translateY(0); }
+      ${holdEnd}% { opacity: 1; transform: translateY(0); }
+      ${slotEnd}%, 100% { opacity: 0; transform: translateY(-14px); }
+    }
+  `;
+}
 
 function HeroCarousel() {
   const cycleStyle = { "--rbx-cycle": `${HERO_SLIDES.length * SLIDE_SECONDS}s` } as CSSProperties;
@@ -78,6 +105,7 @@ function HeroCarousel() {
       className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden text-white"
       style={cycleStyle}
     >
+      <style dangerouslySetInnerHTML={{ __html: buildCarouselKeyframes(HERO_SLIDES.length) }} />
       {HERO_SLIDES.map((slide, index) => (
         <div
           key={slide.image}

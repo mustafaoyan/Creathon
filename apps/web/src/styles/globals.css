@@ -52,8 +52,13 @@ h1, h2, h3, h4, h5, h6, p, label {
 
 /* ---- Giriş ekranı: yıldızlı uzay teması (nav + hero carousel) ---- */
 
+/* position kasıtlı olarak burada YOK: Tailwind v4'te bu dosyadaki katmansız
+   (unlayered) kurallar, @layer utilities içindeki Tailwind utility'lerinin
+   (fixed/sticky/relative) ÖNÜNE geçiyor — position'ı burada tanımlarsak nav'a
+   verilen `fixed` sınıfı görmezden gelinip nav normal akışta kalıyordu (bu
+   yüzden nav "kayboluyor" ya da üstünde boş bir alan oluşuyordu). isolation
+   position gerektirmiyor, güvenle burada kalabilir. */
 .rbx-starfield {
-  position: relative;
   isolation: isolate;
 }
 .rbx-starfield::before {
@@ -100,18 +105,12 @@ h1, h2, h3, h4, h5, h6, p, label {
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
 }
-/* İki öğe (görsel + söz) tam yarım tur kaydırmayla dönüşümlü gösteriliyor —
-   uzun, yumuşak bir crossfade; her an sadece biri görünür, üst üste binmez. */
-@keyframes rbx-slide-fade {
-  0%, 4% { opacity: 0; }
-  14%, 36% { opacity: 1; }
-  46%, 100% { opacity: 0; }
-}
-@keyframes rbx-quote-fade {
-  0%, 4% { opacity: 0; transform: translateY(14px); }
-  14%, 36% { opacity: 1; transform: translateY(0); }
-  46%, 100% { opacity: 0; transform: translateY(-14px); }
-}
+/* rbx-slide-fade / rbx-quote-fade keyframe'leri burada YOK — slayt sayısına
+   (N) göre yüzdeleri değişmesi gerekiyor (her slaytın kendi payı 100/N%),
+   bu yüzden LoginPage.tsx'teki HeroCarousel bunları HERO_SLIDES.length'e göre
+   hesaplayıp <style> ile enjekte ediyor. Burada sabit yüzdeyle tanımlarsak
+   (ör. 2 slayt için ayarlanmış), slayt sayısı değiştikçe pencereler üst üste
+   biner ve yazılar/görseller karışır — daha önce yaşanan bug tam olarak buydu. */
 
 @keyframes rbx-reveal {
   from { opacity: 0; transform: translateY(20px); }

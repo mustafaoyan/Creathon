@@ -44,8 +44,14 @@ konuşma geçmişini bilmeyen biri (başka bir makine, başka biri) buradan hız
 4 izole rol: `content_creator` (İçerik Uzmanı), `instructor` (Eğitmen), `student` (Öğrenci),
 `admin` (Eğitim Yöneticisi). Roller birbirinin işini yapamaz (içerik uzmanı sınav oluşturamaz,
 eğitmen soru üretemez, vb.) — bu bir öneri değil, üzerine kod yazılan sabit bir gereksinim.
-Rol ataması **sadece admin** tarafından yapılır (`PATCH /api/users/:id/role`); Google ile giren
-yeni kullanıcı `status: pending, role: NULL` olarak oluşur, self-servis rol seçimi yok.
+
+**Eğitmen/Öğrenci rolleri self-servis, anında aktif** (bilinçli olarak admin-onay akışından
+değiştirildi — kullanıcı test sürecinde onay beklemenin gereksiz sürtünme yarattığını belirtti):
+login ekranında "Eğitmen Girişi" / "Öğrenci Girişi" hangi buton tıklanırsa `requestedRole` o
+olarak Google OAuth'a taşınıyor, `users.repository.ts#createFromGoogle` bu iki rol için
+kullanıcıyı direkt `status: active, role: <talep edilen rol>` ile oluşturuyor — admin onayı yok.
+`content_creator`/`admin` rolleri hâlâ sadece mevcut bir admin tarafından atanabiliyor
+(`PATCH /api/users/:id/role`), self-servis değil.
 
 AI çıktısı (üretilen soru, önerilen puan) **hiçbir zaman doğrudan yayına/nota dönüşmez** —
 her zaman `pending_review`/`ai_evaluation` gibi bir ara durumda insan onayı bekler
@@ -62,10 +68,14 @@ apps/api/src/
   rag/                chunker, vectorize-client, retriever
 
 apps/web/src/
-  worker/index.tsx    SSR + /api/* service-binding proxy
+  worker/index.tsx    SSR + /api/* service-binding proxy + role-home redirect ("/" -> role sayfası)
   app/                App.tsx (HTML doküman), router.tsx (rol bazlı route tablosu)
-  features/           auth, content-management, exam-management, exam-taking, admin-dashboard
-  components/         ui/ (shadcn), layout/RoleGuardedLayout.tsx
+  features/           auth (LoginPage — carousel + gizli/reveal rol kartları), content-management,
+                      exam-management, exam-taking, admin-dashboard
+  components/         ui/ (shadcn), layout/RoleGuardedLayout.tsx (auth durumuna göre gate + Sidebar
+                      entegrasyonu), layout/TeknofestNav.tsx (sticky üst nav, login + tüm authed
+                      ekranlarda ortak), layout/Sidebar.tsx (authed ekranlarda kayan sol menü:
+                      avatar, rol bazlı linkler, alt kısımda Çıkış Yap)
 ```
 
 ## Mevcut Durum
@@ -96,7 +106,19 @@ hepsi kapatıldı:
 
 Sadece madde 6'daki (soru onayını hem içerik uzmanı hem eğitmen yapabiliyor, brief'te sadece
 içerik uzmanına atanmış) küçük bir yetki-kapsamı farkı bilinçli olarak düzeltilmedi — hata değil,
-fazladan yetki.
+fazladan yetki. (Not: bu madde sonradan düzeltildi — onay artık sadece `content_creator`.)
+
+**Login/dashboard UX, gerçek tarayıcı testleri sonrası birkaç turda yeniden tasarlandı:**
+- Login: uzay temalı tam ekran carousel (senkron fotoğraf+alıntı, yumuşak crossfade), rol
+  kartları "Giriş Yap" tıklanana kadar gizli, Eğitmen kartı üstte/vurgulu (birincil), Öğrenci
+  altta; her kartta buton sırası sabit: 1) T3 Hesabı ile Giriş Yap, 2) Google Hesabı ile Giriş Yap.
+- Üst nav (`TeknofestNav`) sticky, hem login hem tüm authed ekranlarda ortak; tüm etkileşimli
+  öğelerde `cursor-pointer` + hover geçişi zorunlu (bkz. `Button` bileşeni).
+- Authed ekranlarda tam ekran uzay arka planı (`space-globe.jpg`) + sol tarafta hamburger ile
+  açılan `Sidebar` (üstte avatar + "Profil Resmini Değiştir", ortada role özel linkler, en altta
+  kırmızı hover'lı "Çıkış Yap").
+- Giriş sonrası kullanıcı doğrudan rolüne uygun sayfaya yönlendiriliyor (`role-home.ts` +
+  worker'daki redirect), genel bir "Merhaba X" ara ekranı yok.
 
 **Test verisi:** Production D1'de gerçek admin hesabına (`mstfoyn63@gmail.com`) ek olarak
 `user_test_content` / `user_test_instructor` / `user_test_student` adında sabit test kullanıcıları

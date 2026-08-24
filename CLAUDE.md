@@ -70,37 +70,47 @@ apps/web/src/
 
 ## Mevcut Durum
 
-**Doğrulandı:** typecheck temiz, D1 migration lokalde uygulandı, iki worker service binding
-üzerinden birlikte çalışıyor, SSR + rol koruması uçtan uca test edildi.
+**Production'da canlı:** https://rubrix-web.tahauguducu.workers.dev (Cloudflare hesabı
+`Tahauguducu@gmail.com's Account`, `account_id: 4c93a1fdd11680cf952f1bf1c7f8f9b9` —
+`wrangler.jsonc`'larda sabitlendi çünkü ekip birden fazla Cloudflare hesabına erişimli).
+Gerçek D1/R2/Vectorize/Queue/AI Gateway kaynakları kurulu, Google OAuth gerçek client'la
+çalışıyor, `wrangler d1 migrations apply --remote` ile remote DB güncel tutuluyor.
 
-**Tamamlanan ek işler:**
-- Sınav ekranında çoktan seçmeli soru arayüzü eklendi — `ExamRunnerPage.tsx` artık `multiple_choice`
-  sorular için radio-button seçenekleri, `open_ended` için textarea gösteriyor. Backend
-  (`exams.repository.ts`/`exams.service.ts`) `startAttempt` yanıtına `isCorrect` sızdırmadan
-  seçenekleri (`id`, `label`, `body`) ekliyor.
-- Admin panelinde rol atama arayüzü eklendi — `UserManagementPage.tsx` (`/admin/users`),
-  `PATCH /api/users/:id/role` ve `POST /api/users/:id/suspend` uçlarına bağlı.
-- Wrangler v3 → v4 güncellemesi yapıldı (`wrangler@4.125.0`, `@cloudflare/vite-plugin@1.53.1`,
-  `@cloudflare/workers-types@5.x`, `vite@6.4.3`, `@vitejs/plugin-react@4.7.0`). Her iki worker'ın
-  `wrangler.jsonc`'u `wrangler types` ile offline doğrulandı, `auxiliaryWorkers` service-binding
-  kurulumu değişmeden çalışıyor.
-- Gerçek Cloudflare kaynakları oluşturuldu: `rubrix-db` (D1, `database_id` `apps/api/wrangler.jsonc`'a
-  yazıldı), `rubrix-embeddings` (Vectorize, 1024 boyut/cosine), `rubrix-doc-processing` (Queue)
-  — bkz. commit `b0a630a`. `CF_ACCOUNT_ID` de aynı commit'te placeholder'dan gerçek değere geçti.
-  `rubrix-documents` (R2) o commit'te ödeme yöntemi eksikliği nedeniyle ertelenmişti; 2026-08-24'te
-  hesaba ödeme yöntemi eklenip `wrangler r2 bucket create rubrix-documents` ile oluşturuldu. Dört
-  kaynağın tamamı `wrangler ... list` ve doğrudan Cloudflare API sorgusuyla canlı doğrulandı.
+**2026-08-25: Briefe karşı denetim yapıldı, 8 gerçek eksik bulunup kapatıldı.** Backend/API
+mantığı MVP'nin 6 zorunlu maddesini karşılıyordu ama frontend'de ciddi boşluklar vardı —
+hepsi kapatıldı:
+1. Kazanım tanımlama arayüzü yoktu → `LearningOutcomesPage.tsx` (`/content/outcomes`) eklendi.
+2. `learning_outcomes`'ta "konu"/"seviye" alanı yoktu → `topic`/`level` (`OUTCOME_LEVELS`) eklendi.
+3. Soru üretimini tetikleyecek arayüz yoktu → `GenerateQuestionsPage.tsx` (`/content/generate`).
+4. Soru onay panelinde MCQ şıkları görünmüyordu, düzenleme yoktu → `GET /api/questions` artık
+   MCQ soruları için `options` (isCorrect dahil) döndürüyor, panel düzenleme moduna sahip.
+5. Sınav oluşturma sadece taslak bırakıyordu, yayınlama/atama arayüzü yoktu → `CreateExamPage.tsx`
+   artık oluşturduktan sonra öğrenci seçip yayınlıyor (`GET /api/users/students` eklendi —
+   admin-only blok'un dışında, instructor+admin erişebiliyor; `GET /api/exams` de eklendi).
+6. Rubrik oluşturma arayüzü yoktu → `GenerateQuestionsPage.tsx` içine inline hızlı oluşturma
+   eklendi (açık uçlu soru üretimi zaten rubrik gerektirdiği için aynı sayfaya alındı).
+7. Öğrenci sonucunu hiçbir yerde göremiyordu → `ExamRunnerPage.tsx`'teki "Atanan Sınavlarım"
+   listesi artık puanı gösteriyor (`assignmentsForStudent` `exam_attempts`'e join edildi).
+8. Sadece tek-öğrenci bazlı kazanım raporu vardı, sınıf geneli yoktu → `GET /api/reporting/outcomes`
+   + Dashboard'da "Öğrenme Çıktıları (Sınıf Geneli)" bölümü (en zayıf kazanım üstte sıralı).
 
-- Google OAuth client'ı gerçek değerlerle bağlandı: `GOOGLE_CLIENT_ID` `apps/api/wrangler.jsonc`'a,
-  `GOOGLE_CLIENT_SECRET` (git'e girmeyen) `apps/api/.dev.vars`'a yazıldı. Redirect URI hâlâ
-  `http://localhost:8787/api/auth/google/callback` (lokal) — prod'a deploy edilince Google Cloud
-  Console'daki OAuth client'a prod URL'nin de authorized redirect URI olarak eklenmesi gerekiyor.
-- `rubrix-gateway` adında gerçek bir Cloudflare AI Gateway oluşturuldu (Cloudflare API üzerinden,
-  2026-08-24) ve `CF_AI_GATEWAY_ID` `apps/api/wrangler.jsonc`'a yazıldı. Artık `wrangler.jsonc`'ta
-  `REPLACE_WITH_*` placeholder kalmadı.
+Sadece madde 6'daki (soru onayını hem içerik uzmanı hem eğitmen yapabiliyor, brief'te sadece
+içerik uzmanına atanmış) küçük bir yetki-kapsamı farkı bilinçli olarak düzeltilmedi — hata değil,
+fazladan yetki.
 
-**Bekliyor (henüz yapılmadı):**
-- Production'a deploy (henüz public domain yok).
+**Test verisi:** Production D1'de gerçek admin hesabına (`mstfoyn63@gmail.com`) ek olarak
+`user_test_content` / `user_test_instructor` / `user_test_student` adında sabit test kullanıcıları
+ve karşılık gelen `sess_test_*` session id'leri var (doğrudan SQL ile eklendi, gerçek Google
+hesabı değil) — yukarıdaki 8 maddeyi curl ile uçtan uca doğrulamak için kullanıldı. Silinmedi,
+kullanıcı henüz karar vermedi; tarayıcıda gerçek hesaplarla test ederken bunlarla karışmasın diye
+burada not düşülüyor.
+
+**Bekliyor (bilinçli olarak yapılmadı):**
+- **`ANTHROPIC_API_KEY` — Anthropic hesabında kredi yok** (`credit balance too low` hatası).
+  Kod/entegrasyon çalışıyor (gateway'e ulaşıyor, hata doğru parse ediliyor), sadece ödeme bekliyor.
+  Bu yüzden soru üretimi ve AI rubrik puanlaması prod'da henüz gerçek bir LLM çağrısıyla
+  denenmedi — MCQ akışı (otomatik puanlama dahil) elle eklenen sorularla uçtan uca doğrulandı.
+- Özel domain yok, `workers.dev` kullanılıyor.
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın
   ürettiği runtime type'larına geçiş — şimdilik deprecated ama çalışır durumda, bilinçli olarak
   yapılmadı.

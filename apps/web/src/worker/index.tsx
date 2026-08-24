@@ -19,6 +19,14 @@ let cachedManifest: ViteManifest | null = null;
 
 app.all("/api/*", (c) => c.env.API.fetch(c.req.raw));
 
+// `assets.run_worker_first` (wrangler.jsonc) sends every request through this
+// worker before Cloudflare's static file serving — required so our own SSR
+// handler owns "/" (a static index.html would otherwise shadow it, see the
+// wrangler.jsonc comment). That means real static files (JS/CSS/manifest) now
+// have to be explicitly forwarded here instead of the platform doing it for us.
+app.get("/assets/*", (c) => c.env.ASSETS.fetch(c.req.raw));
+app.get("/manifest.json", (c) => c.env.ASSETS.fetch(c.req.raw));
+
 app.get("*", async (c) => {
   const [user, clientAssets] = await Promise.all([
     fetchSessionUser(c.env.API, c.req.raw),

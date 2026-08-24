@@ -6,7 +6,11 @@
   "compatibility_date": "2025-01-01",
   "assets": {
     "directory": "./dist/client",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // Without this, a static file that happens to match a request path (notably
+    // dist/client/index.html at "/") is served directly and never reaches our
+    // SSR fetch handler below — that's what was silently breaking "/" after login.
+    "run_worker_first": true
   },
   // Service binding to rubrix-api — same-origin proxying for /api/*, see worker/index.tsx.
   // Local dev: run `pnpm --filter @rubrix/api dev` alongside this so the binding resolves.

@@ -41,8 +41,12 @@ export function LoginPage() {
 
 function TeknofestNav() {
   return (
-    <nav className="rbx-starfield bg-gradient-to-r from-[#050b24] via-[#0b1f4d] to-[#123a7a] px-6 py-4 text-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+    <nav
+      className="rbx-starfield relative overflow-hidden bg-cover bg-center px-6 py-4 text-white"
+      style={{ backgroundImage: 'url("/hero/space-globe.jpg")' }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-r from-[#050b24]/90 via-[#0b1f4d]/75 to-[#123a7a]/65" />
+      <div className="relative z-10 mx-auto flex max-w-6xl items-center justify-between gap-4">
         <span className="flex items-center gap-2 text-lg font-extrabold tracking-wide">
           <span aria-hidden="true">🚀</span> RUBRIX
         </span>
@@ -68,14 +72,8 @@ function TeknofestNav() {
   );
 }
 
-// TODO: gerçek TEKNOFEST / sınav fotoğrafları geldiğinde bu diziyi
-// `background-image: url("/hero/<dosya>.jpg")` şeklinde değiştir.
-const HERO_SLIDES = [
-  "linear-gradient(135deg, #050b24, #123a7a)",
-  "linear-gradient(135deg, #0b1f4d, #1f56b3)",
-  "linear-gradient(135deg, #071233, #2a6fd6)",
-  "linear-gradient(135deg, #0b1330, #163d82)",
-];
+// TODO: yeni fotoğraf geldikçe bu diziye `url("/hero/<dosya>.jpg")` olarak ekle.
+const HERO_SLIDES = ['url("/hero/student-desk.jpg")', 'url("/hero/ai-workspace.jpg")'];
 
 const HERO_QUOTES = [
   "Bilgiyi ölçmek değil, öğrenmeyi anlamak.",
@@ -94,11 +92,11 @@ function HeroCarousel() {
       className="relative isolate flex min-h-[320px] items-center justify-center overflow-hidden text-white sm:min-h-[400px]"
       style={cycleStyle}
     >
-      {HERO_SLIDES.map((gradient, index) => (
+      {HERO_SLIDES.map((image, index) => (
         <div
-          key={gradient}
+          key={image}
           className="rbx-hero-slide"
-          style={{ backgroundImage: gradient, animationDelay: `${index * SLIDE_SECONDS}s` }}
+          style={{ backgroundImage: image, animationDelay: `${index * SLIDE_SECONDS}s` }}
         />
       ))}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />

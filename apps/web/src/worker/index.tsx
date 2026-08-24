@@ -21,13 +21,20 @@ app.all("/api/*", (c) => c.env.API.fetch(c.req.raw));
 
 // `assets.run_worker_first` (wrangler.jsonc) sends every request through this
 // worker before Cloudflare's static file serving — required so our own SSR
-// handler owns "/" (a static index.html would otherwise shadow it, see the
-// wrangler.jsonc comment). That means real static files (JS/CSS/manifest) now
-// have to be explicitly forwarded here instead of the platform doing it for us.
-app.get("/assets/*", (c) => c.env.ASSETS.fetch(c.req.raw));
-app.get("/manifest.json", (c) => c.env.ASSETS.fetch(c.req.raw));
-
+// handler owns "/" (a static index.html would otherwise shadow it). That means
+// real static files (JS/CSS/manifest/public/*) now have to be resolved here
+// ourselves: try ASSETS first and use it on a hit, except for "/" itself, which
+// must always render through SSR rather than serving the literal index.html.
 app.get("*", async (c) => {
+  const url = new URL(c.req.url);
+
+  if (url.pathname !== "/") {
+    const assetResponse = await c.env.ASSETS.fetch(c.req.raw);
+    if (assetResponse.status !== 404) {
+      return assetResponse;
+    }
+  }
+
   const [user, clientAssets] = await Promise.all([
     fetchSessionUser(c.env.API, c.req.raw),
     resolveClientAssets(c.env.ASSETS, c.req.url),

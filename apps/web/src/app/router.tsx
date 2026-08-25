@@ -12,6 +12,9 @@ import { GradingReviewPage } from "@/features/exam-management/GradingReviewPage"
 import { ExamRunnerPage } from "@/features/exam-taking/ExamRunnerPage";
 import { DashboardPage } from "@/features/admin-dashboard/DashboardPage";
 import { UserManagementPage } from "@/features/admin-dashboard/UserManagementPage";
+import { RoleViewsPage } from "@/features/admin-dashboard/RoleViewsPage";
+import { OutcomesReportPage } from "@/features/admin-dashboard/OutcomesReportPage";
+import { AuditLogPage } from "@/features/admin-dashboard/AuditLogPage";
 
 export type AppRoute = {
   path: string;
@@ -39,6 +42,9 @@ export const ROUTES: AppRoute[] = [
   { path: "/dashboard", component: DashboardPage, roles: ["admin"] },
   { path: "/admin", component: DashboardPage, roles: ["admin"] },
   { path: "/admin/users", component: UserManagementPage, roles: ["admin"] },
+  { path: "/admin/role-views", component: RoleViewsPage, roles: ["admin"] },
+  { path: "/admin/outcomes", component: OutcomesReportPage, roles: ["admin"] },
+  { path: "/admin/audit-log", component: AuditLogPage, roles: ["admin"] },
 ];
 
 export function resolveRoute(pathname: string): AppRoute | null {

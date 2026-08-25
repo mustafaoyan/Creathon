@@ -15,16 +15,16 @@ const ROLE_LINKS: Record<UserRole, { href: string; label: string }[]> = {
     { href: "/exams/grading", label: "Puanlama Onayı" },
   ],
   student: [{ href: "/exams/take", label: "Sınavlarım" }],
-  // "... gözüyle" 3 linki önceden sadece Yönetici Paneli'nin içeriğindeydi —
-  // oraya gitmeden erişilemiyordu. Kullanıcı isteğiyle diğer rollerin
-  // linkleri gibi ☰ menüsüne de eklendi (Panel'deki kartlar da duruyor,
-  // burada tekrarı zararsız — sadece ekstra bir kısayol).
+  // Önceden "Rol Görünümleri" / "Öğrenme Çıktıları" / "Giriş-Çıkış Kayıtları"
+  // tek bir uzun "Yönetici Paneli" sayfasının içinde alt başlıklar olarak
+  // duruyordu — kullanıcı bunların diğer rollerin sayfaları gibi ☰ menüsünde
+  // ayrı ayrı listelenmesini istedi. Her biri artık kendi sayfası/route'u.
   admin: [
-    { href: "/dashboard", label: "Panel" },
+    { href: "/dashboard", label: "Yönetici Paneli" },
     { href: "/admin/users", label: "Kullanıcı Yönetimi" },
-    { href: "/content/upload", label: "İçerik Uzmanı gözüyle" },
-    { href: "/exams/new", label: "Eğitmen gözüyle" },
-    { href: "/exams/take", label: "Öğrenci gözüyle" },
+    { href: "/admin/role-views", label: "Rol Görünümleri" },
+    { href: "/admin/outcomes", label: "Öğrenme Çıktıları" },
+    { href: "/admin/audit-log", label: "Giriş / Çıkış Kayıtları" },
   ],
 };
 

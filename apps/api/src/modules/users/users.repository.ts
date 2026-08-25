@@ -26,14 +26,15 @@ export const usersRepository = {
   ) {
     const id = newId("user");
     const now = new Date();
-    // İçerik Uzmanı/Eğitmen/Öğrenci girişinde seçilen rol hemen uygulanır (self-servis) —
-    // login ekranında bu üçü için ayrı kart var. Admin (Eğitim Yöneticisi) hiçbir zaman
-    // giriş ekranından seçilemez — o rol sadece mevcut bir admin'in panelden atamasıyla
-    // verilir, bu yüzden "pending" durumu artık public akışta hiç oluşmuyor.
+    // 4 rolün hepsi self-servis — login ekranında seçilen rol hemen uygulanır.
+    // Admin, kullanıcının bilinçli isteğiyle self-servise dahil edildi: nav'da
+    // ayrı bir "headline" buton yok, sadece "Diğer Girişler" reveal'ının
+    // arkasında — ama giriş anında yine de anında aktif oluyor, onay yok.
     const isSelfServiceRole =
       profile.requestedRole === "content_creator" ||
       profile.requestedRole === "instructor" ||
-      profile.requestedRole === "student";
+      profile.requestedRole === "student" ||
+      profile.requestedRole === "admin";
 
     await db.insert(users).values({
       id,

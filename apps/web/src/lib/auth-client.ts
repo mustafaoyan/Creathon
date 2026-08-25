@@ -3,11 +3,11 @@ import { apiClient } from "./api-client";
 
 export type { UserRole, SessionUser };
 
-/** "content_creator"/"instructor"/"student" are self-service — passing one
- * activates that role immediately on first login. There is no self-service
- * entry for "admin": that role is only ever granted to an already-registered
- * user by an existing admin from the Kullanıcı Yönetimi panel. */
-export function getGoogleLoginUrl(requestedRole?: "content_creator" | "instructor" | "student") {
+/** All 4 roles are self-service — passing one activates that role immediately
+ * on first login. "admin" is intentionally reachable only through the "Diğer
+ * Girişler" reveal on the login page, not a headline nav button, since it
+ * grants full user/role management — but it IS self-service by user request. */
+export function getGoogleLoginUrl(requestedRole?: "content_creator" | "instructor" | "student" | "admin") {
   return requestedRole ? `/api/auth/google?role=${requestedRole}` : "/api/auth/google";
 }
 

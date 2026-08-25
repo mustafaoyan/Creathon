@@ -45,19 +45,22 @@ konuşma geçmişini bilmeyen biri (başka bir makine, başka biri) buradan hız
 `admin` (Eğitim Yöneticisi). Roller birbirinin işini yapamaz (içerik uzmanı sınav oluşturamaz,
 eğitmen soru üretemez, vb.) — bu bir öneri değil, üzerine kod yazılan sabit bir gereksinim.
 
-**İçerik Uzmanı/Eğitmen/Öğrenci rolleri self-servis, anında aktif** (bilinçli olarak admin-onay
-akışından değiştirildi — kullanıcı test sürecinde onay beklemenin gereksiz sürtünme yarattığını
-belirtti): login ekranında bu 3 rolün her birinin kendi kartı/butonu var, hangisi tıklanırsa
-`requestedRole` o olarak Google OAuth'a taşınıyor, `users.repository.ts#createFromGoogle` bu 3 rol
-için kullanıcıyı direkt `status: active, role: <talep edilen rol>` ile oluşturuyor — admin onayı
-yok, `pending` durumu hiç oluşmuyor.
+**Artık 4 rolün de self-servis, anında aktif** (bilinçli olarak admin-onay akışından değiştirildi —
+kullanıcı test sürecinde onay beklemenin gereksiz sürtünme yarattığını belirtti). Login ekranı iki
+kademeli: nav'da doğrudan **"ÖĞRENCİ GİRİŞİ 🚀"** butonu var (öğrenci platformun asıl kullanıcı
+kitlesi olduğu için headline rol) — yanında, RUBRIX NEDİR/ROLLER ile aynı stilde bir **"DİĞER
+GİRİŞLER"** metin linki var; buna tıklanınca kalan 3 rolün (Eğitmen, İçerik Uzmanı, **admin dahil**)
+kartları ayrı ayrı açılıyor. Hangi kart tıklanırsa `requestedRole` o olarak Google OAuth'a taşınıyor,
+`users.repository.ts#createFromGoogle` her 4 rol için de kullanıcıyı direkt
+`status: active, role: <talep edilen rol>` ile oluşturuyor — onay yok, `pending` durumu artık hiç
+oluşmuyor.
 
-**`admin` (Eğitim Yöneticisi) hâlâ ve bilinçli olarak self-servis DEĞİL** — login ekranında bu rol
-için hiçbir buton/link yok (tam kontrol yetkisi verdiği için herkese açık olmamalı). Bu role sadece
-mevcut bir admin, zaten var olan aktif bir kullanıcıya panelden (`UserManagementPage.tsx` →
-`PATCH /api/users/:id/role`) sonradan atayabiliyor. Bu tasarımın sonucu: yeni admin adayları için
-ayrı bir public giriş/onay akışı yok — `pending` ekranı artık hiçbir gerçek kullanıcı girişinde
-karşılaşılmıyor.
+**Güvenlik notu — `admin` self-servis kasıtlı bir risk kabulüdür:** admin rolü tüm kullanıcıları
+yönetme/rol atama/askıya alma yetkisi veriyor; bunun self-servis olması siteye gelen herhangi
+birinin "Diğer Girişler" → Eğitim Yöneticisi Girişi ile tek tıkla tam yönetici olabileceği anlamına
+geliyor. Bu risk kullanıcıya açıkça anlatıldı, kullanıcı yine de self-servis istedi (test/erişim
+kolaylığı önceliği). `UserManagementPage.tsx` (`PATCH /api/users/:id/role`) hâlâ duruyor — rolleri
+sonradan değiştirmek/geri almak/askıya almak için.
 
 AI çıktısı (üretilen soru, önerilen puan) **hiçbir zaman doğrudan yayına/nota dönüşmez** —
 her zaman `pending_review`/`ai_evaluation` gibi bir ara durumda insan onayı bekler
@@ -115,11 +118,18 @@ içerik uzmanına atanmış) küçük bir yetki-kapsamı farkı bilinçli olarak
 fazladan yetki. (Not: bu madde sonradan düzeltildi — onay artık sadece `content_creator`.)
 
 **Login/dashboard UX, gerçek tarayıcı testleri sonrası birkaç turda yeniden tasarlandı:**
-- Login: uzay temalı tam ekran carousel (senkron fotoğraf+alıntı, yumuşak crossfade), rol
-  kartları "Giriş Yap" tıklanana kadar gizli, Eğitmen kartı üstte/vurgulu (birincil), Öğrenci
-  altta; her kartta buton sırası sabit: 1) T3 Hesabı ile Giriş Yap, 2) Google Hesabı ile Giriş Yap.
-- Üst nav (`TeknofestNav`) sticky, hem login hem tüm authed ekranlarda ortak; tüm etkileşimli
-  öğelerde `cursor-pointer` + hover geçişi zorunlu (bkz. `Button` bileşeni).
+- Login: uzay temalı tam ekran carousel (7 slayt, senkron fotoğraf+alıntı; crossfade yüzdeleri
+  `HERO_SLIDES.length`'e göre JS'te hesaplanıp `<style>` ile enjekte ediliyor — sabit yüzde
+  kullanılırsa slayt sayısı değişince pencereler üst üste biner). Rol kartları nav'daki "ÖĞRENCİ
+  GİRİŞİ 🚀" / "DİĞER GİRİŞLER" tıklanana kadar gizli (yukarıdaki RBAC bölümüne bkz.); her kartta
+  buton sırası sabit: 1) T3 Hesabı ile Giriş Yap, 2) Google Hesabı ile Giriş Yap.
+- Üst nav (`TeknofestNav`) **`fixed`** (sticky DEĞİL — sticky, altındaki full-screen hero'nun
+  stacking context'ine bağımlı kalıp kayboluyordu), hem login hem tüm authed ekranlarda ortak;
+  nav artık normal akışta yer kaplamadığı için onu kullanan her yerde `NAV_HEIGHT_CLASS` (`pt-16`)
+  ile eşleşen üst boşluk var. Tüm etkileşimli öğelerde `cursor-pointer` + hover geçişi zorunlu
+  (bkz. `Button` bileşeni). `.rbx-starfield` CSS sınıfına ASLA `position` eklenmesin — Tailwind v4
+  cascade layer'ları yüzünden katmansız (unlayered) bir `position` kuralı, `fixed`/`sticky` gibi
+  Tailwind utility'lerini sessizce eziyor (yaşanmış gerçek bug, bkz. globals.css'teki yorum).
 - Authed ekranlarda tam ekran uzay arka planı (`space-globe.jpg`) + sol tarafta hamburger ile
   açılan `Sidebar` (üstte avatar + "Profil Resmini Değiştir", ortada role özel linkler, en altta
   kırmızı hover'lı "Çıkış Yap").

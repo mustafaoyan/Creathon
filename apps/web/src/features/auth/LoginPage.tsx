@@ -3,7 +3,7 @@ import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { TeknofestNav, NAV_HEIGHT_CLASS } from "@/components/layout/TeknofestNav";
 
-type Role = "content_creator" | "instructor" | "student";
+type Role = "content_creator" | "instructor" | "student" | "admin";
 
 const ROLE_COPY: Record<Role, { title: string; description: string }> = {
   instructor: {
@@ -18,22 +18,35 @@ const ROLE_COPY: Record<Role, { title: string; description: string }> = {
     title: "Öğrenci Girişi",
     description: "Sana atanan sınavlara gir, sonuçlarını takip et.",
   },
+  admin: {
+    title: "Eğitim Yöneticisi Girişi",
+    description: "Kullanıcıları ve rolleri yönet, sistem genelinde raporları incele.",
+  },
 };
 
+/** Öğrenci platformun asıl kullanıcı kitlesi olduğu için nav'da kendi doğrudan
+ * butonu var; diğer 3 rol (Eğitmen, İçerik Uzmanı, Admin) "Diğer Girişler"
+ * arkasında, ayrı ayrı kartlarla açılıyor — bir öğrenci giriş yaparken
+ * eğitmenin/adminin giriş seçeneklerini görmesin diye. */
+type RevealMode = null | "student" | "others";
+
 export function LoginPage() {
-  const [showRoles, setShowRoles] = useState(false);
+  const [reveal, setReveal] = useState<RevealMode>(null);
   const rolesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (showRoles) rolesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [showRoles]);
+    if (reveal) rolesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [reveal]);
 
   return (
     <div className={`flex flex-col ${NAV_HEIGHT_CLASS}`}>
-      <TeknofestNav action={{ label: "GİRİŞ YAP 🚀", onClick: () => setShowRoles(true) }} />
+      <TeknofestNav
+        action={{ label: "ÖĞRENCİ GİRİŞİ 🚀", onClick: () => setReveal("student") }}
+        secondaryLink={{ label: "DİĞER GİRİŞLER", onClick: () => setReveal("others") }}
+      />
       <HeroCarousel />
 
-      {showRoles && (
+      {reveal && (
         <div
           ref={rolesRef}
           id="giris"
@@ -42,14 +55,22 @@ export function LoginPage() {
           <div className="flex flex-col items-center gap-2">
             <span className="inline-block h-1.5 w-16 rounded-full bg-primary" />
             <h1 className="text-3xl font-bold">RubriX</h1>
-            <p className="text-muted-foreground">Hangi rolle giriş yapmak istiyorsun?</p>
+            <p className="text-muted-foreground">
+              {reveal === "student" ? "Öğrenci olarak giriş yap" : "Hangi rolle giriş yapmak istiyorsun?"}
+            </p>
           </div>
 
-          <div className="flex w-full max-w-xl flex-col gap-6">
-            <RoleLoginCard role="instructor" primary />
-            <RoleLoginCard role="content_creator" />
-            <RoleLoginCard role="student" />
-          </div>
+          {reveal === "student" ? (
+            <div className="flex w-full max-w-xl flex-col gap-6">
+              <RoleLoginCard role="student" primary />
+            </div>
+          ) : (
+            <div className="flex w-full max-w-xl flex-col gap-6">
+              <RoleLoginCard role="instructor" primary />
+              <RoleLoginCard role="content_creator" />
+              <RoleLoginCard role="admin" />
+            </div>
+          )}
         </div>
       )}
     </div>

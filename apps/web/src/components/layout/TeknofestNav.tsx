@@ -1,6 +1,7 @@
 export const SPACE_BG_URL = '/hero/space-globe.jpg';
 
 type NavAction = { label: string; onClick?: () => void; href?: string };
+type NavTextLink = { label: string; onClick: () => void };
 
 /** Height in px — must match the top padding every page that renders this nav
  * adds to its content (NAV_HEIGHT_CLASS below), since the nav is `fixed` and
@@ -12,7 +13,15 @@ export const NAV_HEIGHT_CLASS = "pt-16";
  * everywhere, not just on "/login". `fixed` (not `sticky`) so it is always
  * pinned above the page — immune to any scroll position or stacking-context
  * quirks in the sections rendered below it (e.g. the full-screen hero). */
-export function TeknofestNav({ action }: { action: NavAction }) {
+export function TeknofestNav({
+  action,
+  secondaryLink,
+}: {
+  action: NavAction;
+  /** Login ekranında "Öğrenci Girişi" butonunun yanında, RUBRIX NEDİR/ROLLER
+   * ile aynı stilde bir metin linki — diğer 3 rolün giriş kartlarını açar. */
+  secondaryLink?: NavTextLink;
+}) {
   return (
     <nav
       className="rbx-starfield fixed inset-x-0 top-0 z-50 flex h-16 items-center overflow-hidden bg-cover bg-center px-6 text-white"
@@ -31,6 +40,15 @@ export function TeknofestNav({ action }: { action: NavAction }) {
             <a href="#roller" className="cursor-pointer transition-colors hover:text-primary">
               ROLLER
             </a>
+            {secondaryLink && (
+              <button
+                type="button"
+                onClick={secondaryLink.onClick}
+                className="cursor-pointer transition-colors hover:text-primary"
+              >
+                {secondaryLink.label}
+              </button>
+            )}
           </div>
           {action.href ? (
             <a

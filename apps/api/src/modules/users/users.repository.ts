@@ -1,7 +1,11 @@
 import { eq, desc, and } from "drizzle-orm";
 import type { Database } from "../../shared/db/client";
-import { users, type UserRole } from "../../shared/db/schema";
+import { users, roleAllowlist, type UserRole, type RoleAllowlistRole } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
 
 export const usersRepository = {
   async findByGoogleId(db: Database, googleId: string) {
@@ -26,15 +30,24 @@ export const usersRepository = {
   ) {
     const id = newId("user");
     const now = new Date();
-    // 4 rolün hepsi self-servis — login ekranında seçilen rol hemen uygulanır.
-    // Admin, kullanıcının bilinçli isteğiyle self-servise dahil edildi: nav'da
-    // ayrı bir "headline" buton yok, sadece "Diğer Girişler" reveal'ının
-    // arkasında — ama giriş anında yine de anında aktif oluyor, onay yok.
-    const isSelfServiceRole =
-      profile.requestedRole === "content_creator" ||
-      profile.requestedRole === "instructor" ||
-      profile.requestedRole === "student" ||
-      profile.requestedRole === "admin";
+    // student ve admin tamamen açık self-servis (admin ayrıca ADMIN_INVITE_CODE
+    // ile korunuyor, bkz. auth.routes.ts — o kontrol Google'a yönlendirmeden ÖNCE
+    // yapılıyor). content_creator/instructor ise SADECE admin'in role_allowlist'e
+    // eklediği e-postalarla self-servis — aksi halde eğitmen/içerik uzmanı
+    // rollerine herkes tek tıkla kaydolabiliyordu, bu bir güvenlik açığıydı.
+    const requestedRole = profile.requestedRole;
+    const isOpenSelfServiceRole = requestedRole === "student" || requestedRole === "admin";
+    const gatedRole = requestedRole === "content_creator" || requestedRole === "instructor" ? requestedRole : null;
+
+    let isSelfServiceRole = isOpenSelfServiceRole;
+    if (gatedRole) {
+      const [allowed] = await db
+        .select({ id: roleAllowlist.id })
+        .from(roleAllowlist)
+        .where(and(eq(roleAllowlist.email, normalizeEmail(profile.email)), eq(roleAllowlist.role, gatedRole)))
+        .limit(1);
+      isSelfServiceRole = !!allowed;
+    }
 
     await db.insert(users).values({
       id,
@@ -75,5 +88,32 @@ export const usersRepository = {
 
   async updateAvatarUrl(db: Database, id: string, avatarUrl: string) {
     await db.update(users).set({ avatarUrl, updatedAt: new Date() }).where(eq(users.id, id));
+  },
+};
+
+export const roleAllowlistRepository = {
+  list(db: Database) {
+    return db
+      .select({
+        id: roleAllowlist.id,
+        email: roleAllowlist.email,
+        role: roleAllowlist.role,
+        createdAt: roleAllowlist.createdAt,
+      })
+      .from(roleAllowlist)
+      .orderBy(desc(roleAllowlist.createdAt));
+  },
+
+  async add(db: Database, data: { email: string; role: RoleAllowlistRole; createdBy: string }) {
+    const id = newId("invite");
+    await db
+      .insert(roleAllowlist)
+      .values({ id, email: normalizeEmail(data.email), role: data.role, createdBy: data.createdBy, createdAt: new Date() })
+      .onConflictDoNothing();
+    return id;
+  },
+
+  async remove(db: Database, id: string) {
+    await db.delete(roleAllowlist).where(eq(roleAllowlist.id, id));
   },
 };

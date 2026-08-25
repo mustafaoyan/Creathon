@@ -1,7 +1,7 @@
 import type { Bindings } from "../../config/env";
 import { createDb } from "../../shared/db/client";
-import { usersRepository } from "./users.repository";
-import type { UserRole } from "../../shared/db/schema";
+import { usersRepository, roleAllowlistRepository } from "./users.repository";
+import type { UserRole, RoleAllowlistRole } from "../../shared/db/schema";
 import { HttpError } from "../../shared/middleware/error-handler";
 
 export const usersService = {
@@ -41,6 +41,19 @@ export const usersService = {
 
   async getAvatarObject(env: Bindings, userId: string) {
     return env.BUCKET.get(avatarR2Key(userId));
+  },
+
+  listRoleAllowlist(env: Bindings) {
+    return roleAllowlistRepository.list(createDb(env.DB));
+  },
+
+  addToRoleAllowlist(env: Bindings, email: string, role: RoleAllowlistRole, createdBy: string) {
+    if (!email.trim()) throw new HttpError(422, "email_required");
+    return roleAllowlistRepository.add(createDb(env.DB), { email, role, createdBy });
+  },
+
+  removeFromRoleAllowlist(env: Bindings, id: string) {
+    return roleAllowlistRepository.remove(createDb(env.DB), id);
   },
 };
 

@@ -153,6 +153,7 @@ function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
   const [adminCode, setAdminCode] = useState("");
   const copy = ROLE_COPY[role];
   const isAdmin = role === "admin";
+  const isGatedRole = role === "instructor" || role === "content_creator";
   const adminCodeMissing = isAdmin && adminCode.trim().length === 0;
 
   return (
@@ -196,6 +197,13 @@ function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
       {isAdmin && (
         <p className="text-xs text-muted-foreground">
           Bu rol, davet koduna sahip olmayan hesaplarca alınamaz.
+        </p>
+      )}
+
+      {isGatedRole && (
+        <p className="text-xs text-muted-foreground">
+          Bu rol yalnızca Eğitim Yöneticisi'nin izin verdiği e-posta adresleriyle anında aktif
+          olur — izinli değilsen hesabın onay bekleyecek.
         </p>
       )}
     </div>

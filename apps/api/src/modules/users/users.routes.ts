@@ -3,7 +3,7 @@ import type { AppEnv } from "../../config/env";
 import { requireAuth } from "../../shared/middleware/auth";
 import { requireRole } from "../../shared/middleware/rbac";
 import { HttpError } from "../../shared/middleware/error-handler";
-import { USER_ROLES, type UserRole } from "../../shared/db/schema";
+import { USER_ROLES, ROLE_ALLOWLIST_ROLES, type UserRole, type RoleAllowlistRole } from "../../shared/db/schema";
 import { usersService } from "./users.service";
 
 export const usersRoutes = new Hono<AppEnv>();
@@ -57,5 +57,26 @@ usersRoutes.patch("/:id/role", requireRole("admin"), async (c) => {
 
 usersRoutes.post("/:id/suspend", requireRole("admin"), async (c) => {
   await usersService.suspend(c.env, c.req.param("id"));
+  return c.json({ ok: true });
+});
+
+// content_creator/instructor self-servisini kişi bazlı sınırlayan izin
+// listesi — sadece admin yönetiyor. student/admin bu listeye dahil değil
+// (student açık, admin ADMIN_INVITE_CODE ile korunuyor).
+usersRoutes.get("/role-allowlist", requireRole("admin"), async (c) => {
+  return c.json({ entries: await usersService.listRoleAllowlist(c.env) });
+});
+
+usersRoutes.post("/role-allowlist", requireRole("admin"), async (c) => {
+  const { email, role } = await c.req.json<{ email: string; role: string }>();
+  if (!email || !ROLE_ALLOWLIST_ROLES.includes(role as RoleAllowlistRole)) {
+    throw new HttpError(422, "email_and_valid_role_required");
+  }
+  const id = await usersService.addToRoleAllowlist(c.env, email, role as RoleAllowlistRole, c.get("userId"));
+  return c.json({ id }, 201);
+});
+
+usersRoutes.delete("/role-allowlist/:id", requireRole("admin"), async (c) => {
+  await usersService.removeFromRoleAllowlist(c.env, c.req.param("id"));
   return c.json({ ok: true });
 });

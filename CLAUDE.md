@@ -55,11 +55,14 @@ kartları ayrı ayrı açılıyor. Hangi kart tıklanırsa `requestedRole` o ola
 `status: active, role: <talep edilen rol>` ile oluşturuyor — onay yok, `pending` durumu artık hiç
 oluşmuyor.
 
-**Güvenlik notu — `admin` self-servis kasıtlı bir risk kabulüdür:** admin rolü tüm kullanıcıları
-yönetme/rol atama/askıya alma yetkisi veriyor; bunun self-servis olması siteye gelen herhangi
-birinin "Diğer Girişler" → Eğitim Yöneticisi Girişi ile tek tıkla tam yönetici olabileceği anlamına
-geliyor. Bu risk kullanıcıya açıkça anlatıldı, kullanıcı yine de self-servis istedi (test/erişim
-kolaylığı önceliği). `UserManagementPage.tsx` (`PATCH /api/users/:id/role`) hâlâ duruyor — rolleri
+**`admin` self-servisi bir davet koduyla korunuyor** — kullanıcı önce açık riski (herkes tek tıkla
+admin olabilir) kabul etti, sonra kendisi "sadece kodu bilenler admin olabilsin" fikrini getirdi.
+Uygulama: `ADMIN_INVITE_CODE` secret'ı (`Bindings`, prod'da `wrangler secret put` ile girildi —
+değeri sadece gerçek adminlere elden/güvenli kanaldan iletilir, repoda yok). `GET /api/auth/google`,
+`role=admin` isteğinde `?code=` query param'ını bu secret'la karşılaştırıyor; eşleşmezse Google'a
+hiç gitmeden `403 invalid_admin_code` döndürüyor (`auth.routes.ts`). Frontend'de Eğitim Yöneticisi
+kartına bir "Admin Kodu" input'u eklendi (`LoginPage.tsx#RoleLoginCard`), kod boşken her iki giriş
+butonu da disabled. `UserManagementPage.tsx` (`PATCH /api/users/:id/role`) hâlâ duruyor — rolleri
 sonradan değiştirmek/geri almak/askıya almak için.
 
 AI çıktısı (üretilen soru, önerilen puan) **hiçbir zaman doğrudan yayına/nota dönüşmez** —

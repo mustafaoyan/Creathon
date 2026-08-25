@@ -4,9 +4,11 @@ import { logout } from "@/lib/auth-client";
 import { toast } from "@/lib/toast";
 
 const ROLE_LINKS: Record<UserRole, { href: string; label: string }[]> = {
+  // Kazanım tanımlama artık ayrı bir sayfa değil — İçerik Yükle ekranının
+  // içine taşındı (bkz. UploadDocumentPage.tsx), o yüzden burada ayrı bir
+  // link yok.
   content_creator: [
     { href: "/content/upload", label: "İçerik Yükle" },
-    { href: "/content/outcomes", label: "Kazanım Tanımla" },
     { href: "/content/generate", label: "Soru Üret" },
     { href: "/content/review", label: "Soru Onay Paneli" },
   ],

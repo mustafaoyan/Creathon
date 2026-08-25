@@ -48,6 +48,10 @@ export function GenerateQuestionsPage() {
   const pollRef = useRef<number | null>(null);
 
   const jobInFlight = job?.status === "queued" || job?.status === "processing";
+  // Kaynak seçilince o kaynağa bağlı kazanımlar otomatik gösteriliyor — ayrı bir
+  // "kazanım seç" listesinde tüm uygulamadaki kazanımları elle aramaya gerek yok
+  // (kazanımlar artık İçerik Yükle ekranında, kaynakla birlikte tanımlanıyor).
+  const outcomesForDocument = outcomes.filter((outcome) => outcome.documentId === documentId);
 
   useEffect(() => {
     refreshAll();
@@ -55,6 +59,12 @@ export function GenerateQuestionsPage() {
       if (res.job) setJob(res.job);
     });
   }, []);
+
+  useEffect(() => {
+    const matches = outcomes.filter((outcome) => outcome.documentId === documentId);
+    setLearningOutcomeId(matches[0]?.id ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documentId, outcomes]);
 
   useEffect(() => {
     if (!jobInFlight || !job) return;
@@ -141,7 +151,7 @@ export function GenerateQuestionsPage() {
   const readyDocuments = documents.filter((doc) => doc.status === "ready");
 
   return (
-    <div className="flex max-w-2xl flex-col gap-8">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">AI ile Soru Üret</h1>
         <a href="/content/review" className="text-sm font-medium text-primary underline">
@@ -150,15 +160,20 @@ export function GenerateQuestionsPage() {
       </div>
 
       <form onSubmit={generate} className="flex flex-col gap-3">
-        <input
-          className="rounded-md border border-input px-3 py-2"
-          placeholder="Parti başlığı (opsiyonel — boş bırakılırsa kazanım adı kullanılır)"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-        <p className="-mt-2 text-xs text-muted-foreground">
-          Bu başlık, sınav oluşturma ekranındaki soru havuzunda bu üretim partisini tanımlamak için kullanılır.
-        </p>
+        <div className="flex flex-col gap-1">
+          <span className="flex items-baseline gap-1.5 text-sm font-medium">
+            Parti Başlığı <span className="text-xs font-normal text-muted-foreground">(opsiyonel)</span>
+          </span>
+          <input
+            className="rounded-md border border-input px-3 py-2"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Sınav oluşturma ekranındaki soru havuzunda bu üretim partisini tanımlamak için kullanılır — boş
+            bırakılırsa kazanım adı kullanılır.
+          </p>
+        </div>
 
         <select
           className="rounded-md border border-input px-3 py-2"
@@ -181,21 +196,36 @@ export function GenerateQuestionsPage() {
           </p>
         )}
 
-        <select
-          className="rounded-md border border-input px-3 py-2"
-          value={learningOutcomeId}
-          onChange={(event) => setLearningOutcomeId(event.target.value)}
-          required
-        >
-          <option value="" disabled>
-            Kazanım seç
-          </option>
-          {outcomes.map((outcome) => (
-            <option key={outcome.id} value={outcome.id}>
-              {outcome.title}
-            </option>
-          ))}
-        </select>
+        {documentId && outcomesForDocument.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            Bu kaynak için henüz kazanım tanımlanmamış —{" "}
+            <a href="/content/upload" className="font-medium text-primary underline">
+              İçerik Yükle
+            </a>{" "}
+            ekranından ekleyebilirsin.
+          </p>
+        )}
+
+        {outcomesForDocument.length === 1 && (
+          <p className="rounded-md border border-border px-3 py-2 text-sm">
+            <span className="text-muted-foreground">Kazanım: </span>
+            <span className="font-medium">{outcomesForDocument[0]?.title}</span>
+          </p>
+        )}
+
+        {outcomesForDocument.length > 1 && (
+          <select
+            className="rounded-md border border-input px-3 py-2"
+            value={learningOutcomeId}
+            onChange={(event) => setLearningOutcomeId(event.target.value)}
+          >
+            {outcomesForDocument.map((outcome) => (
+              <option key={outcome.id} value={outcome.id}>
+                {outcome.title}
+              </option>
+            ))}
+          </select>
+        )}
 
         <div className="flex items-end gap-3">
           <select

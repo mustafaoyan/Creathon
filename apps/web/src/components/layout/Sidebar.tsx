@@ -15,9 +15,16 @@ const ROLE_LINKS: Record<UserRole, { href: string; label: string }[]> = {
     { href: "/exams/grading", label: "Puanlama Onayı" },
   ],
   student: [{ href: "/exams/take", label: "Sınavlarım" }],
+  // "... gözüyle" 3 linki önceden sadece Yönetici Paneli'nin içeriğindeydi —
+  // oraya gitmeden erişilemiyordu. Kullanıcı isteğiyle diğer rollerin
+  // linkleri gibi ☰ menüsüne de eklendi (Panel'deki kartlar da duruyor,
+  // burada tekrarı zararsız — sadece ekstra bir kısayol).
   admin: [
     { href: "/dashboard", label: "Panel" },
     { href: "/admin/users", label: "Kullanıcı Yönetimi" },
+    { href: "/content/upload", label: "İçerik Uzmanı gözüyle" },
+    { href: "/exams/new", label: "Eğitmen gözüyle" },
+    { href: "/exams/take", label: "Öğrenci gözüyle" },
   ],
 };
 

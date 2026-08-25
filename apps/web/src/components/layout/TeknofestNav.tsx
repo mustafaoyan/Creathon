@@ -32,6 +32,7 @@ export function TeknofestNav({
   secondaryLink?: NavTextLink;
 }) {
   const [showAbout, setShowAbout] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     // Kasıtlı olarak kendi arka planı YOK — teknofest.org.tr'deki gibi çubuk,
@@ -44,7 +45,7 @@ export function TeknofestNav({
     <nav className="fixed inset-x-0 top-0 z-50 flex h-16 items-center overflow-visible px-6 text-white">
       <div className="relative z-10 flex w-full items-center justify-between gap-4">
         <span className="text-lg font-extrabold tracking-wide">RUBRIX</span>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
           <div className="hidden items-center gap-6 text-sm font-semibold sm:flex">
             <button
               type="button"
@@ -64,6 +65,24 @@ export function TeknofestNav({
               </button>
             )}
           </div>
+
+          {/* Mobilde "RUBRIX NEDİR" / "DİĞER GİRİŞLER" tamamen GİZLENİYORDU (yukarıdaki
+              blok sm:flex öncesi hidden) — telefonda giriş yapmaya çalışan test ekibi bu
+              yüzden "Diğer Girişler"e hiç erişemiyordu, "masaüstü sitesi" istemek zorunda
+              kalıyorlardı (bildirilen bug tam buydu). Aynı linkler artık mobilde bir ☰
+              menüsünün arkasında erişilebilir — hem login ekranında (RUBRIX NEDİR + Diğer
+              Girişler) hem authed ekranlarda (sadece RUBRIX NEDİR) çalışsın diye
+              secondaryLink'e bağlı değil, her zaman render ediliyor. */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-expanded={mobileMenuOpen}
+            aria-label="Menü"
+            className="cursor-pointer rounded-md p-1.5 text-white transition-colors hover:bg-white/10 sm:hidden"
+          >
+            ☰
+          </button>
+
           {action.href ? (
             <a
               href={action.href}
@@ -80,9 +99,36 @@ export function TeknofestNav({
               {action.label}
             </button>
           )}
-          <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold">2026</span>
+          <span className="hidden rounded-md bg-white/10 px-2 py-1 text-xs font-semibold sm:inline-block">2026</span>
         </div>
       </div>
+
+      {mobileMenuOpen && (
+        <div className="rbx-reveal absolute right-6 top-full z-20 mt-3 flex w-56 flex-col gap-1 rounded-xl border border-white/15 bg-[#050814] p-2 text-left shadow-2xl sm:hidden">
+          <button
+            type="button"
+            onClick={() => {
+              setShowAbout((prev) => !prev);
+              setMobileMenuOpen(false);
+            }}
+            className="cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold text-white transition-colors hover:bg-white/10"
+          >
+            RUBRIX NEDİR
+          </button>
+          {secondaryLink && (
+            <button
+              type="button"
+              onClick={() => {
+                secondaryLink.onClick();
+                setMobileMenuOpen(false);
+              }}
+              className="cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold text-white transition-colors hover:bg-white/10"
+            >
+              {secondaryLink.label}
+            </button>
+          )}
+        </div>
+      )}
 
       {showAbout && (
         // rbx-glass BİLEREK yok — o sınıfın katmansız `background` kuralı, Tailwind

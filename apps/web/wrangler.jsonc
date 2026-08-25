@@ -15,6 +15,16 @@
   // Service binding to rubrix-api — same-origin proxying for /api/*, see worker/index.tsx.
   // Local dev: run `pnpm --filter @rubrix/api dev` alongside this so the binding resolves.
   "services": [{ "binding": "API", "service": "rubrix-api" }],
+  // 2026-08-25: hititai.com satın alındı, custom domain buraya bağlandı.
+  // workers_dev BİLİNÇLİ OLARAK false (varsayılan) — açık tutmayı denedik ama
+  // Cloudflare, aynı hesaptaki iki worker service binding ile birbirini
+  // çağırdığında (bizim /api/* proxy deseni, rubrix-web -> rubrix-api) bunu
+  // *.workers.dev üzerinden YASAKLIYOR (her istekte "error code: 1042" —
+  // bu, worker-to-worker fetch'in workers.dev'den erişildiğinde Cloudflare
+  // tarafından engellenen bilinen bir kısıtlama, custom domain'de sorun yok).
+  // Yani workers.dev'i açık bıraksak bile kırık/yarım çalışırdı — kafa
+  // karıştırmasın diye tamamen kapalı tutuyoruz, tek adres artık app.hititai.com.
+  "routes": [{ "pattern": "app.hititai.com", "custom_domain": true }],
   "observability": {
     "enabled": true
   }

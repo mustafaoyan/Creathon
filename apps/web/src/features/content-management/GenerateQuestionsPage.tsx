@@ -38,8 +38,12 @@ export function GenerateQuestionsPage() {
   const [documentId, setDocumentId] = useState("");
   const [learningOutcomeId, setLearningOutcomeId] = useState("");
   const [rubricId, setRubricId] = useState("");
-  const [multipleChoiceCount, setMultipleChoiceCount] = useState(3);
-  const [openEndedCount, setOpenEndedCount] = useState(2);
+  // "" = alan boş (kullanıcı sildi) — sayı olarak 0'a eşdeğer ama input'ta
+  // gerçekten boş görünüyor (placeholder="0"). Değeri hep sayı tutsaydık,
+  // sıfırlandığında input'ta gerçek bir "0" karakteri kalıyor, kullanıcı yeni
+  // bir rakam yazmadan önce onu elle silmek zorunda kalıyordu (bildirilen bug).
+  const [multipleChoiceCount, setMultipleChoiceCount] = useState<number | "">("");
+  const [openEndedCount, setOpenEndedCount] = useState<number | "">("");
   const [showNewRubric, setShowNewRubric] = useState(false);
 
   const [job, setJob] = useState<GenerationJob | null>(null);
@@ -115,7 +119,9 @@ export function GenerateQuestionsPage() {
 
   async function generate(event: FormEvent) {
     event.preventDefault();
-    if (!documentId || !learningOutcomeId) return;
+    const mcCount = multipleChoiceCount || 0;
+    const oeCount = openEndedCount || 0;
+    if (!documentId || !learningOutcomeId || mcCount + oeCount === 0) return;
 
     setError(null);
     try {
@@ -127,13 +133,13 @@ export function GenerateQuestionsPage() {
         documentId,
         learningOutcomeId,
         rubricId: rubricId || undefined,
-        multipleChoiceCount,
-        openEndedCount,
+        multipleChoiceCount: mcCount,
+        openEndedCount: oeCount,
       });
       setJob({
         id: generationJobId,
         status: "queued",
-        questionCount: multipleChoiceCount + openEndedCount,
+        questionCount: mcCount + oeCount,
         questionsGenerated: 0,
         failureReason: null,
         createdAt: new Date().toISOString(),
@@ -262,9 +268,10 @@ export function GenerateQuestionsPage() {
               type="number"
               min={0}
               max={10}
+              placeholder="0"
               className="rounded-md border border-input px-3 py-2"
               value={multipleChoiceCount}
-              onChange={(event) => setMultipleChoiceCount(Number(event.target.value))}
+              onChange={(event) => setMultipleChoiceCount(event.target.value === "" ? "" : Number(event.target.value))}
             />
           </label>
           <label className="flex flex-1 flex-col gap-1 text-sm">
@@ -273,15 +280,19 @@ export function GenerateQuestionsPage() {
               type="number"
               min={0}
               max={10}
+              placeholder="0"
               className="rounded-md border border-input px-3 py-2"
               value={openEndedCount}
-              onChange={(event) => setOpenEndedCount(Number(event.target.value))}
+              onChange={(event) => setOpenEndedCount(event.target.value === "" ? "" : Number(event.target.value))}
             />
           </label>
         </div>
         <p className="text-xs text-muted-foreground">Tek seferde toplam en fazla 10 soru üretilebilir.</p>
 
-        <Button type="submit" disabled={!documentId || !learningOutcomeId || jobInFlight}>
+        <Button
+          type="submit"
+          disabled={!documentId || !learningOutcomeId || (multipleChoiceCount || 0) + (openEndedCount || 0) === 0 || jobInFlight}
+        >
           {jobInFlight ? "Üretiliyor..." : "Soru Üret"}
         </Button>
 

@@ -2,8 +2,6 @@ import { Hono } from "hono";
 import { renderToReadableStream } from "react-dom/server";
 import { App } from "@/app/App";
 import type { SessionUser } from "@/lib/auth-client";
-import { ROLE_HOME } from "@/lib/role-home";
-
 type Bindings = {
   ASSETS: Fetcher;
   /** Service binding to the rubrix-api Worker — keeps the browser on a single
@@ -41,11 +39,12 @@ app.get("*", async (c) => {
     resolveClientAssets(c.env.ASSETS, c.req.url),
   ]);
 
-  // Post-login, "/" isn't itself a screen — send the user straight to the
-  // one their role actually starts on (brief describes a role-specific
-  // landing, not a generic "hello + one button" middle page).
+  // Post-login, "/" isn't itself a screen — bütün roller aynı yere, ortak
+  // "Hoş Geldiniz" ekranına gider (bilinçli olarak role-özel doğrudan sayfaya
+  // atmaktan vazgeçildi — gerçek işlevler artık Sidebar'da/3 çizgide,
+  // giriş sonrası ilk gördükleri şey sade ve tutarlı olsun diye).
   if (url.pathname === "/" && user?.status === "active" && user.role) {
-    return c.redirect(ROLE_HOME[user.role], 302);
+    return c.redirect("/welcome", 302);
   }
 
   const stream = await renderToReadableStream(

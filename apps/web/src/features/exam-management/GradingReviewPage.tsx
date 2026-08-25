@@ -40,7 +40,10 @@ export function GradingReviewPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-bold">Puanlama Onayı (İnsan Kontrolü)</h1>
+      <div className="flex flex-col items-center gap-1">
+        <h1 className="text-xl font-bold">AI Destekli Değerlendirme Sistemi</h1>
+        <p className="text-sm text-muted-foreground">İnsan kontrolü — AI önerilerini incele, onayla veya düzenle.</p>
+      </div>
       {pending.map((item) => {
         const isEditing = editingId === item.studentAnswerId;
 

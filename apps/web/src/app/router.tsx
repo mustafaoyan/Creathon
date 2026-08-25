@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { UserRole } from "@/lib/auth-client";
 import { LoginPage } from "@/features/auth/LoginPage";
+import { WelcomePage } from "@/features/home/WelcomePage";
 import { UploadDocumentPage } from "@/features/content-management/UploadDocumentPage";
 import { LearningOutcomesPage } from "@/features/content-management/LearningOutcomesPage";
 import { GenerateQuestionsPage } from "@/features/content-management/GenerateQuestionsPage";
@@ -20,6 +21,11 @@ export type AppRoute = {
 
 export const ROUTES: AppRoute[] = [
   { path: "/login", component: LoginPage, roles: [] },
+  {
+    path: "/welcome",
+    component: WelcomePage,
+    roles: ["content_creator", "instructor", "student", "admin"],
+  },
   { path: "/content/upload", component: UploadDocumentPage, roles: ["content_creator"] },
   { path: "/content/outcomes", component: LearningOutcomesPage, roles: ["content_creator"] },
   { path: "/content/generate", component: GenerateQuestionsPage, roles: ["content_creator"] },

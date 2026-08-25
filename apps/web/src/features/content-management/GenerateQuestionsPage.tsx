@@ -57,9 +57,13 @@ export function GenerateQuestionsPage() {
   useEffect(() => {
     if (!jobInFlight || !job) return;
 
-    setElapsedSeconds(0);
-    const startedAt = Date.now();
-    const tick = setInterval(() => setElapsedSeconds(Math.round((Date.now() - startedAt) / 1000)), 1000);
+    // job.createdAt (sunucu zamanı) baz alınıyor — sayfa ne zaman açılırsa
+    // açılsın geçen süre doğru gösterilir; sayfa açılış anını baz alsaydık
+    // her yeniden açılışta sayaç sıfırlanırdı (bildirilen bug tam buydu).
+    const createdAtMs = new Date(job.createdAt).getTime();
+    const tick = () => setElapsedSeconds(Math.round((Date.now() - createdAtMs) / 1000));
+    tick();
+    const tickTimer = setInterval(tick, 1000);
 
     const poll = window.setInterval(async () => {
       const updated = await apiClient.get<GenerationJob>(`/api/questions/generate/${job.id}`);
@@ -71,11 +75,17 @@ export function GenerateQuestionsPage() {
     pollRef.current = poll;
 
     return () => {
-      clearInterval(tick);
+      clearInterval(tickTimer);
       window.clearInterval(poll);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job?.id, jobInFlight]);
+
+  async function cancelJob() {
+    if (!job) return;
+    await apiClient.post(`/api/questions/generate/${job.id}/cancel`);
+    setJob((prev) => (prev ? { ...prev, status: "failed", failureReason: "kullanici_tarafindan_iptal_edildi" } : prev));
+  }
 
   function refreshAll() {
     apiClient.get<{ documents: DocumentRow[] }>("/api/content/documents").then((res) => setDocuments(res.documents));
@@ -107,7 +117,12 @@ export function GenerateQuestionsPage() {
         createdAt: new Date().toISOString(),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Soru üretimi başlatılamadı.");
+      const message = err instanceof Error ? err.message : "";
+      setError(
+        message.startsWith("too_many_questions_requested")
+          ? "Tek seferde en fazla 10 soru üretilebilir (çoktan seçmeli + açık uçlu toplamı) — büyük istekler zaman aşımına uğrayıp hiç bitmeyebiliyor."
+          : "Soru üretimi başlatılamadı.",
+      );
     }
   }
 
@@ -194,6 +209,7 @@ export function GenerateQuestionsPage() {
             <input
               type="number"
               min={0}
+              max={10}
               className="rounded-md border border-input px-3 py-2"
               value={multipleChoiceCount}
               onChange={(event) => setMultipleChoiceCount(Number(event.target.value))}
@@ -204,12 +220,14 @@ export function GenerateQuestionsPage() {
             <input
               type="number"
               min={0}
+              max={10}
               className="rounded-md border border-input px-3 py-2"
               value={openEndedCount}
               onChange={(event) => setOpenEndedCount(Number(event.target.value))}
             />
           </label>
         </div>
+        <p className="text-xs text-muted-foreground">Tek seferde toplam en fazla 10 soru üretilebilir.</p>
 
         <Button type="submit" disabled={!documentId || !learningOutcomeId || jobInFlight}>
           {jobInFlight ? "Üretiliyor..." : "Soru Üret"}
@@ -218,12 +236,26 @@ export function GenerateQuestionsPage() {
         {error && <p className="text-sm text-destructive">{error}</p>}
       </form>
 
-      {job && <GenerationJobStatusCard job={job} elapsedSeconds={elapsedSeconds} />}
+      {job && <GenerationJobStatusCard job={job} elapsedSeconds={elapsedSeconds} onCancel={cancelJob} />}
     </div>
   );
 }
 
-function GenerationJobStatusCard({ job, elapsedSeconds }: { job: GenerationJob; elapsedSeconds: number }) {
+const FAILURE_REASON_LABELS: Record<string, string> = {
+  kullanici_tarafindan_iptal_edildi: "Kullanıcı tarafından iptal edildi.",
+  zaman_asimi_iptal_edildi: "İşlem çok uzun sürdü ve otomatik olarak durduruldu — daha az soru ile tekrar dene.",
+  no_grounded_chunks_found_for_outcome: "Kaynak belgede bu kazanımla eşleşen bir bölüm bulunamadı.",
+};
+
+function GenerationJobStatusCard({
+  job,
+  elapsedSeconds,
+  onCancel,
+}: {
+  job: GenerationJob;
+  elapsedSeconds: number;
+  onCancel: () => void;
+}) {
   const inFlight = job.status === "queued" || job.status === "processing";
 
   return (
@@ -240,10 +272,16 @@ function GenerationJobStatusCard({ job, elapsedSeconds }: { job: GenerationJob; 
       </div>
 
       {inFlight && (
-        <p className="text-xs text-muted-foreground">
-          Bu işlem arka planda (kuyrukta) çalışıyor — sayfadan ayrılsan veya sekmeyi kapatsan da devam eder, geri
-          döndüğünde son durumunu burada görürsün.
-        </p>
+        <>
+          <p className="text-xs text-muted-foreground">
+            Bu işlem arka planda (kuyrukta) çalışıyor — sayfadan ayrılsan veya sekmeyi kapatsan da devam eder, geri
+            döndüğünde son durumunu burada görürsün. Normalde 1-2 dakika içinde biter; 3 dakikayı geçerse otomatik
+            olarak başarısız işaretlenir.
+          </p>
+          <Button type="button" size="sm" variant="outline" onClick={onCancel} className="w-fit">
+            İşlemi İptal Et
+          </Button>
+        </>
       )}
 
       {job.status === "completed" && (
@@ -257,7 +295,10 @@ function GenerationJobStatusCard({ job, elapsedSeconds }: { job: GenerationJob; 
       )}
 
       {job.status === "failed" && (
-        <p className="text-sm text-destructive">Üretim başarısız oldu: {job.failureReason ?? "bilinmeyen hata"}</p>
+        <p className="text-sm text-destructive">
+          Üretim başarısız oldu:{" "}
+          {(job.failureReason && FAILURE_REASON_LABELS[job.failureReason]) || job.failureReason || "bilinmeyen hata"}
+        </p>
       )}
     </div>
   );

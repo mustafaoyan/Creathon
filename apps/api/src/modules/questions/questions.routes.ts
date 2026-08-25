@@ -47,6 +47,11 @@ questionsRoutes.get("/generate-status/latest", requireRole("content_creator"), a
   return c.json({ job });
 });
 
+questionsRoutes.post("/generate/:jobId/cancel", requireRole("content_creator"), async (c) => {
+  await questionsService.cancelGenerationJob(c.env, c.req.param("jobId"), c.get("userId"));
+  return c.json({ ok: true });
+});
+
 questionsRoutes.get("/", requireRole("content_creator", "instructor", "admin"), async (c) => {
   const status = c.req.query("status") as QuestionStatus | undefined;
   return c.json({ questions: await questionsService.list(c.env, status) });

@@ -8,6 +8,27 @@ import { questionsRepository } from "./questions.repository";
 import { HttpError } from "../../shared/middleware/error-handler";
 import type { QuestionStatus } from "../../shared/db/schema";
 
+// Tek AI çağrısında çok fazla soru istemek (ör. 30) gerçek bir stuck-job
+// nedeniydi — model/kuyruk çalışma süresi limitlerini aşıp iş hiç bitmeden
+// (ne completed ne failed) sonsuza kadar "processing" kalıyordu.
+const MAX_QUESTIONS_PER_JOB = 10;
+// Bu süreden uzun "processing"/"queued" kalan bir iş, muhtemelen consumer'ın
+// zaman/CPU limitine çarpıp try/catch'e hiç girmeden öldüğü anlamına gelir —
+// otomatik olarak "failed" işaretlenip kullanıcıya sonsuz döngü gösterilmez.
+const STALE_JOB_MS = 3 * 60 * 1000;
+
+/** "processing"da sonsuza kalmış bir işi (consumer zaman/CPU limitine çarpıp
+ * hiç tamamlanmadıysa) otomatik "failed"a çevirir — okuma anında (lazy),
+ * ayrı bir cron gerektirmeden. */
+async function reconcileIfStale(db: ReturnType<typeof createDb>, job: NonNullable<Awaited<ReturnType<typeof questionsRepository.findGenerationJobById>>>) {
+  const isActive = job.status === "queued" || job.status === "processing";
+  const isStale = Date.now() - job.createdAt.getTime() > STALE_JOB_MS;
+  if (!isActive || !isStale) return job;
+
+  await questionsRepository.failGenerationJob(db, job.id, "zaman_asimi_iptal_edildi");
+  return (await questionsRepository.findGenerationJobById(db, job.id)) ?? job;
+}
+
 export const questionsService = {
   /** Hızlı yol: sadece iş kaydını oluşturup kuyruğa atar, hemen döner. Asıl
    * RAG + AI çağrısı (birkaç saniye sürebilir) `processGenerationJob` içinde,
@@ -23,6 +44,10 @@ export const questionsService = {
       openEndedCount: number;
     },
   ) {
+    if (params.multipleChoiceCount + params.openEndedCount > MAX_QUESTIONS_PER_JOB) {
+      throw new HttpError(422, `too_many_questions_requested_max_${MAX_QUESTIONS_PER_JOB}`);
+    }
+
     const db = createDb(env.DB);
     const outcome = await contentRepository.findLearningOutcomeById(db, params.learningOutcomeId);
     if (!outcome) throw new HttpError(404, "learning_outcome_not_found");
@@ -34,8 +59,9 @@ export const questionsService = {
 
   async getGenerationJob(env: Bindings, jobId: string) {
     const db = createDb(env.DB);
-    const job = await questionsRepository.findGenerationJobById(db, jobId);
+    let job = await questionsRepository.findGenerationJobById(db, jobId);
     if (!job) throw new HttpError(404, "generation_job_not_found");
+    job = await reconcileIfStale(db, job);
     const questionsGenerated = job.status === "completed" ? await questionsRepository.countByGenerationJob(db, jobId) : 0;
     return { ...job, questionsGenerated };
   },
@@ -45,10 +71,25 @@ export const questionsService = {
    * ediyor/bitti, burada tekrar bulunabiliyor. */
   async getLatestGenerationJobFor(env: Bindings, requestedBy: string) {
     const db = createDb(env.DB);
-    const job = await questionsRepository.findLatestGenerationJobByRequester(db, requestedBy);
+    let job = await questionsRepository.findLatestGenerationJobByRequester(db, requestedBy);
     if (!job) return null;
+    job = await reconcileIfStale(db, job);
     const questionsGenerated = job.status === "completed" ? await questionsRepository.countByGenerationJob(db, job.id) : 0;
     return { ...job, questionsGenerated };
+  },
+
+  /** Kullanıcının "İşlemi İptal Et" butonu — kuyruktaki mesajı fiilen geri
+   * çekemiyoruz (Cloudflare Queues bunu desteklemiyor), ama işi hemen "failed"
+   * işaretleyip kullanıcıyı serbest bırakıyoruz. Consumer daha sonra bitirse
+   * bile completeGenerationJob artık "failed" durumunu ezmiyor (bkz. repository). */
+  async cancelGenerationJob(env: Bindings, jobId: string, requestedBy: string) {
+    const db = createDb(env.DB);
+    const job = await questionsRepository.findGenerationJobById(db, jobId);
+    if (!job) throw new HttpError(404, "generation_job_not_found");
+    if (job.requestedBy !== requestedBy) throw new HttpError(403, "not_your_job");
+    if (job.status !== "queued" && job.status !== "processing") return;
+
+    await questionsRepository.failGenerationJob(db, jobId, "kullanici_tarafindan_iptal_edildi");
   },
 
   /** Kuyruk consumer'ından çağrılır — gerçek RAG + AI çağrısı burada. */
@@ -79,6 +120,12 @@ export const questionsService = {
         sourceChunks: chunks,
         counts: { multipleChoice: job.multipleChoiceCount, openEnded: job.openEndedCount },
       });
+
+      // AI çağrısı sürerken kullanıcı iptal ettiyse (ya da zaman aşımı işaretlediyse),
+      // üretilen soruları havuza hiç ekleme — "iptal ettim ama sorular yine de
+      // Onay Paneli'nde çıktı" gibi bir sürpriz olmasın.
+      const current = await questionsRepository.findGenerationJobById(db, jobId);
+      if (current?.status !== "processing") return;
 
       await questionsRepository.insertGeneratedQuestions(db, {
         documentId: job.documentId,

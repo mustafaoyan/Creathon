@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import type { Database } from "../../shared/db/client";
 import { questions, questionOptions, aiGenerationJobs, type QuestionStatus } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
@@ -50,22 +50,33 @@ export const questionsRepository = {
     return row ?? null;
   },
 
+  /** WHERE status = 'queued' kasıtlı — iş zaten iptal/zaman aşımıyla "failed"
+   * işaretlenmişse (kullanıcı cancel'a bastıktan hemen sonra consumer bu satıra
+   * gelirse tam bu race oluşuyordu) burada "processing"e geri döndürülmesin;
+   * yoksa sonda completeGenerationJob'un guard'ı da anlamsız kalır. */
   async markGenerationJobProcessing(db: Database, id: string) {
-    await db.update(aiGenerationJobs).set({ status: "processing" }).where(eq(aiGenerationJobs.id, id));
+    await db
+      .update(aiGenerationJobs)
+      .set({ status: "processing" })
+      .where(and(eq(aiGenerationJobs.id, id), eq(aiGenerationJobs.status, "queued")));
   },
 
+  /** WHERE status IN (queued, processing) kasıtlı — iş kullanıcı tarafından
+   * iptal edildikten veya zaman aşımına uğrayıp "failed" işaretlendikten SONRA
+   * kuyruk consumer'ı geç tamamlanırsa, bu geç sonucun zaten kapanmış işi
+   * "completed"a geri çevirmesini önlüyor. */
   async completeGenerationJob(db: Database, id: string) {
     await db
       .update(aiGenerationJobs)
       .set({ status: "completed", completedAt: new Date() })
-      .where(eq(aiGenerationJobs.id, id));
+      .where(and(eq(aiGenerationJobs.id, id), inArray(aiGenerationJobs.status, ["queued", "processing"])));
   },
 
   async failGenerationJob(db: Database, id: string, reason: string) {
     await db
       .update(aiGenerationJobs)
       .set({ status: "failed", failureReason: reason, completedAt: new Date() })
-      .where(eq(aiGenerationJobs.id, id));
+      .where(and(eq(aiGenerationJobs.id, id), inArray(aiGenerationJobs.status, ["queued", "processing"])));
   },
 
   async insertGeneratedQuestions(

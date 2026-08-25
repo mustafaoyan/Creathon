@@ -159,11 +159,21 @@ hesabı değil) — yukarıdaki 8 maddeyi curl ile uçtan uca doğrulamak için 
 kullanıcı henüz karar vermedi; tarayıcıda gerçek hesaplarla test ederken bunlarla karışmasın diye
 burada not düşülüyor.
 
+**2026-08-25: AI özellikleri artık prod'da gerçekten çalışıyor — Anthropic kredisi olmadan.**
+Anthropic API, `claude.ai`'nin aksine, model seviyesinden bağımsız olarak her zaman önceden
+yüklenmiş kredi istiyor (`credit balance too low`) — bu kredi hâlâ yok. Ama Ports & Adapters
+mimarisi tam bunun için kurulmuştu: `ai/providers/workers-ai/*` adaptörü (Llama 3.3 70B,
+`response_format: json_schema` ile yapılandırılmış çıktı) eklendi, `AI_PROVIDER` şu an
+`"workers-ai"` (Cloudflare'in kendi modelleri, günde 10.000 Neuron ücretsiz kota — kredi kartı
+gerekmiyor). Kredi eklenince `wrangler.jsonc`'ta `AI_PROVIDER`'ı `"anthropic"`a çevirmek yeterli.
+
+Uçtan uca gerçek veriyle doğrulandı: RAG destekli soru üretimi (kaynak metinden gerçekçi MCQ +
+açık uçlu sorular, doğru şıklar, `sourceChunkIds` izlenebilirliği) ve rubrik bazlı puanlama
+(akıcı/tutarlı Türkçe gerekçe + kriter bazlı döküm) ikisi de canlıda test edildi ve çalışıyor.
+Test sırasında bulunup düzeltilen bug: Workers AI'nin varsayılan `max_tokens`'ı JSON çıktısını
+yarıda kesiyordu — `workers-ai-client.ts`'te `max_tokens: 4096` eklendi.
+
 **Bekliyor (bilinçli olarak yapılmadı):**
-- **`ANTHROPIC_API_KEY` — Anthropic hesabında kredi yok** (`credit balance too low` hatası).
-  Kod/entegrasyon çalışıyor (gateway'e ulaşıyor, hata doğru parse ediliyor), sadece ödeme bekliyor.
-  Bu yüzden soru üretimi ve AI rubrik puanlaması prod'da henüz gerçek bir LLM çağrısıyla
-  denenmedi — MCQ akışı (otomatik puanlama dahil) elle eklenen sorularla uçtan uca doğrulandı.
 - Özel domain yok, `workers.dev` kullanılıyor.
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın
   ürettiği runtime type'larına geçiş — şimdilik deprecated ama çalışır durumda, bilinçli olarak

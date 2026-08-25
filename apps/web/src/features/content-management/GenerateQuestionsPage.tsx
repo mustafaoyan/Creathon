@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
@@ -6,6 +6,28 @@ type DocumentRow = { id: string; title: string; status: string };
 type OutcomeRow = { id: string; title: string; documentId: string | null };
 type RubricRow = { id: string; title: string; maxScore: number };
 
+type GenerationJobStatus = "queued" | "processing" | "completed" | "failed";
+type GenerationJob = {
+  id: string;
+  status: GenerationJobStatus;
+  questionCount: number;
+  questionsGenerated: number;
+  failureReason: string | null;
+  createdAt: string;
+};
+
+const JOB_STATUS_LABELS: Record<GenerationJobStatus, string> = {
+  queued: "Sıraya alındı",
+  processing: "Üretiliyor",
+  completed: "Tamamlandı",
+  failed: "Başarısız",
+};
+
+/** Üretim artık kuyrukta arka planda çalışıyor — bu sayfadan ayrılıp geri
+ * dönsen ya da sekmeyi kapatsan da iş devam ediyor. Bu yüzden job'ı polling
+ * ile takip ediyoruz (istek boyunca tarayıcıyı bloklamak yerine) ve sayfa
+ * mount olduğunda kullanıcının en son işini otomatik bulup gösteriyoruz —
+ * "önceki işlem nereye gitti" sorusunun cevabı burada. */
 export function GenerateQuestionsPage() {
   const [documents, setDocuments] = useState<DocumentRow[]>([]);
   const [outcomes, setOutcomes] = useState<OutcomeRow[]>([]);
@@ -18,13 +40,42 @@ export function GenerateQuestionsPage() {
   const [openEndedCount, setOpenEndedCount] = useState(2);
   const [showNewRubric, setShowNewRubric] = useState(false);
 
-  const [status, setStatus] = useState<string | null>(null);
+  const [job, setJob] = useState<GenerationJob | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const pollRef = useRef<number | null>(null);
+
+  const jobInFlight = job?.status === "queued" || job?.status === "processing";
 
   useEffect(() => {
     refreshAll();
+    apiClient.get<{ job: GenerationJob | null }>("/api/questions/generate-status/latest").then((res) => {
+      if (res.job) setJob(res.job);
+    });
   }, []);
+
+  useEffect(() => {
+    if (!jobInFlight || !job) return;
+
+    setElapsedSeconds(0);
+    const startedAt = Date.now();
+    const tick = setInterval(() => setElapsedSeconds(Math.round((Date.now() - startedAt) / 1000)), 1000);
+
+    const poll = window.setInterval(async () => {
+      const updated = await apiClient.get<GenerationJob>(`/api/questions/generate/${job.id}`);
+      setJob(updated);
+      if (updated.status === "completed" || updated.status === "failed") {
+        if (pollRef.current) window.clearInterval(pollRef.current);
+      }
+    }, 2000);
+    pollRef.current = poll;
+
+    return () => {
+      clearInterval(tick);
+      window.clearInterval(poll);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.id, jobInFlight]);
 
   function refreshAll() {
     apiClient.get<{ documents: DocumentRow[] }>("/api/content/documents").then((res) => setDocuments(res.documents));
@@ -38,22 +89,25 @@ export function GenerateQuestionsPage() {
     event.preventDefault();
     if (!documentId || !learningOutcomeId) return;
 
-    setBusy(true);
-    setStatus(null);
     setError(null);
     try {
-      await apiClient.post("/api/questions/generate", {
+      const { generationJobId } = await apiClient.post<{ generationJobId: string }>("/api/questions/generate", {
         documentId,
         learningOutcomeId,
         rubricId: rubricId || undefined,
         multipleChoiceCount,
         openEndedCount,
       });
-      setStatus("Soru taslakları üretildi — onaylamak için Soru Onay Paneli'ne git.");
+      setJob({
+        id: generationJobId,
+        status: "queued",
+        questionCount: multipleChoiceCount + openEndedCount,
+        questionsGenerated: 0,
+        failureReason: null,
+        createdAt: new Date().toISOString(),
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Soru üretimi başarısız oldu.");
-    } finally {
-      setBusy(false);
+      setError(err instanceof Error ? err.message : "Soru üretimi başlatılamadı.");
     }
   }
 
@@ -157,13 +211,54 @@ export function GenerateQuestionsPage() {
           </label>
         </div>
 
-        <Button type="submit" disabled={!documentId || !learningOutcomeId || busy}>
-          {busy ? "Üretiliyor..." : "Soru Üret"}
+        <Button type="submit" disabled={!documentId || !learningOutcomeId || jobInFlight}>
+          {jobInFlight ? "Üretiliyor..." : "Soru Üret"}
         </Button>
 
-        {status && <p className="text-sm text-muted-foreground">{status}</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
       </form>
+
+      {job && <GenerationJobStatusCard job={job} elapsedSeconds={elapsedSeconds} />}
+    </div>
+  );
+}
+
+function GenerationJobStatusCard({ job, elapsedSeconds }: { job: GenerationJob; elapsedSeconds: number }) {
+  const inFlight = job.status === "queued" || job.status === "processing";
+
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-border p-4">
+      <div className="flex items-center gap-2">
+        {inFlight && (
+          <span
+            aria-hidden="true"
+            className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-primary"
+          />
+        )}
+        <p className="text-sm font-semibold">{JOB_STATUS_LABELS[job.status]}</p>
+        {inFlight && <p className="text-xs text-muted-foreground">({elapsedSeconds}sn geçti)</p>}
+      </div>
+
+      {inFlight && (
+        <p className="text-xs text-muted-foreground">
+          Bu işlem arka planda (kuyrukta) çalışıyor — sayfadan ayrılsan veya sekmeyi kapatsan da devam eder, geri
+          döndüğünde son durumunu burada görürsün.
+        </p>
+      )}
+
+      {job.status === "completed" && (
+        <p className="text-sm text-muted-foreground">
+          {job.questionsGenerated} soru üretildi —{" "}
+          <a href="/content/review" className="font-medium text-primary underline">
+            onaylamak için Soru Onay Paneli'ne git
+          </a>
+          .
+        </p>
+      )}
+
+      {job.status === "failed" && (
+        <p className="text-sm text-destructive">Üretim başarısız oldu: {job.failureReason ?? "bilinmeyen hata"}</p>
+      )}
     </div>
   );
 }

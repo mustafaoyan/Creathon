@@ -24,7 +24,7 @@ questionsRoutes.post("/generate", requireRole("content_creator"), async (c) => {
     throw new HttpError(422, "documentId_and_learningOutcomeId_required");
   }
 
-  const generationJobId = await questionsService.generate(c.env, {
+  const generationJobId = await questionsService.enqueueGeneration(c.env, {
     documentId: body.documentId,
     learningOutcomeId: body.learningOutcomeId,
     rubricId: body.rubricId ?? null,
@@ -34,6 +34,17 @@ questionsRoutes.post("/generate", requireRole("content_creator"), async (c) => {
   });
 
   return c.json({ generationJobId }, 202);
+});
+
+// Frontend'in ilerleme/tamamlanma durumunu göstermesi için — sayfayı tekrar
+// açtığında da (parametresiz) en son işini bulup gösterebilir.
+questionsRoutes.get("/generate/:jobId", requireRole("content_creator"), async (c) => {
+  return c.json(await questionsService.getGenerationJob(c.env, c.req.param("jobId")));
+});
+
+questionsRoutes.get("/generate-status/latest", requireRole("content_creator"), async (c) => {
+  const job = await questionsService.getLatestGenerationJobFor(c.env, c.get("userId"));
+  return c.json({ job });
 });
 
 questionsRoutes.get("/", requireRole("content_creator", "instructor", "admin"), async (c) => {

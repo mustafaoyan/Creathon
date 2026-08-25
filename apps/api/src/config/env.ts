@@ -5,6 +5,7 @@ export type Bindings = {
   VECTORIZE: VectorizeIndex;
   AI: Ai;
   DOC_QUEUE: Queue<DocumentProcessingMessage>;
+  QUESTION_GEN_QUEUE: Queue<QuestionGenerationMessage>;
 
   // Config / secrets (wrangler vars + `wrangler secret put`)
   GOOGLE_CLIENT_ID: string;
@@ -20,6 +21,10 @@ export type Bindings = {
 
 export type DocumentProcessingMessage = {
   documentId: string;
+};
+
+export type QuestionGenerationMessage = {
+  jobId: string;
 };
 
 export type AppEnv = {

@@ -39,10 +39,18 @@
     "binding": "AI"
   },
 
-  // `wrangler queues create rubrix-doc-processing` ile kuyruğu oluştur.
+  // `wrangler queues create rubrix-doc-processing` / `rubrix-question-generation`
+  // ile kuyrukları oluştur. Soru üretimi kuyruğa taşındı ki tarayıcı sekmesi
+  // kapansa/sayfa değişse de iş arka planda tamamlansın (bkz. questions.service.ts).
   "queues": {
-    "producers": [{ "binding": "DOC_QUEUE", "queue": "rubrix-doc-processing" }],
-    "consumers": [{ "queue": "rubrix-doc-processing", "max_batch_size": 5, "max_retries": 3 }]
+    "producers": [
+      { "binding": "DOC_QUEUE", "queue": "rubrix-doc-processing" },
+      { "binding": "QUESTION_GEN_QUEUE", "queue": "rubrix-question-generation" }
+    ],
+    "consumers": [
+      { "queue": "rubrix-doc-processing", "max_batch_size": 5, "max_retries": 3 },
+      { "queue": "rubrix-question-generation", "max_batch_size": 3, "max_retries": 2 }
+    ]
   },
 
   // Gizli olmayan config. Gizli değerler (`wrangler secret put <NAME>`):

@@ -39,8 +39,11 @@ export const aiGenerationJobs = sqliteTable("ai_generation_jobs", {
   requestedBy: text("requested_by")
     .notNull()
     .references(() => users.id),
+  rubricId: text("rubric_id").references(() => rubrics.id),
   status: text("status", { enum: GENERATION_JOB_STATUSES }).notNull().default("queued"),
   questionCount: integer("question_count").notNull(),
+  multipleChoiceCount: integer("multiple_choice_count").notNull().default(0),
+  openEndedCount: integer("open_ended_count").notNull().default(0),
   failureReason: text("failure_reason"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   completedAt: integer("completed_at", { mode: "timestamp" }),

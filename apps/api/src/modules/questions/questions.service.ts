@@ -9,7 +9,10 @@ import { HttpError } from "../../shared/middleware/error-handler";
 import type { QuestionStatus } from "../../shared/db/schema";
 
 export const questionsService = {
-  async generate(
+  /** Hızlı yol: sadece iş kaydını oluşturup kuyruğa atar, hemen döner. Asıl
+   * RAG + AI çağrısı (birkaç saniye sürebilir) `processGenerationJob` içinde,
+   * kuyruk consumer'ında çalışır — istek sayfa kapansa/değişse de tamamlanır. */
+  async enqueueGeneration(
     env: Bindings,
     params: {
       documentId: string;
@@ -24,14 +27,42 @@ export const questionsService = {
     const outcome = await contentRepository.findLearningOutcomeById(db, params.learningOutcomeId);
     if (!outcome) throw new HttpError(404, "learning_outcome_not_found");
 
-    const jobId = await questionsRepository.createGenerationJob(db, {
-      documentId: params.documentId,
-      learningOutcomeId: params.learningOutcomeId,
-      requestedBy: params.requestedBy,
-      questionCount: params.multipleChoiceCount + params.openEndedCount,
-    });
+    const jobId = await questionsRepository.createGenerationJob(db, params);
+    await env.QUESTION_GEN_QUEUE.send({ jobId });
+    return jobId;
+  },
+
+  async getGenerationJob(env: Bindings, jobId: string) {
+    const db = createDb(env.DB);
+    const job = await questionsRepository.findGenerationJobById(db, jobId);
+    if (!job) throw new HttpError(404, "generation_job_not_found");
+    const questionsGenerated = job.status === "completed" ? await questionsRepository.countByGenerationJob(db, jobId) : 0;
+    return { ...job, questionsGenerated };
+  },
+
+  /** Sayfayı yeniden açan içerik uzmanının en son işini gösterebilmesi için —
+   * "önceki işlem nereye gitti" sorusunun cevabı: hiçbir yere, kuyrukta devam
+   * ediyor/bitti, burada tekrar bulunabiliyor. */
+  async getLatestGenerationJobFor(env: Bindings, requestedBy: string) {
+    const db = createDb(env.DB);
+    const job = await questionsRepository.findLatestGenerationJobByRequester(db, requestedBy);
+    if (!job) return null;
+    const questionsGenerated = job.status === "completed" ? await questionsRepository.countByGenerationJob(db, job.id) : 0;
+    return { ...job, questionsGenerated };
+  },
+
+  /** Kuyruk consumer'ından çağrılır — gerçek RAG + AI çağrısı burada. */
+  async processGenerationJob(env: Bindings, jobId: string) {
+    const db = createDb(env.DB);
+    const job = await questionsRepository.findGenerationJobById(db, jobId);
+    if (!job) return; // iş silinmiş olabilir, sessizce çık
+
+    await questionsRepository.markGenerationJobProcessing(db, jobId);
 
     try {
+      const outcome = await contentRepository.findLearningOutcomeById(db, job.learningOutcomeId);
+      if (!outcome) throw new Error("learning_outcome_not_found");
+
       const ai = createAiServices(env);
       const vectorize = new VectorizeClient(env);
       const chunks = await retrieveRelevantChunks({
@@ -46,19 +77,18 @@ export const questionsService = {
       const generated = await ai.questionGenerator.generate({
         learningOutcome: { title: outcome.title, description: outcome.description },
         sourceChunks: chunks,
-        counts: { multipleChoice: params.multipleChoiceCount, openEnded: params.openEndedCount },
+        counts: { multipleChoice: job.multipleChoiceCount, openEnded: job.openEndedCount },
       });
 
       await questionsRepository.insertGeneratedQuestions(db, {
-        documentId: params.documentId,
-        learningOutcomeId: params.learningOutcomeId,
-        rubricId: params.rubricId,
+        documentId: job.documentId,
+        learningOutcomeId: job.learningOutcomeId,
+        rubricId: job.rubricId,
         generationJobId: jobId,
         generated,
       });
 
       await questionsRepository.completeGenerationJob(db, jobId);
-      return jobId;
     } catch (error) {
       await questionsRepository.failGenerationJob(db, jobId, (error as Error).message);
       throw error;

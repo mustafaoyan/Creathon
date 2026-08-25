@@ -7,11 +7,51 @@ import type { GeneratedQuestion } from "../../ai/ports/question-generator.port";
 export const questionsRepository = {
   async createGenerationJob(
     db: Database,
-    data: { documentId: string; learningOutcomeId: string; requestedBy: string; questionCount: number },
+    data: {
+      documentId: string;
+      learningOutcomeId: string;
+      rubricId: string | null;
+      requestedBy: string;
+      multipleChoiceCount: number;
+      openEndedCount: number;
+    },
   ) {
     const id = newId("genjob");
-    await db.insert(aiGenerationJobs).values({ id, ...data, status: "processing", createdAt: new Date() });
+    await db.insert(aiGenerationJobs).values({
+      id,
+      documentId: data.documentId,
+      learningOutcomeId: data.learningOutcomeId,
+      rubricId: data.rubricId,
+      requestedBy: data.requestedBy,
+      questionCount: data.multipleChoiceCount + data.openEndedCount,
+      multipleChoiceCount: data.multipleChoiceCount,
+      openEndedCount: data.openEndedCount,
+      status: "queued",
+      createdAt: new Date(),
+    });
     return id;
+  },
+
+  async findGenerationJobById(db: Database, id: string) {
+    const [row] = await db.select().from(aiGenerationJobs).where(eq(aiGenerationJobs.id, id)).limit(1);
+    return row ?? null;
+  },
+
+  /** Sayfayı yeniden açan içerik uzmanının en son işini (hâlâ işleniyor mu,
+   * bitti mi) gösterebilmesi için — üretim tarayıcı sekmesi kapansa/sayfa
+   * değişse de arka planda (kuyrukta) devam ediyor. */
+  async findLatestGenerationJobByRequester(db: Database, requestedBy: string) {
+    const [row] = await db
+      .select()
+      .from(aiGenerationJobs)
+      .where(eq(aiGenerationJobs.requestedBy, requestedBy))
+      .orderBy(desc(aiGenerationJobs.createdAt))
+      .limit(1);
+    return row ?? null;
+  },
+
+  async markGenerationJobProcessing(db: Database, id: string) {
+    await db.update(aiGenerationJobs).set({ status: "processing" }).where(eq(aiGenerationJobs.id, id));
   },
 
   async completeGenerationJob(db: Database, id: string) {
@@ -68,6 +108,14 @@ export const questionsRepository = {
         );
       }
     }
+  },
+
+  async countByGenerationJob(db: Database, generationJobId: string) {
+    const rows = await db
+      .select({ id: questions.id })
+      .from(questions)
+      .where(eq(questions.generationJobId, generationJobId));
+    return rows.length;
   },
 
   listByStatus(db: Database, status?: QuestionStatus) {

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import type { AppEnv, Bindings, DocumentProcessingMessage } from "./config/env";
+import type { AppEnv, Bindings, DocumentProcessingMessage, QuestionGenerationMessage } from "./config/env";
 import { errorHandler } from "./shared/middleware/error-handler";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { usersRoutes } from "./modules/users/users.routes";
@@ -11,6 +11,7 @@ import { examsRoutes } from "./modules/exams/exams.routes";
 import { gradingRoutes } from "./modules/grading/grading.routes";
 import { reportingRoutes } from "./modules/reporting/reporting.routes";
 import { processDocument } from "./modules/content/ingestion.pipeline";
+import { questionsService } from "./modules/questions/questions.service";
 
 const app = new Hono<AppEnv>();
 
@@ -31,10 +32,15 @@ app.route("/api/reporting", reportingRoutes);
 export default {
   fetch: app.fetch,
 
-  // Consumes DOC_QUEUE: heavy PDF parse/chunk/embed work stays off the request path.
-  async queue(batch: MessageBatch<DocumentProcessingMessage>, env: Bindings) {
+  // Tek worker, iki kuyruk consume ediyor — batch.queue ile hangi kuyruktan
+  // geldiğini ayırt ediyoruz (her batch tek bir kuyruktan gelir, karışık olmaz).
+  async queue(batch: MessageBatch<DocumentProcessingMessage | QuestionGenerationMessage>, env: Bindings) {
     for (const message of batch.messages) {
-      await processDocument(env, message.body.documentId);
+      if (batch.queue === "rubrix-question-generation") {
+        await questionsService.processGenerationJob(env, (message.body as QuestionGenerationMessage).jobId);
+      } else {
+        await processDocument(env, (message.body as DocumentProcessingMessage).documentId);
+      }
       message.ack();
     }
   },

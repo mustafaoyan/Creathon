@@ -21,3 +21,37 @@ export type GeneratedQuestion = {
 export interface QuestionGeneratorPort {
   generate(context: QuestionGenerationContext): Promise<GeneratedQuestion[]>;
 }
+
+/** Şema her sağlayıcıda aynı (Anthropic'in tool `input_schema`'sı, Workers AI'nin
+ * `response_format.json_schema`'sı) — burada tek yerde tanımlı, iki adaptör de
+ * bunu içe aktarıyor. */
+export const QUESTION_GENERATION_JSON_SCHEMA = {
+  type: "object",
+  properties: {
+    questions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          type: { type: "string", enum: ["multiple_choice", "open_ended"] },
+          body: { type: "string" },
+          sourceChunkIds: { type: "array", items: { type: "string" } },
+          options: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string" },
+                body: { type: "string" },
+                isCorrect: { type: "boolean" },
+              },
+              required: ["label", "body", "isCorrect"],
+            },
+          },
+        },
+        required: ["type", "body", "sourceChunkIds"],
+      },
+    },
+  },
+  required: ["questions"],
+} as const;

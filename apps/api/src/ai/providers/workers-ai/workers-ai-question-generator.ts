@@ -9,22 +9,16 @@ import {
   QUESTION_GENERATION_SYSTEM_PROMPT,
   buildQuestionGenerationUserMessage,
 } from "../../prompts/question-generation.prompt";
-import { callAnthropicTool, type AnthropicTool } from "./anthropic-client";
+import { callWorkersAiJson } from "./workers-ai-client";
 
-const RETURN_QUESTIONS_TOOL: AnthropicTool = {
-  name: "return_questions",
-  description: "Return the generated exam questions, grounded strictly in the provided source excerpts.",
-  input_schema: QUESTION_GENERATION_JSON_SCHEMA,
-};
-
-export class AnthropicQuestionGenerator implements QuestionGeneratorPort {
+export class WorkersAiQuestionGenerator implements QuestionGeneratorPort {
   constructor(private env: Bindings) {}
 
   async generate(context: QuestionGenerationContext): Promise<GeneratedQuestion[]> {
-    const result = await callAnthropicTool<{ questions: GeneratedQuestion[] }>(this.env, {
+    const result = await callWorkersAiJson<{ questions: GeneratedQuestion[] }>(this.env, {
       system: QUESTION_GENERATION_SYSTEM_PROMPT,
       userMessage: buildQuestionGenerationUserMessage(context),
-      tool: RETURN_QUESTIONS_TOOL,
+      jsonSchema: QUESTION_GENERATION_JSON_SCHEMA,
     });
 
     return result.questions;

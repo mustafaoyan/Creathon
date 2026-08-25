@@ -1,22 +1,16 @@
 import type { Bindings } from "../../../config/env";
 import { ANSWER_SCORING_JSON_SCHEMA, type AnswerScorerPort, type ScoringContext, type ScoringResult } from "../../ports/answer-scorer.port";
 import { RUBRIC_SCORING_SYSTEM_PROMPT, buildRubricScoringUserMessage } from "../../prompts/rubric-scoring.prompt";
-import { callAnthropicTool, type AnthropicTool } from "./anthropic-client";
+import { callWorkersAiJson } from "./workers-ai-client";
 
-const RETURN_EVALUATION_TOOL: AnthropicTool = {
-  name: "return_evaluation",
-  description: "Return the rubric-based evaluation of the student's answer.",
-  input_schema: ANSWER_SCORING_JSON_SCHEMA,
-};
-
-export class AnthropicAnswerScorer implements AnswerScorerPort {
+export class WorkersAiAnswerScorer implements AnswerScorerPort {
   constructor(private env: Bindings) {}
 
   async score(context: ScoringContext): Promise<ScoringResult> {
-    return callAnthropicTool<ScoringResult>(this.env, {
+    return callWorkersAiJson<ScoringResult>(this.env, {
       system: RUBRIC_SCORING_SYSTEM_PROMPT,
       userMessage: buildRubricScoringUserMessage(context),
-      tool: RETURN_EVALUATION_TOOL,
+      jsonSchema: ANSWER_SCORING_JSON_SCHEMA,
     });
   }
 }

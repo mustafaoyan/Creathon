@@ -145,8 +145,12 @@ export const questionsRepository = {
     return db.select().from(questionOptions).where(eq(questionOptions.questionId, questionId));
   },
 
-  async updateContent(db: Database, id: string, data: { body: string }) {
-    await db.update(questions).set({ body: data.body }).where(eq(questions.id, id));
+  async updateContent(db: Database, id: string, data: { body?: string; rubricId?: string | null }) {
+    const set: { body?: string; rubricId?: string | null } = {};
+    if (data.body !== undefined) set.body = data.body;
+    if (data.rubricId !== undefined) set.rubricId = data.rubricId;
+    if (Object.keys(set).length === 0) return;
+    await db.update(questions).set(set).where(eq(questions.id, id));
   },
 
   async review(db: Database, id: string, params: { status: "approved" | "rejected"; reviewedBy: string }) {

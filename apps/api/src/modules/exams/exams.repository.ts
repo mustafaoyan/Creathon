@@ -1,4 +1,4 @@
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import type { Database } from "../../shared/db/client";
 import {
   exams,
@@ -8,6 +8,7 @@ import {
   studentAnswers,
   questions,
   questionOptions,
+  aiEvaluations,
   type AssignmentStatus,
 } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
@@ -165,6 +166,17 @@ export const examsRepository = {
   async findAnswerById(db: Database, id: string) {
     const [row] = await db.select().from(studentAnswers).where(eq(studentAnswers.id, id)).limit(1);
     return row ?? null;
+  },
+
+  /** Bir soruya verilmiş ama hiç AI değerlendirmesi oluşmamış cevaplar —
+   * rubriksiz onaylanan bir açık uçlu soruya sonradan rubrik eklendiğinde
+   * geriye dönük puanlama (regradeAnswersForQuestion) için kullanılıyor. */
+  ungradedAnswersForQuestion(db: Database, questionId: string) {
+    return db
+      .select({ id: studentAnswers.id, answerText: studentAnswers.answerText })
+      .from(studentAnswers)
+      .leftJoin(aiEvaluations, eq(aiEvaluations.studentAnswerId, studentAnswers.id))
+      .where(and(eq(studentAnswers.questionId, questionId), isNull(aiEvaluations.id)));
   },
 
   async markSubmitted(db: Database, attemptId: string, partialTotalScore: number) {

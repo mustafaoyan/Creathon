@@ -155,18 +155,24 @@ export const questionsService = {
     );
   },
 
-  async update(env: Bindings, id: string, body: string) {
+  async update(env: Bindings, id: string, data: { body?: string; rubricId?: string | null }) {
     const db = createDb(env.DB);
     const question = await questionsRepository.findById(db, id);
     if (!question) throw new HttpError(404, "question_not_found");
-    if (question.status === "approved") throw new HttpError(409, "cannot_edit_approved_question");
-    await questionsRepository.updateContent(db, id, { body });
+    if (question.status === "approved" && data.body) throw new HttpError(409, "cannot_edit_approved_question");
+    await questionsRepository.updateContent(db, id, data);
   },
 
+  /** Açık uçlu bir soru rubriksiz onaylanırsa, öğrenci cevabı hiçbir zaman AI
+   * değerlendirmesine düşmez ve Puanlama Onayı panelinde sessizce hiç görünmez
+   * — bu tam olarak yaşanan bir üretim hatasıydı, artık onay anında engelleniyor. */
   async review(env: Bindings, id: string, decision: "approved" | "rejected", reviewedBy: string) {
     const db = createDb(env.DB);
     const question = await questionsRepository.findById(db, id);
     if (!question) throw new HttpError(404, "question_not_found");
+    if (decision === "approved" && question.type === "open_ended" && !question.rubricId) {
+      throw new HttpError(422, "open_ended_question_requires_rubric");
+    }
     await questionsRepository.review(db, id, { status: decision, reviewedBy });
   },
 };

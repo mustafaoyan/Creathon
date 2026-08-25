@@ -4,6 +4,7 @@ import { requireAuth } from "../../shared/middleware/auth";
 import { requireRole } from "../../shared/middleware/rbac";
 import { HttpError } from "../../shared/middleware/error-handler";
 import { questionsService } from "./questions.service";
+import { examsService } from "../exams/exams.service";
 import type { QuestionStatus } from "../../shared/db/schema";
 
 export const questionsRoutes = new Hono<AppEnv>();
@@ -58,11 +59,19 @@ questionsRoutes.get("/", requireRole("content_creator", "instructor", "admin"), 
 });
 
 // İçerik uzmanı/eğitmen taslağı düzenleyip onaylar/reddeder — havuza sadece onaylı sorular düşer.
+// rubricId de buradan atanabiliyor — açık uçlu bir soru rubriksiz onaylanmışsa
+// (onay anındaki kontrolden önce geçmiş eski sorular gibi) sonradan düzeltilebilsin.
 questionsRoutes.patch("/:id", requireRole("content_creator", "instructor"), async (c) => {
-  const { body } = await c.req.json<{ body: string }>();
-  if (!body) throw new HttpError(422, "body_required");
+  const body = await c.req.json<{ body?: string; rubricId?: string | null }>();
+  if (body.body === undefined && body.rubricId === undefined) throw new HttpError(422, "body_or_rubricId_required");
   await questionsService.update(c.env, c.req.param("id"), body);
   return c.json({ ok: true });
+});
+
+// rubricId sonradan eklendiğinde, o soruya daha önce verilmiş ama hiç
+// değerlendirilmemiş cevapları geriye dönük puanlar.
+questionsRoutes.post("/:id/regrade", requireRole("content_creator", "instructor"), async (c) => {
+  return c.json(await examsService.regradeAnswersForQuestion(c.env, c.req.param("id")));
 });
 
 // Brif'e göre AI taslağını onaylama/reddetme sadece İçerik Uzmanı'nın yetkisi —

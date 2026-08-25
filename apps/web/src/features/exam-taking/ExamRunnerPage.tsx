@@ -44,21 +44,39 @@ export function ExamRunnerPage() {
   } | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [confirmingSubmit, setConfirmingSubmit] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  function refreshAssignments() {
+    apiClient.get<{ assignments: Assignment[] }>("/api/exams/my").then((res) => setAssignments(res.assignments));
+  }
 
   useEffect(() => {
-    apiClient.get<{ assignments: Assignment[] }>("/api/exams/my").then((res) => setAssignments(res.assignments));
+    refreshAssignments();
   }, []);
 
   async function start(examId: string) {
-    const result = await apiClient.post<{
-      attempt: { id: string; startedAt: string };
-      questions: ExamQuestion[];
-      durationMinutes: number | null;
-    }>(`/api/exams/${examId}/attempts`);
-    const deadline = result.durationMinutes
-      ? new Date(result.attempt.startedAt).getTime() + result.durationMinutes * 60_000
-      : null;
-    setActive({ examId, attemptId: result.attempt.id, questions: result.questions, deadline });
+    setStartError(null);
+    try {
+      const result = await apiClient.post<{
+        attempt: { id: string; startedAt: string };
+        questions: ExamQuestion[];
+        durationMinutes: number | null;
+      }>(`/api/exams/${examId}/attempts`);
+      const deadline = result.durationMinutes
+        ? new Date(result.attempt.startedAt).getTime() + result.durationMinutes * 60_000
+        : null;
+      setActive({ examId, attemptId: result.attempt.id, questions: result.questions, deadline });
+    } catch (err) {
+      // Savunma katmanı: liste bayat kalıp "Sınava Başla" hâlâ görünüyorsa,
+      // sunucu artık bitmiş bir sınava girişi zaten reddediyor (409).
+      setStartError(
+        err instanceof Error && err.message.includes("exam_already_submitted")
+          ? "Bu sınavı zaten tamamladın, tekrar giremezsin."
+          : "Sınava başlanamadı.",
+      );
+      refreshAssignments();
+    }
   }
 
   // Süre dolunca otomatik gönderiliyor — sunucu da aynı süreyi ayrıca
@@ -96,11 +114,30 @@ export function ExamRunnerPage() {
     if (!active) return;
     await apiClient.post(`/api/exams/${active.examId}/attempts/${active.attemptId}/submit`);
     setActive(null);
+    setConfirmingSubmit(false);
+    // Liste bayat kalırsa (eski durumla) "Sınava Başla" hâlâ görünür kalır —
+    // "bitirdim ama tekrar girebildim" hissinin bir parçası tam olarak buydu.
+    refreshAssignments();
   }
 
   if (active) {
     return (
       <div className="flex max-w-xl flex-col gap-4">
+        {confirmingSubmit && (
+          <div className="flex flex-col gap-3 rounded-md border border-destructive bg-destructive/10 p-4">
+            <p className="text-sm font-semibold text-destructive">
+              Dikkat: Sınavı bitirirsen bu sınava bir daha giremezsin. Devam etmek istiyor musun?
+            </p>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setConfirmingSubmit(false)}>
+                Devam Et (sınava dön)
+              </Button>
+              <Button size="sm" variant="destructive" onClick={submit}>
+                Yine de Bitir
+              </Button>
+            </div>
+          </div>
+        )}
         {remainingSeconds !== null && (
           <p className={`text-sm font-semibold ${remainingSeconds <= 60 ? "text-destructive" : "text-muted-foreground"}`}>
             Kalan süre: {formatRemaining(remainingSeconds)}
@@ -136,7 +173,7 @@ export function ExamRunnerPage() {
             )}
           </div>
         ))}
-        <Button onClick={submit} disabled={timeIsUp}>
+        <Button onClick={() => setConfirmingSubmit(true)} disabled={timeIsUp || confirmingSubmit}>
           Sınavı Bitir
         </Button>
       </div>
@@ -146,6 +183,7 @@ export function ExamRunnerPage() {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-bold">Atanan Sınavlarım</h1>
+      {startError && <p className="text-sm text-destructive">{startError}</p>}
       {assignments.map((assignment) => (
         <div key={assignment.id} className="flex items-center justify-between rounded-md border border-border p-4">
           <div>

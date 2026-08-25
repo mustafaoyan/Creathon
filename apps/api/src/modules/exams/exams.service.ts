@@ -54,6 +54,11 @@ export const examsService = {
     if (!assignment) throw new HttpError(403, "not_assigned_to_exam");
 
     let attempt = await examsRepository.findAttemptByAssignment(db, assignment.id);
+    // Bir kez "Sınavı Bitir" denince bir daha geri girilemez — istemci taraflı
+    // buton gizleme tek başına yeterli değil (eski/cache'li liste, doğrudan
+    // API çağrısı vb. ile atlanabilir), asıl kesinti burada.
+    if (attempt?.submittedAt) throw new HttpError(409, "exam_already_submitted");
+
     if (!attempt) {
       const attemptId = await examsRepository.createAttempt(db, assignment.id);
       await examsRepository.setAssignmentStatus(db, assignment.id, "in_progress");
@@ -110,12 +115,14 @@ export const examsService = {
     const db = createDb(env.DB);
     const attempt = await examsRepository.findAttemptById(db, attemptId);
     if (!attempt) throw new HttpError(404, "attempt_not_found");
+    if (attempt.submittedAt) throw new HttpError(409, "exam_already_submitted");
 
     const examQuestionRows = await examsRepository.questionsFor(db, examId);
     const answers = await examsRepository.answersForAttempt(db, attemptId);
     const ai = createAiServices(env);
 
     let mcqSubtotal = 0;
+    const ungradableOpenEnded: string[] = [];
 
     for (const examQuestion of examQuestionRows) {
       const answer = answers.find((a) => a.questionId === examQuestion.questionId);
@@ -129,42 +136,76 @@ export const examsService = {
         continue;
       }
 
+      if (!answer.answerText) continue;
+
       const question = await questionsRepository.findById(db, examQuestion.questionId);
-      if (!question?.rubricId || !answer.answerText) continue;
+      // Rubriksiz onaylanmış bir açık uçlu soru burada sessizce atlanırsa
+      // öğrencinin cevabı hiçbir zaman değerlendirilemez hale geliyordu
+      // (Puanlama Onayı panelinde asla görünmüyordu) — artık iş kaydına
+      // düşüyor ki eğitmen/içerik uzmanı bunu görüp rubrik ekleyebilsin.
+      if (!question?.rubricId) {
+        ungradableOpenEnded.push(examQuestion.questionId);
+        continue;
+      }
 
-      const rubric = await rubricsRepository.findById(db, question.rubricId);
-      if (!rubric) continue;
-      const criteria = await rubricsRepository.criteriaFor(db, question.rubricId);
-
-      const evaluation = await ai.answerScorer.score({
-        questionBody: question.body,
-        studentAnswer: answer.answerText,
-        rubric: {
-          maxScore: rubric.maxScore,
-          criteria: criteria.map((c) => ({
-            id: c.id,
-            criterion: c.criterion,
-            description: c.description,
-            weight: c.weight,
-          })),
-        },
-      });
-
-      await db.insert(aiEvaluations).values({
-        id: newId("aieval"),
-        studentAnswerId: answer.id,
-        rubricId: rubric.id,
-        suggestedScore: evaluation.suggestedScore,
-        justification: evaluation.justification,
-        criteriaBreakdown: JSON.stringify(evaluation.criteriaBreakdown),
-        aiProvider: ai.providerLabel,
-        createdAt: new Date(),
-      });
+      await scoreOpenEndedAnswer(db, ai, { questionId: question.id, answerId: answer.id, answerText: answer.answerText });
     }
 
     await examsRepository.markSubmitted(db, attemptId, mcqSubtotal);
     await examsRepository.setAssignmentStatus(db, attempt.examAssignmentId, "submitted");
 
-    return { mcqSubtotal };
+    return { mcqSubtotal, ungradableOpenEnded };
+  },
+
+  /** Bir soruya sonradan rubrik eklendiğinde (ör. onaylanırken unutulmuş),
+   * o soruya daha önce verilmiş ama hiç değerlendirilmemiş cevapları
+   * geriye dönük puanlar — aksi halde o cevaplar kalıcı olarak "havada" kalır. */
+  async regradeAnswersForQuestion(env: Bindings, questionId: string) {
+    const db = createDb(env.DB);
+    const question = await questionsRepository.findById(db, questionId);
+    if (!question?.rubricId) throw new HttpError(422, "question_has_no_rubric");
+
+    const ai = createAiServices(env);
+    const pending = await examsRepository.ungradedAnswersForQuestion(db, questionId);
+
+    for (const answer of pending) {
+      if (!answer.answerText) continue;
+      await scoreOpenEndedAnswer(db, ai, { questionId, answerId: answer.id, answerText: answer.answerText });
+    }
+
+    return { regraded: pending.length };
   },
 };
+
+async function scoreOpenEndedAnswer(
+  db: ReturnType<typeof createDb>,
+  ai: ReturnType<typeof createAiServices>,
+  params: { questionId: string; answerId: string; answerText: string },
+) {
+  const question = await questionsRepository.findById(db, params.questionId);
+  if (!question?.rubricId) return;
+
+  const rubric = await rubricsRepository.findById(db, question.rubricId);
+  if (!rubric) return;
+  const criteria = await rubricsRepository.criteriaFor(db, question.rubricId);
+
+  const evaluation = await ai.answerScorer.score({
+    questionBody: question.body,
+    studentAnswer: params.answerText,
+    rubric: {
+      maxScore: rubric.maxScore,
+      criteria: criteria.map((c) => ({ id: c.id, criterion: c.criterion, description: c.description, weight: c.weight })),
+    },
+  });
+
+  await db.insert(aiEvaluations).values({
+    id: newId("aieval"),
+    studentAnswerId: params.answerId,
+    rubricId: rubric.id,
+    suggestedScore: evaluation.suggestedScore,
+    justification: evaluation.justification,
+    criteriaBreakdown: JSON.stringify(evaluation.criteriaBreakdown),
+    aiProvider: ai.providerLabel,
+    createdAt: new Date(),
+  });
+}

@@ -45,25 +45,32 @@ konuşma geçmişini bilmeyen biri (başka bir makine, başka biri) buradan hız
 `admin` (Eğitim Yöneticisi). Roller birbirinin işini yapamaz (içerik uzmanı sınav oluşturamaz,
 eğitmen soru üretemez, vb.) — bu bir öneri değil, üzerine kod yazılan sabit bir gereksinim.
 
-**Artık 4 rolün de self-servis, anında aktif** (bilinçli olarak admin-onay akışından değiştirildi —
-kullanıcı test sürecinde onay beklemenin gereksiz sürtünme yarattığını belirtti). Login ekranı iki
-kademeli: nav'da doğrudan **"ÖĞRENCİ GİRİŞİ 🚀"** butonu var (öğrenci platformun asıl kullanıcı
-kitlesi olduğu için headline rol) — yanında, RUBRIX NEDİR/ROLLER ile aynı stilde bir **"DİĞER
-GİRİŞLER"** metin linki var; buna tıklanınca kalan 3 rolün (Eğitmen, İçerik Uzmanı, **admin dahil**)
-kartları ayrı ayrı açılıyor. Hangi kart tıklanırsa `requestedRole` o olarak Google OAuth'a taşınıyor,
-`users.repository.ts#createFromGoogle` her 4 rol için de kullanıcıyı direkt
-`status: active, role: <talep edilen rol>` ile oluşturuyor — onay yok, `pending` durumu artık hiç
-oluşmuyor.
+**Login ekranı iki kademeli:** nav'da doğrudan **"ÖĞRENCİ GİRİŞİ 🚀"** butonu var (öğrenci
+platformun asıl kullanıcı kitlesi olduğu için headline rol) — yanında **"DİĞER GİRİŞLER"** metin
+linki var; buna tıklanınca kalan 3 rolün (Eğitmen, İçerik Uzmanı, admin dahil) kartları ayrı ayrı
+açılıyor. Hangi kart tıklanırsa `requestedRole` o olarak Google OAuth'a taşınıyor.
 
-**`admin` self-servisi bir davet koduyla korunuyor** — kullanıcı önce açık riski (herkes tek tıkla
-admin olabilir) kabul etti, sonra kendisi "sadece kodu bilenler admin olabilsin" fikrini getirdi.
-Uygulama: `ADMIN_INVITE_CODE` secret'ı (`Bindings`, prod'da `wrangler secret put` ile girildi —
-değeri sadece gerçek adminlere elden/güvenli kanaldan iletilir, repoda yok). `GET /api/auth/google`,
-`role=admin` isteğinde `?code=` query param'ını bu secret'la karşılaştırıyor; eşleşmezse Google'a
-hiç gitmeden `403 invalid_admin_code` döndürüyor (`auth.routes.ts`). Frontend'de Eğitim Yöneticisi
-kartına bir "Admin Kodu" input'u eklendi (`LoginPage.tsx#RoleLoginCard`), kod boşken her iki giriş
-butonu da disabled. `UserManagementPage.tsx` (`PATCH /api/users/:id/role`) hâlâ duruyor — rolleri
-sonradan değiştirmek/geri almak/askıya almak için.
+**Rol bazında self-servis seviyesi farklı — 3 katman:**
+- **`student`** — tamamen açık self-servis, hiçbir kısıtlama yok.
+- **`content_creator` / `instructor`** — **sadece admin'in `role_allowlist` tablosuna eklediği
+  e-posta adresleri** için self-servis (2026-08-25'te eklendi — kullanıcı bu iki rolün herkese açık
+  olmasının güvenlik açığı olduğunu fark etti). `users.repository.ts#createFromGoogle`, ilgili rol
+  için normalize edilmiş (trim+lowercase) e-postayı `role_allowlist`'te arıyor; bulamazsa hesap
+  eskisi gibi `status: pending, role: null` ile oluşuyor (admin `Kullanıcı Yönetimi`'nden manuel
+  atayabilir). Admin API: `GET/POST /api/users/role-allowlist`, `DELETE /:id` (hepsi admin-only) —
+  `UserManagementPage.tsx`'te "Eğitmen / İçerik Uzmanı İzin Listesi" bölümünden yönetiliyor.
+  **Bu tarihten ÖNCE self-servisle oluşmuş instructor/content_creator hesapları etkilenmedi** —
+  kontrol sadece yeni kayıtta (ilk girişte) çalışıyor, mevcut aktif hesapları geriye dönük iptal
+  etmiyor.
+- **`admin`** — bir davet koduyla korunuyor. `ADMIN_INVITE_CODE` secret'ı (`Bindings`, prod'da
+  `wrangler secret put` ile girildi — değeri sadece gerçek adminlere elden/güvenli kanaldan
+  iletilir, repoda yok). `GET /api/auth/google`, `role=admin` isteğinde `?code=` query param'ını bu
+  secret'la karşılaştırıyor; eşleşmezse Google'a hiç gitmeden `403 invalid_admin_code` döndürüyor
+  (`auth.routes.ts`). Frontend'de Eğitim Yöneticisi kartına bir "Admin Kodu" input'u eklendi
+  (`LoginPage.tsx#RoleLoginCard`), kod boşken giriş butonu disabled.
+
+`UserManagementPage.tsx` (`PATCH /api/users/:id/role`) her durumda duruyor — rolleri sonradan
+değiştirmek/geri almak/askıya almak için (allowlist'ten bağımsız, admin'in her zamanki genel yetkisi).
 
 AI çıktısı (üretilen soru, önerilen puan) **hiçbir zaman doğrudan yayına/nota dönüşmez** —
 her zaman `pending_review`/`ai_evaluation` gibi bir ara durumda insan onayı bekler

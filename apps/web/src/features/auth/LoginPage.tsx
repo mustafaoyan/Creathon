@@ -59,15 +59,20 @@ export function LoginPage() {
       <HeroCarousel />
 
       {reveal && (
+        // scroll-mt-20: scrollIntoView({block:"start"}) bu elementin ÜSTÜNÜ viewport'un
+        // tam tepesine hizalıyor — ama nav `fixed` olduğu için o bölgeyi kaplıyor, hizalama
+        // düzeltilmezse başlık nav'ın arkasında kalıyordu. text-white de kasıtlı: bu başlık
+        // kart olmadan doğrudan koyu uzay arka planı üstünde, tema varsayılan rengi (açık
+        // temada koyu) kullanılırsa okunmaz hale geliyordu.
         <div
           ref={rolesRef}
           id="giris"
-          className="rbx-reveal flex flex-col items-center justify-center gap-10 px-4 py-16"
+          className="rbx-reveal flex scroll-mt-20 flex-col items-center justify-center gap-10 px-4 py-16"
         >
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col items-center gap-2 text-white">
             <span className="inline-block h-1.5 w-16 rounded-full bg-primary" />
             <h1 className="text-3xl font-bold">RubriX</h1>
-            <p className="text-muted-foreground">
+            <p className="text-white/70">
               {reveal === "student" ? "Öğrenci olarak giriş yap" : "Hangi rolle giriş yapmak istiyorsun?"}
             </p>
           </div>

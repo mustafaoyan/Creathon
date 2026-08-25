@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { TeknofestNav, NAV_HEIGHT_CLASS, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
+import { TeknofestNav, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
 
 type Role = "content_creator" | "instructor" | "student" | "admin";
 
@@ -39,12 +39,17 @@ export function LoginPage() {
   }, [reveal]);
 
   return (
-    // Nav artık kendi arka planını taşımıyor (bkz. TeknofestNav.tsx) — şeffaf
-    // nav'ın altında sorunsuz devam etmesi için aynı görsel burada, sayfanın
-    // en dışında, bg-fixed ile tanımlı; HeroCarousel'in slaytları bunun ÜSTÜNE
-    // çapraz geçişle biniyor.
+    // Nav artık kendi arka planını taşımıyor (bkz. TeknofestNav.tsx) ve BURADA
+    // pt-16 (NAV_HEIGHT_CLASS) KASITLI OLARAK KULLANILMIYOR — onu kullansaydık
+    // HeroCarousel nav'ın 64px altından başlardı, nav'ın şeffaf alanının
+    // arkasında farklı bir görsel (kök div'in statik arka planı) kalır, hemen
+    // altında ise Hero'nun kendi (değişen) slayt fotoğrafı başlardı — tam nav'ın
+    // alt kenarında görünür bir dikiş/renk sıçraması oluşurdu (kullanıcının asıl
+    // şikayeti buydu). Bunun yerine Hero'nun kendisi ekranın tamamını (y:0'dan
+    // itibaren, nav'ın ARKASINDAN) kaplıyor — nav şeffaf olduğu için üstündeki
+    // aynı slaytı gösteriyor, dikiş kalmıyor.
     <div
-      className={`flex flex-col bg-fixed bg-cover bg-center ${NAV_HEIGHT_CLASS}`}
+      className="flex flex-col bg-fixed bg-cover bg-center"
       style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}
     >
       <TeknofestNav
@@ -130,7 +135,7 @@ function HeroCarousel() {
 
   return (
     <section
-      className="relative isolate flex min-h-[calc(100vh-4rem)] items-center justify-center overflow-hidden text-white"
+      className="relative isolate flex min-h-screen items-center justify-center overflow-hidden text-white"
       style={cycleStyle}
     >
       <style dangerouslySetInnerHTML={{ __html: buildCarouselKeyframes(HERO_SLIDES.length) }} />

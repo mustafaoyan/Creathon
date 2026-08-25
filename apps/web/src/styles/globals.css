@@ -45,6 +45,22 @@ body {
   color: var(--color-foreground);
 }
 
+/* Sayfa içeriği kısa olsa bile (ör. boş bir liste) trackpad/mobil kaydırmada
+   "elastic" taşma (overscroll bounce), tarayıcının belgenin GERÇEK sonundan
+   sonrasını `html`'in arka planıyla boyaması anlamına gelir — bizim uzay
+   arka planımız bugüne kadar sadece belirli sarmalayıcı div'lerde
+   (`bg-fixed` + inline style) tanımlıydı, `html`'de değil. `html` boşsa
+   tarayıcı o taşma alanını düz siyah/beyaz gösteriyordu (bildirilen bug tam
+   buydu). Aynı görseli kök elementte de tanımlayınca taşma alanında da
+   aynı gökyüzü devam ediyor. */
+html {
+  background-color: #050814;
+  background-image: url("/hero/space-globe.jpg");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
 /* Sidebar açılırken içerik kutusunun margin-left ile itilmesi (bkz.
    RoleGuardedLayout.tsx) genişlik hesabı yanlış olursa sayfayı yatayda
    taşırabiliyor — arka plan görseli (bg-fixed, viewport'a göre sabit) o

@@ -89,6 +89,11 @@ export const usersRepository = {
   async updateAvatarUrl(db: Database, id: string, avatarUrl: string) {
     await db.update(users).set({ avatarUrl, updatedAt: new Date() }).where(eq(users.id, id));
   },
+
+  async updateName(db: Database, id: string, name: string) {
+    await db.update(users).set({ name, updatedAt: new Date() }).where(eq(users.id, id));
+    return usersRepository.findById(db, id);
+  },
 };
 
 export const roleAllowlistRepository = {

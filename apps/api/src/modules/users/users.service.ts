@@ -43,6 +43,17 @@ export const usersService = {
     return env.BUCKET.get(avatarR2Key(userId));
   },
 
+  // Google hesap adı bazen mağaza/cihaz adı gibi profesyonel olmayan bir
+  // değer taşıyabiliyor ("vefa phone" gibi) — Google'dan "daha doğru" bir
+  // alan yok (name zaten Google'ın kendi userinfo.name'i), bu yüzden
+  // kullanıcının kendi görünen adını düzeltebilmesi gerekiyordu.
+  async updateOwnName(env: Bindings, userId: string, name: string) {
+    const trimmed = name.trim();
+    if (!trimmed) throw new HttpError(422, "name_required");
+    if (trimmed.length > 100) throw new HttpError(422, "name_too_long");
+    return usersRepository.updateName(createDb(env.DB), userId, trimmed);
+  },
+
   listRoleAllowlist(env: Bindings) {
     return roleAllowlistRepository.list(createDb(env.DB));
   },

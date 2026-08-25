@@ -19,6 +19,13 @@ usersRoutes.get("/students", requireRole("instructor", "admin"), async (c) => {
 // Profil fotoğrafı: herkes sadece kendi fotoğrafını değiştirebilir, ama
 // herkesin fotoğrafını görebilir (Sidebar/nav'da başkasının adı-avatarı
 // göründüğü yerler için — düşük hassasiyetli, admin-only olmasına gerek yok).
+usersRoutes.patch("/me", async (c) => {
+  const { name } = await c.req.json<{ name?: string }>();
+  if (typeof name !== "string") throw new HttpError(422, "name_required");
+  const user = await usersService.updateOwnName(c.env, c.get("userId"), name);
+  return c.json({ user });
+});
+
 usersRoutes.post("/me/avatar", async (c) => {
   const body = await c.req.parseBody();
   const file = body["file"];

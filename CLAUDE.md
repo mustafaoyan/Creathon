@@ -219,6 +219,16 @@ bulundu, ikisi de gerçek prod verisiyle doğrulandı):**
   değerlendirilmemiş cevapları geriye dönük puanlıyor (prod'daki 2 gerçek sıkışmış cevap bu yolla
   düzeltildi).
 
+**Sınav yayınlarken elle öğrenci seçme kaldırıldı (kullanıcının bilinçli kararı — "şimdilik").**
+Yayınlanmış her sınav, öğrenci olarak giren HERKESE görünüyor — hem yayınlandığı anda kayıtlı
+olan hem de ileride kayıt olacak öğrencilere de, dinamik/lazy bir çözümle: `listForStudent`
+gerçek `exam_assignments` kayıtlarını + henüz hiç görülmemiş yayınlanmış sınavları (sanal
+"assigned" satırı, `id: virtual_<examId>`) birleştirip dönüyor; `startAttempt`, öğrencinin gerçek
+kaydı yoksa ama sınav `published`sa ilk girişte kendisine otomatik atıyor (`assignStudents` artık
+`onConflictDoNothing` kullanıyor). `CreateExamPage.tsx`'teki öğrenci seçim adımı kaldırıldı, sadece
+"Yayınla" var. Backend'deki manuel `POST /exams/:id/assign` endpoint'i dokunulmadan duruyor
+(ileride elle override gerekirse), sadece frontend artık çağırmıyor.
+
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

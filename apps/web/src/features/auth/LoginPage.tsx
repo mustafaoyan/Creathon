@@ -180,17 +180,18 @@ function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
         />
       )}
 
-      {/* T3 Vakfı'nın kendi kimlik doğrulama sistemine henüz erişimimiz yok —
-          buton T3 ile giriş gibi görünüyor ama fiilen Google OAuth'a
-          yönlendiriyor. T3 erişimi açıldığında burası gerçek T3 akışına
-          bağlanacak, arayüz/metin değişmeyecek. */}
+      {/* T3 Vakfı'nın kendi kimlik doğrulama sistemine henüz erişimimiz yok, fiilen
+          Google OAuth'a yönlendiriyor — bu yüzden buton metni de gerçekte ne
+          olduğunu net söylüyor ("Google ile Devam Et"), "T3 Hesabı ile Giriş Yap"
+          kafa karıştırıyordu (kullanıcı testinde bulundu). T3 erişimi açıldığında
+          burası gerçek T3 akışına bağlanacak, o zaman metin de güncellenecek. */}
       <a
         href={getGoogleLoginUrl(role, adminCode)}
         className={`w-full ${adminCodeMissing ? "pointer-events-none" : ""}`}
         aria-disabled={adminCodeMissing}
       >
         <Button className="w-full" disabled={adminCodeMissing}>
-          T3 Hesabı ile Giriş Yap
+          Google ile Devam Et
         </Button>
       </a>
 

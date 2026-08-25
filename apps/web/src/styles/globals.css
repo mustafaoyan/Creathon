@@ -120,11 +120,62 @@ h1, h2, h3, h4, h5, h6, p, label {
   animation: rbx-reveal 0.5s ease-out both;
 }
 
+/* ---- "Premium startup" cila: glassmorphism, glow, canlı arka plan, toast ----
+   Kasıtlı olarak kırmızı/uzay TEKNOFEST temasının üzerine ekleniyor — palet
+   değişmiyor, sadece doku/derinlik/mikro-etkileşim katmanı ekleniyor. */
+
+/* Sidebar, giriş kartları gibi yüzeyler için tek noktadan buzlu cam görünümü. */
+.rbx-glass {
+  background: color-mix(in srgb, white 8%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, white 14%, transparent);
+}
+
+/* Tüm border-input alanları (proje genelinde ~20 yerde aynı sınıfla kullanılıyor)
+   için tek satırda odak parıltısı — her formu tek tek değiştirmeye gerek kalmadan. */
+.border-input:focus-visible,
+.border-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+/* Tam ekran uzay arka planının "yaşıyor" hissi — starfield twinkle + çok yavaş
+   bir gradyan kayması. Sadece dekoratif, dikkat dağıtmayacak kadar yavaş (18s). */
+.rbx-space-alive {
+  position: relative;
+  isolation: isolate;
+}
+.rbx-space-alive::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  z-index: -1;
+  background: radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 55%),
+    radial-gradient(circle at 80% 70%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 55%);
+  animation: rbx-gradient-pan 18s ease-in-out infinite alternate;
+}
+@keyframes rbx-gradient-pan {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(3%, -3%) scale(1.08); }
+}
+
+@keyframes rbx-toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.rbx-toast-in {
+  animation: rbx-toast-in 0.25s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rbx-starfield::before,
   .rbx-hero-slide,
   .rbx-hero-quote,
-  .rbx-reveal {
+  .rbx-reveal,
+  .rbx-space-alive::before,
+  .rbx-toast-in {
     animation: none;
   }
   .rbx-hero-slide:first-child,

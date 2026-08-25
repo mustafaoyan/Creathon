@@ -158,10 +158,10 @@ function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
 
   return (
     <div
-      className={`flex flex-col items-center gap-4 rounded-lg p-6 transition-shadow ${
+      className={`flex flex-col items-center gap-4 rounded-lg p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 ${
         primary
-          ? "border-2 border-primary bg-secondary/60 shadow-lg shadow-primary/10"
-          : "border-2 border-border bg-secondary/30"
+          ? "border-2 border-primary bg-secondary/60 shadow-lg shadow-primary/10 hover:shadow-[0_0_30px_color-mix(in_srgb,var(--color-primary)_25%,transparent)]"
+          : "border-2 border-border bg-secondary/30 hover:border-primary/40 hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-primary)_15%,transparent)]"
       }`}
     >
       <div className="flex flex-col items-center gap-1">

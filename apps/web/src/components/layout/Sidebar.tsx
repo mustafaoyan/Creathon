@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import type { SessionUser, UserRole } from "@/lib/auth-client";
 import { logout } from "@/lib/auth-client";
+import { toast } from "@/lib/toast";
 
 const ROLE_LINKS: Record<UserRole, { href: string; label: string }[]> = {
   content_creator: [
@@ -54,15 +55,17 @@ export function Sidebar({
       const { user: updated } = (await response.json()) as { user: { avatarUrl: string | null } };
       setAvatarUrl(updated.avatarUrl);
       setAvatarStatus(null);
+      toast.success("Profil resmi güncellendi.");
     } else {
       setAvatarStatus("Yükleme başarısız — lütfen bir resim dosyası seç.");
+      toast.error("Profil resmi yüklenemedi.");
     }
   }
 
   return (
     <>
       <aside
-        className={`fixed bottom-0 left-0 top-16 z-40 flex flex-col overflow-hidden border-r border-white/10 bg-[#0b1330]/95 text-white backdrop-blur transition-[width] duration-300 ${
+        className={`rbx-glass fixed bottom-0 left-0 top-16 z-40 flex flex-col overflow-hidden bg-[#0b1330]/70 text-white transition-[width] duration-300 ${
           open ? "w-64" : "w-0"
         }`}
       >
@@ -112,7 +115,7 @@ export function Sidebar({
             <a
               key={link.href}
               href={link.href}
-              className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+              className="cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-white/80 transition-all duration-300 hover:translate-x-1 hover:bg-primary/15 hover:text-white"
             >
               {link.label}
             </a>

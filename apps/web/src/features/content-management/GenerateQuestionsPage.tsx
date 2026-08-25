@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/toast";
 
 type DocumentRow = { id: string; title: string; status: string };
 type OutcomeRow = { id: string; title: string; documentId: string | null };
@@ -68,6 +69,11 @@ export function GenerateQuestionsPage() {
     const poll = window.setInterval(async () => {
       const updated = await apiClient.get<GenerationJob>(`/api/questions/generate/${job.id}`);
       setJob(updated);
+      if (updated.status === "completed") {
+        toast.success(`${updated.questionsGenerated} soru üretildi.`);
+      } else if (updated.status === "failed") {
+        toast.error("Soru üretimi başarısız oldu.");
+      }
       if (updated.status === "completed" || updated.status === "failed") {
         if (pollRef.current) window.clearInterval(pollRef.current);
       }
@@ -85,6 +91,7 @@ export function GenerateQuestionsPage() {
     if (!job) return;
     await apiClient.post(`/api/questions/generate/${job.id}/cancel`);
     setJob((prev) => (prev ? { ...prev, status: "failed", failureReason: "kullanici_tarafindan_iptal_edildi" } : prev));
+    toast.info("Soru üretimi iptal edildi.");
   }
 
   function refreshAll() {

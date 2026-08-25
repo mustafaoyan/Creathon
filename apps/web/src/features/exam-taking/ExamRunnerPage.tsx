@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/lib/toast";
 
 type Assignment = {
   id: string;
@@ -132,15 +133,17 @@ export function ExamRunnerPage() {
       await apiClient.post(`/api/exams/${active.examId}/attempts/${active.attemptId}/submit`);
       setActive(null);
       setConfirmingSubmit(false);
+      toast.success("Sınav başarıyla gönderildi.");
       // Liste bayat kalırsa (eski durumla) "Sınava Başla" hâlâ görünür kalır —
       // "bitirdim ama tekrar girebildim" hissinin bir parçası tam olarak buydu.
       refreshAssignments();
     } catch (err) {
-      setSubmitError(
+      const message =
         err instanceof Error && err.message.includes("exam_already_submitted")
           ? "Bu sınav zaten gönderilmiş."
-          : "Sınav gönderilemedi — internet bağlantını kontrol edip tekrar dene.",
-      );
+          : "Sınav gönderilemedi — internet bağlantını kontrol edip tekrar dene.";
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

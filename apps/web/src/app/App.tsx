@@ -1,5 +1,6 @@
 import { RoleGuardedLayout } from "@/components/layout/RoleGuardedLayout";
 import { HomePage } from "@/features/home/HomePage";
+import { ToastContainer } from "@/components/ui/toast-container";
 import { resolveRoute } from "./router";
 import type { SessionUser } from "@/lib/auth-client";
 
@@ -45,6 +46,7 @@ export function App({
             </RoleGuardedLayout>
           )}
         </div>
+        <ToastContainer />
       </body>
     </html>
   );

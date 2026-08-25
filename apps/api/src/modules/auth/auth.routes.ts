@@ -15,12 +15,22 @@ const OAUTH_STATE_COOKIE = "rubrix_oauth_state";
 const OAUTH_REQUESTED_ROLE_COOKIE = "rubrix_oauth_requested_role";
 const POST_LOGIN_REDIRECT = "/"; // SSR web app is served same-origin behind the same domain
 
-// Only these two are choosable from the public login screen — content_creator/admin are assigned internally.
 const REQUESTABLE_ROLES: UserRole[] = ["content_creator", "instructor", "student", "admin"];
 
 authRoutes.get("/google", (c) => {
-  const state = newId("state");
   const requestedRole = c.req.query("role");
+
+  // "admin" self-servis ama korumasız değil — gizli bir davet kodu gerekiyor,
+  // sadece kodu bilenler tek tıkla Eğitim Yöneticisi olabiliyor. Google'a hiç
+  // gitmeden burada reddediyoruz ki yanlış/eksik kodla boşuna OAuth turu olmasın.
+  if (
+    requestedRole === "admin" &&
+    (!c.env.ADMIN_INVITE_CODE || c.req.query("code") !== c.env.ADMIN_INVITE_CODE)
+  ) {
+    throw new HttpError(403, "invalid_admin_code");
+  }
+
+  const state = newId("state");
   const cookieOpts = {
     httpOnly: true,
     maxAge: 600,

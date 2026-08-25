@@ -11,6 +11,7 @@ export type Bindings = {
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_REDIRECT_URI: string;
   SESSION_COOKIE_SECURE: string; // "true" | "false" — "false" only for local http dev
+  ADMIN_INVITE_CODE: string; // login ekranında "Eğitim Yöneticisi Girişi" bu kodu isteyip karşılaştırıyor
   ANTHROPIC_API_KEY: string;
   CF_ACCOUNT_ID: string;
   CF_AI_GATEWAY_ID: string;

@@ -151,7 +151,10 @@ function HeroCarousel() {
 
 function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
   const [showT3Notice, setShowT3Notice] = useState(false);
+  const [adminCode, setAdminCode] = useState("");
   const copy = ROLE_COPY[role];
+  const isAdmin = role === "admin";
+  const adminCodeMissing = isAdmin && adminCode.trim().length === 0;
 
   return (
     <div
@@ -166,14 +169,42 @@ function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
         <p className="text-sm text-muted-foreground">{copy.description}</p>
       </div>
 
+      {isAdmin && (
+        <input
+          type="password"
+          autoComplete="off"
+          placeholder="Admin Kodu"
+          value={adminCode}
+          onChange={(event) => setAdminCode(event.target.value)}
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+      )}
+
       <div className="flex w-full flex-col gap-2">
-        <Button variant="outline" className="w-full" onClick={() => setShowT3Notice(true)}>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={adminCodeMissing}
+          onClick={() => setShowT3Notice(true)}
+        >
           T3 Hesabı ile Giriş Yap
         </Button>
-        <a href={getGoogleLoginUrl(role)} className="w-full">
-          <Button className="w-full">Google Hesabı ile Giriş Yap</Button>
+        <a
+          href={getGoogleLoginUrl(role, adminCode)}
+          className={`w-full ${adminCodeMissing ? "pointer-events-none" : ""}`}
+          aria-disabled={adminCodeMissing}
+        >
+          <Button className="w-full" disabled={adminCodeMissing}>
+            Google Hesabı ile Giriş Yap
+          </Button>
         </a>
       </div>
+
+      {isAdmin && (
+        <p className="text-xs text-muted-foreground">
+          Bu rol, davet koduna sahip olmayan hesaplarca alınamaz.
+        </p>
+      )}
 
       {showT3Notice && (
         <p className="text-xs text-muted-foreground">

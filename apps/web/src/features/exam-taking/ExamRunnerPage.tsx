@@ -7,6 +7,7 @@ type Assignment = {
   examId: string;
   title: string;
   status: string;
+  durationMinutes: number | null;
   totalScore: number | null;
   submittedAt: string | null;
 };
@@ -27,28 +28,68 @@ type ExamQuestion = {
   options?: ExamOption[];
 };
 
+function formatRemaining(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 export function ExamRunnerPage() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [active, setActive] = useState<{ examId: string; attemptId: string; questions: ExamQuestion[] } | null>(
-    null,
-  );
+  const [active, setActive] = useState<{
+    examId: string;
+    attemptId: string;
+    questions: ExamQuestion[];
+    deadline: number | null;
+  } | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 
   useEffect(() => {
     apiClient.get<{ assignments: Assignment[] }>("/api/exams/my").then((res) => setAssignments(res.assignments));
   }, []);
 
   async function start(examId: string) {
-    const result = await apiClient.post<{ attempt: { id: string }; questions: ExamQuestion[] }>(
-      `/api/exams/${examId}/attempts`,
-    );
-    setActive({ examId, attemptId: result.attempt.id, questions: result.questions });
+    const result = await apiClient.post<{
+      attempt: { id: string; startedAt: string };
+      questions: ExamQuestion[];
+      durationMinutes: number | null;
+    }>(`/api/exams/${examId}/attempts`);
+    const deadline = result.durationMinutes
+      ? new Date(result.attempt.startedAt).getTime() + result.durationMinutes * 60_000
+      : null;
+    setActive({ examId, attemptId: result.attempt.id, questions: result.questions, deadline });
   }
 
+  // Süre dolunca otomatik gönderiliyor — sunucu da aynı süreyi ayrıca
+  // doğruluyor (assertAttemptNotExpired), bu sadece öğrenciye görünen sayaç.
+  useEffect(() => {
+    if (!active?.deadline) {
+      setRemainingSeconds(null);
+      return;
+    }
+    const deadline = active.deadline;
+    const tick = () => {
+      const secs = Math.max(0, Math.round((deadline - Date.now()) / 1000));
+      setRemainingSeconds(secs);
+      if (secs === 0) submit();
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active?.deadline]);
+
+  const timeIsUp = remainingSeconds === 0;
+
   async function saveAnswer(questionId: string, payload: { selectedOptionId?: string; answerText?: string }) {
+    if (timeIsUp || !active) return;
     setAnswers((prev) => ({ ...prev, [questionId]: payload.selectedOptionId ?? payload.answerText ?? "" }));
-    if (!active) return;
-    await apiClient.post(`/api/exams/attempts/${active.attemptId}/answers`, { questionId, ...payload });
+    try {
+      await apiClient.post(`/api/exams/attempts/${active.attemptId}/answers`, { questionId, ...payload });
+    } catch {
+      // Süre tam bu sırada dolduysa sunucu reddeder — sayaç zaten kilitleyecek, sessizce yut.
+    }
   }
 
   async function submit() {
@@ -60,6 +101,11 @@ export function ExamRunnerPage() {
   if (active) {
     return (
       <div className="flex max-w-xl flex-col gap-4">
+        {remainingSeconds !== null && (
+          <p className={`text-sm font-semibold ${remainingSeconds <= 60 ? "text-destructive" : "text-muted-foreground"}`}>
+            Kalan süre: {formatRemaining(remainingSeconds)}
+          </p>
+        )}
         {active.questions.map((question) => (
           <div key={question.id}>
             <p className="font-medium">{question.body}</p>
@@ -70,6 +116,7 @@ export function ExamRunnerPage() {
                     <input
                       type="radio"
                       name={question.questionId}
+                      disabled={timeIsUp}
                       checked={answers[question.questionId] === option.id}
                       onChange={() => saveAnswer(question.questionId, { selectedOptionId: option.id })}
                     />
@@ -82,13 +129,16 @@ export function ExamRunnerPage() {
             ) : (
               <textarea
                 className="mt-2 w-full rounded-md border border-input px-3 py-2"
+                disabled={timeIsUp}
                 value={answers[question.questionId] ?? ""}
                 onChange={(event) => saveAnswer(question.questionId, { answerText: event.target.value })}
               />
             )}
           </div>
         ))}
-        <Button onClick={submit}>Sınavı Bitir</Button>
+        <Button onClick={submit} disabled={timeIsUp}>
+          Sınavı Bitir
+        </Button>
       </div>
     );
   }

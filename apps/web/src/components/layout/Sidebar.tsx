@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import type { SessionUser, UserRole } from "@/lib/auth-client";
 import { logout } from "@/lib/auth-client";
 
@@ -34,9 +34,30 @@ export function Sidebar({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const [showAvatarNotice, setShowAvatarNotice] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
+  const [avatarStatus, setAvatarStatus] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const links = user.role ? ROLE_LINKS[user.role] : [];
   const initial = user.name.trim().charAt(0).toUpperCase() || "?";
+
+  async function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setAvatarStatus("Yükleniyor...");
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await fetch("/api/users/me/avatar", { method: "POST", body: formData, credentials: "include" });
+
+    if (response.ok) {
+      const { user: updated } = (await response.json()) as { user: { avatarUrl: string | null } };
+      setAvatarUrl(updated.avatarUrl);
+      setAvatarStatus(null);
+    } else {
+      setAvatarStatus("Yükleme başarısız — lütfen bir resim dosyası seç.");
+    }
+  }
 
   return (
     <>
@@ -57,9 +78,9 @@ export function Sidebar({
         </div>
 
         <div className="flex w-64 flex-col items-center gap-2 px-4 pb-6 pt-2">
-          {user.avatarUrl ? (
+          {avatarUrl ? (
             <img
-              src={user.avatarUrl}
+              src={avatarUrl}
               alt={user.name}
               className="h-16 w-16 rounded-full border-2 border-primary object-cover"
             />
@@ -69,18 +90,21 @@ export function Sidebar({
             </div>
           )}
           <p className="text-sm font-semibold">{user.name}</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
           <button
             type="button"
-            onClick={() => setShowAvatarNotice(true)}
+            onClick={() => fileInputRef.current?.click()}
             className="cursor-pointer text-xs text-white/60 underline-offset-2 transition-colors hover:text-white hover:underline"
           >
             Profil Resmini Değiştir
           </button>
-          {showAvatarNotice && (
-            <p className="text-center text-[11px] text-white/50">
-              Bu özellik yakında aktif olacak — şu an Google hesap fotoğrafın kullanılıyor.
-            </p>
-          )}
+          {avatarStatus && <p className="text-center text-[11px] text-white/50">{avatarStatus}</p>}
         </div>
 
         <nav className="flex w-64 flex-1 flex-col gap-1 px-3">

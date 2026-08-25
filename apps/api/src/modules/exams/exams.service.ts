@@ -60,6 +60,7 @@ export const examsService = {
       attempt = await examsRepository.findAttemptByAssignment(db, assignment.id);
     }
 
+    const exam = await examsRepository.findById(db, examId);
     const examQuestions = await examsRepository.questionsFor(db, examId);
     const questions = await Promise.all(
       examQuestions.map(async (question) => ({
@@ -70,7 +71,25 @@ export const examsService = {
             : undefined,
       })),
     );
-    return { attempt, questions };
+    return { attempt, questions, durationMinutes: exam?.durationMinutes ?? null };
+  },
+
+  /** Süre dolduktan sonra yeni cevap kabul edilmez — istemci taraflı geri
+   * sayım tek başına yeterli değil (biri devtools'tan cevap gönderebilir),
+   * bu yüzden gerçek kesinti burada, sunucu tarafında yapılıyor. */
+  async assertAttemptNotExpired(env: Bindings, attemptId: string) {
+    const db = createDb(env.DB);
+    const attempt = await examsRepository.findAttemptById(db, attemptId);
+    if (!attempt) throw new HttpError(404, "attempt_not_found");
+
+    const assignment = await examsRepository.findAssignmentById(db, attempt.examAssignmentId);
+    if (!assignment) throw new HttpError(404, "assignment_not_found");
+
+    const exam = await examsRepository.findById(db, assignment.examId);
+    if (exam?.durationMinutes != null && attempt.startedAt) {
+      const deadline = attempt.startedAt.getTime() + exam.durationMinutes * 60_000;
+      if (Date.now() > deadline) throw new HttpError(403, "time_expired");
+    }
   },
 
   async answer(
@@ -78,6 +97,7 @@ export const examsService = {
     attemptId: string,
     data: { questionId: string; selectedOptionId?: string; answerText?: string },
   ) {
+    await examsService.assertAttemptNotExpired(env, attemptId);
     await examsRepository.upsertAnswer(createDb(env.DB), { attemptId, ...data });
   },
 

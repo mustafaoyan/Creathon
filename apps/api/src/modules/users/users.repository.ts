@@ -72,4 +72,8 @@ export const usersRepository = {
   async suspend(db: Database, id: string) {
     await db.update(users).set({ status: "suspended", updatedAt: new Date() }).where(eq(users.id, id));
   },
+
+  async updateAvatarUrl(db: Database, id: string, avatarUrl: string) {
+    await db.update(users).set({ avatarUrl, updatedAt: new Date() }).where(eq(users.id, id));
+  },
 };

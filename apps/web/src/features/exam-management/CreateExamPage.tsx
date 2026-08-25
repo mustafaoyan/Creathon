@@ -7,6 +7,7 @@ type StudentRow = { id: string; name: string; email: string };
 
 export function CreateExamPage() {
   const [title, setTitle] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState("");
   const [approved, setApproved] = useState<QuestionRow[]>([]);
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<string | null>(null);
@@ -45,6 +46,7 @@ export function CreateExamPage() {
     setStatus("Oluşturuluyor...");
     const { id } = await apiClient.post<{ id: string }>("/api/exams", {
       title,
+      durationMinutes: durationMinutes ? Number(durationMinutes) : undefined,
       questionIds: Array.from(selectedQuestions).map((questionId) => ({ questionId, points: 10 })),
     });
     setCreatedExamId(id);
@@ -103,6 +105,14 @@ export function CreateExamPage() {
         placeholder="Sınav başlığı"
         value={title}
         onChange={(event) => setTitle(event.target.value)}
+      />
+      <input
+        className="rounded-md border border-input px-3 py-2"
+        type="number"
+        min={1}
+        placeholder="Süre (dakika, boş bırakılırsa süresiz)"
+        value={durationMinutes}
+        onChange={(event) => setDurationMinutes(event.target.value)}
       />
       <div className="flex flex-col gap-2">
         {approved.map((question) => (

@@ -26,4 +26,24 @@ export const usersService = {
     if (!user) throw new HttpError(404, "user_not_found");
     await usersRepository.suspend(db, userId);
   },
+
+  /** R2 key sabit ("avatars/{userId}") — her yükleme öncekini eziyor, ayrı bir
+   * kolon/temizlik gerekmiyor. avatarUrl'e kendi serve endpoint'imizi (cache
+   * kırmak için ?v=timestamp'li) yazıyoruz ki mevcut <img src={avatarUrl}>
+   * kullanımı (Sidebar vb.) hiç değişmeden çalışsın. */
+  async uploadAvatar(env: Bindings, userId: string, file: { mimeType: string; body: ArrayBuffer }) {
+    const db = createDb(env.DB);
+    await env.BUCKET.put(avatarR2Key(userId), file.body, { httpMetadata: { contentType: file.mimeType } });
+    const avatarUrl = `/api/users/${userId}/avatar?v=${Date.now()}`;
+    await usersRepository.updateAvatarUrl(db, userId, avatarUrl);
+    return usersRepository.findById(db, userId);
+  },
+
+  async getAvatarObject(env: Bindings, userId: string) {
+    return env.BUCKET.get(avatarR2Key(userId));
+  },
 };
+
+function avatarR2Key(userId: string) {
+  return `avatars/${userId}`;
+}

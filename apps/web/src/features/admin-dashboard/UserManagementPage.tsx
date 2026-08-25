@@ -21,10 +21,22 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 export function UserManagementPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     apiClient.get<{ users: UserRow[] }>("/api/users").then((res) => setUsers(res.users));
   }, []);
+
+  const normalizedQuery = query.trim().toLocaleLowerCase("tr");
+  const filteredUsers = normalizedQuery
+    ? users.filter((user) => {
+        const roleLabel = user.role ? ROLE_LABELS[user.role] : "";
+        return [user.name, user.email, roleLabel, user.status]
+          .join(" ")
+          .toLocaleLowerCase("tr")
+          .includes(normalizedQuery);
+      })
+    : users;
 
   async function changeRole(id: string, role: UserRole) {
     const { user } = await apiClient.patch<{ user: UserRow }>(`/api/users/${id}/role`, { role });
@@ -44,8 +56,14 @@ export function UserManagementPage() {
           Panele Dön
         </a>
       </div>
+      <input
+        className="rounded-md border border-input px-3 py-2"
+        placeholder="İsim, e-posta, rol veya duruma göre ara..."
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
       <div className="flex flex-col gap-2">
-        {users.map((user) => (
+        {filteredUsers.map((user) => (
           <div key={user.id} className="flex items-center justify-between gap-4 rounded-md border border-border p-4">
             <div>
               <p className="font-medium">{user.name}</p>
@@ -80,6 +98,9 @@ export function UserManagementPage() {
           </div>
         ))}
         {users.length === 0 && <p className="text-muted-foreground">Kullanıcı yok.</p>}
+        {users.length > 0 && filteredUsers.length === 0 && (
+          <p className="text-muted-foreground">Aramayla eşleşen kullanıcı yok.</p>
+        )}
       </div>
     </div>
   );

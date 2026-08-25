@@ -86,6 +86,7 @@ export const examsRepository = {
         examId: examAssignments.examId,
         status: examAssignments.status,
         title: exams.title,
+        durationMinutes: exams.durationMinutes,
         totalScore: examAttempts.totalScore,
         submittedAt: examAttempts.submittedAt,
       })

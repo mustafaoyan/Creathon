@@ -26,6 +26,15 @@ export function App({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>RubriX</title>
+        {/* Hiç favicon yoktu — tarayıcı sekmesinde jenerik bir belge ikonu görünüyordu
+            (kullanıcı testinde bulundu). Ayrı bir .ico dosyası eklemek yerine tek satırlık
+            inline SVG data URI — marka rengiyle (koyu lacivert + kırmızı "R") uyumlu, ekstra
+            asset dosyası/derleme adımı gerektirmiyor. */}
+        <link
+          rel="icon"
+          type="image/svg+xml"
+          href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwYjEzMzAiLz48dGV4dCB4PSIzMyIgeT0iNDciIGZvbnQtZmFtaWx5PSJBcmlhbCwgSGVsdmV0aWNhLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjQwIiBmb250LXdlaWdodD0iODAwIiBmaWxsPSIjZTExZDNjIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5SPC90ZXh0Pjwvc3ZnPgo="
+        />
         {clientAssets.css.map((href) => (
           <link key={href} rel="stylesheet" href={href} />
         ))}

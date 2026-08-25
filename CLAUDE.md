@@ -200,6 +200,21 @@ body'sine artık erişemediği için parametreleri job kaydından okuyor.
 - **Süre sayacı sıfırlanması:** frontend elapsed-time hesabı sayfa açılış anını değil
   `job.createdAt`'i (sunucu zamanı) baz alıyor — sayfadan çıkıp geri girmek artık sayacı sıfırlamıyor.
 
+**Sınava tekrar giriş engeli + rubriksiz açık uçlu sorunun sessiz hatası (kullanıcı testinde
+bulundu, ikisi de gerçek prod verisiyle doğrulandı):**
+- `examsService.startAttempt`/`submit`, `attempt.submittedAt` varsa `409 exam_already_submitted`
+  döndürüyor — önceden bir attempt bulunursa sorgusuzca tekrar döndürülüyordu, bu yüzden bitmiş
+  bir sınava geri girilebiliyordu. `ExamRunnerPage.tsx`'te "Sınavı Bitir" artık direkt göndermiyor,
+  "Devam Et" / "Yine de Bitir" iki butonlu bir uyarı gösteriyor; submit sonrası liste yenileniyor.
+- **Kök neden bulundu — açık uçlu bir soru rubriksiz onaylanmışsa, `submit()` o cevabı
+  `ai_evaluations`'a hiç düşürmeden sessizce atlıyordu** — Puanlama Onayı paneli "değerlendirilecek
+  sınav yok" derken aslında sessizce atlanan bir cevap vardı. Artık `questions.service.ts#review`
+  açık uçlu + rubriksiz onayı `422` ile reddediyor; `QuestionReviewPanel.tsx`'te rubrik seçilmeden
+  "Onayla" disabled. `PATCH /questions/:id` artık `rubricId` de kabul ediyor, yeni
+  `POST /questions/:id/regrade` bir soruya sonradan rubrik eklendiğinde o soruya verilmiş ama hiç
+  değerlendirilmemiş cevapları geriye dönük puanlıyor (prod'daki 2 gerçek sıkışmış cevap bu yolla
+  düzeltildi).
+
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

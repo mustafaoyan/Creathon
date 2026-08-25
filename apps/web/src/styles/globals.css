@@ -45,27 +45,23 @@ body {
   color: var(--color-foreground);
 }
 
-/* Sayfa içeriği kısa olsa bile (ör. boş bir liste) trackpad/mobil kaydırmada
-   "elastic" taşma (overscroll bounce), tarayıcının belgenin GERÇEK sonundan
-   sonrasını `html`'in arka planıyla boyaması anlamına gelir — bizim uzay
-   arka planımız bugüne kadar sadece belirli sarmalayıcı div'lerde
-   (`bg-fixed` + inline style) tanımlıydı, `html`'de değil. `html` boşsa
-   tarayıcı o taşma alanını düz siyah/beyaz gösteriyordu. Aynı görseli kök
-   elementte de tanımladık AMA bu tek başına yetmedi (kullanıcı testinde
-   hâlâ görüldü) — bazı tarayıcılarda "elastic bounce" efekti CSS
-   background'ı hiç kullanmayan, tarayıcının kendi native taşma animasyonu
-   (bir tür OS efekti), yani boyayarak "düzeltilemiyor". Bu yüzden asıl
-   çözüm: taşmayı `overscroll-behavior` ile TAMAMEN KAPATMAK — kullanıcının
-   önerdiği "ya kaydırılmasın" seçeneği. */
+/* html'e de aynı uzay görseli — hâlâ bir yerde beklenmedik bir taşma/boşluk
+   olursa düz siyah yerine en azından aynı gökyüzü görünsün diye kalan
+   bir yedek (fallback). Asıl siyah-alan sorunu artık authed ekranlarda
+   RoleGuardedLayout.tsx'teki h-screen+overflow-hidden mimarisiyle KÖKTEN
+   çözüldü (bkz. o dosyadaki not). ÖNEMLİ: burada `overscroll-behavior: none`
+   KASITLI OLARAK YOK — bunu genel (site geneli, html+body) eklemiştik ama
+   giriş ekranındaki GERÇEK (bounce olmayan, normal) aşağı kaydırmayı da
+   engelledi; kullanıcı "Diğer Girişler" sonrası Eğitim Yöneticisi kartına
+   ulaşamadı. overscroll-behavior'ı böyle genel/kör bir şekilde kapatmak
+   riskli — tekrar gerekirse SADECE sorunlu olan spesifik container'a
+   uygulanmalı, html/body'ye değil. */
 html {
   background-color: #050814;
   background-image: url("/hero/space-globe.jpg");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
-}
-html, body {
-  overscroll-behavior-y: none;
 }
 
 /* Sidebar açılırken içerik kutusunun margin-left ile itilmesi (bkz.

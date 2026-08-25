@@ -10,6 +10,13 @@ export const contentRoutes = new Hono<AppEnv>();
 
 contentRoutes.use("*", requireAuth);
 
+// İşlem hattı (ingestion.pipeline.ts) sadece PDF'i gerçekten ayrıştırıyor (unpdf);
+// diğer her şey ham metin olarak decode ediliyor — bu yüzden fiilen sadece
+// düz metin barındıran dosyalar (txt/md) + PDF anlamlı sonuç veriyor, DOCX gibi
+// ikili formatlar "desteklenmiyor" (decode edilse de anlamsız çıktı verir).
+export const SUPPORTED_DOCUMENT_MIME_TYPES = ["application/pdf", "text/plain", "text/markdown"] as const;
+export const MAX_DOCUMENT_UPLOAD_BYTES = 20 * 1024 * 1024; // 20 MB
+
 // Only the İçerik Uzmanı authors source material and learning outcomes.
 contentRoutes.post("/documents", requireRole("content_creator"), async (c) => {
   const body = await c.req.parseBody();
@@ -18,6 +25,9 @@ contentRoutes.post("/documents", requireRole("content_creator"), async (c) => {
 
   if (!(file instanceof File) || typeof title !== "string" || !title) {
     throw new HttpError(400, "file_and_title_required");
+  }
+  if (file.size > MAX_DOCUMENT_UPLOAD_BYTES) {
+    throw new HttpError(422, "file_too_large");
   }
 
   const documentId = await contentService.uploadDocument(c.env, {

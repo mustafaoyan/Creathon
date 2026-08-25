@@ -1,10 +1,24 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 
+// Backend'deki gerçek sınırlarla senkron tut (bkz. content.routes.ts) — sadece
+// bilgilendirme amaçlı, gerçek zorlama sunucu tarafında.
+const MAX_FILE_SIZE_MB = 20;
+
 export function UploadDocumentPage() {
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+
+  function handleFileChange(selected: File | null) {
+    if (selected && selected.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      setStatus(`Dosya çok büyük — en fazla ${MAX_FILE_SIZE_MB} MB olabilir.`);
+      setFile(null);
+      return;
+    }
+    setStatus(null);
+    setFile(selected);
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -20,7 +34,16 @@ export function UploadDocumentPage() {
       body: formData,
       credentials: "include",
     });
-    setStatus(response.ok ? "Yüklendi, arka planda işleniyor." : "Yükleme başarısız.");
+    if (response.ok) {
+      setStatus("Yüklendi, arka planda işleniyor.");
+    } else {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      setStatus(
+        body.error === "file_too_large"
+          ? `Dosya çok büyük — en fazla ${MAX_FILE_SIZE_MB} MB olabilir.`
+          : "Yükleme başarısız.",
+      );
+    }
   }
 
   return (
@@ -37,7 +60,14 @@ export function UploadDocumentPage() {
         value={title}
         onChange={(event) => setTitle(event.target.value)}
       />
-      <input type="file" accept=".pdf,.txt,.md" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+      <input
+        type="file"
+        accept=".pdf,.txt,.md"
+        onChange={(event) => handleFileChange(event.target.files?.[0] ?? null)}
+      />
+      <p className="text-xs text-muted-foreground">
+        Desteklenen dosya türleri: PDF, TXT, MD • Maksimum dosya boyutu: {MAX_FILE_SIZE_MB} MB
+      </p>
       <Button type="submit" disabled={!file || !title}>
         Yükle
       </Button>

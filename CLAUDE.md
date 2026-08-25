@@ -338,6 +338,19 @@ yeni `GET /questions/generation-batches` sadece en az bir onaylı sorusu olan pa
 sınav oluşturma endpoint'i (`POST /exams`) zaten rastgele `questionIds` kabul ediyordu, o yüzden
 farklı partilerden karışık seçim için backend'de ayrıca bir değişiklik gerekmedi.
 
+**"Kazanım Tanımla" ayrı sayfası kaldırıldı, İçerik Yükle'ye taşındı (2026-08-25, kullanıcı testinde
+bulundu — kullanıcı bu sayfayı "işlevsiz" olarak değerlendirdi):** `LearningOutcomesPage.tsx`
+(`/content/outcomes`) silindi, formu artık `UploadDocumentPage.tsx`'in ikinci bölümü — belge
+yükledikten sonra hemen o belgeye kazanım tanımlanabiliyor. `GenerateQuestionsPage.tsx`'te de
+"Kazanım seç" manuel dropdown'ı kaldırıldı — `documentId` değiştiğinde bir `useEffect`, o belgeye
+bağlı kazanımları (`outcome.documentId === documentId`) otomatik filtreleyip gösteriyor: tek eşleşme
+varsa direkt seçili bilgi satırı, birden fazlaysa küçük bir seçim listesi, hiç yoksa İçerik Yükle'ye
+yönlendiren bir not. Aynı turda ayrıca: `UploadDocumentPage.tsx`'e gerçek bir "Dosya Seç" butonu
+eklendi (önceden çıplak native `<input type=file>` vardı — Sidebar'daki avatar yükleme ile aynı
+gizli-input + buton deseni kullanıldı); her iki sayfanın kök div'ine `mx-auto` eklendi (form bloğu
+karta göre sola yapışıktı, "ortalanmamış" görünüyordu); placeholder'lardaki parantezli örnek
+metinler kaldırıldı, "(opsiyonel)" artık alanın içinde değil dışındaki etiketin yanında.
+
 **Bekliyor (bilinçli olarak yapılmadı):**
 - ~~Özel domain yok, `workers.dev` kullanılıyor.~~ 2026-08-25: `app.hititai.com` bağlandı (bkz. yukarı).
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

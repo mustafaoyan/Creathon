@@ -36,6 +36,13 @@
       "when": 1787668318716,
       "tag": "0004_gigantic_leech",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787684290903,
+      "tag": "0005_whole_cobalt_man",
+      "breakpoints": true
     }
   ]
 }

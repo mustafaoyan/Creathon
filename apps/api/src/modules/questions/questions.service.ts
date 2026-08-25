@@ -36,6 +36,7 @@ export const questionsService = {
   async enqueueGeneration(
     env: Bindings,
     params: {
+      title: string | null;
       documentId: string;
       learningOutcomeId: string;
       rubricId: string | null;
@@ -140,6 +141,11 @@ export const questionsService = {
       await questionsRepository.failGenerationJob(db, jobId, (error as Error).message);
       throw error;
     }
+  },
+
+  listGenerationBatches(env: Bindings) {
+    const db = createDb(env.DB);
+    return questionsRepository.listCompletedJobsWithApprovedQuestions(db);
   },
 
   async list(env: Bindings, status?: QuestionStatus) {

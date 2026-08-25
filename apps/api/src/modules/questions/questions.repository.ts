@@ -8,6 +8,7 @@ export const questionsRepository = {
   async createGenerationJob(
     db: Database,
     data: {
+      title: string | null;
       documentId: string;
       learningOutcomeId: string;
       rubricId: string | null;
@@ -19,6 +20,7 @@ export const questionsRepository = {
     const id = newId("genjob");
     await db.insert(aiGenerationJobs).values({
       id,
+      title: data.title,
       documentId: data.documentId,
       learningOutcomeId: data.learningOutcomeId,
       rubricId: data.rubricId,
@@ -30,6 +32,23 @@ export const questionsRepository = {
       createdAt: new Date(),
     });
     return id;
+  },
+
+  /** Sınav oluşturma ekranındaki soru havuzu, onaylanmış soruları hangi
+   * üretim "partisinden" geldiğine göre gruplamak için bunu kullanır —
+   * sadece en az bir onaylı sorusu olan partiler döner (boş/hâlâ incelemede
+   * olan partilerle havuzu kirletmesin). */
+  listCompletedJobsWithApprovedQuestions(db: Database) {
+    return db
+      .selectDistinct({
+        id: aiGenerationJobs.id,
+        title: aiGenerationJobs.title,
+        createdAt: aiGenerationJobs.createdAt,
+      })
+      .from(aiGenerationJobs)
+      .innerJoin(questions, eq(questions.generationJobId, aiGenerationJobs.id))
+      .where(eq(questions.status, "approved"))
+      .orderBy(desc(aiGenerationJobs.createdAt));
   },
 
   async findGenerationJobById(db: Database, id: string) {

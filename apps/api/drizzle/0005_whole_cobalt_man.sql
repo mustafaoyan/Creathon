@@ -1,0 +1,1 @@
+ALTER TABLE `ai_generation_jobs` ADD `title` text;

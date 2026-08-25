@@ -14,6 +14,7 @@ questionsRoutes.use("*", requireAuth);
 // İçerik Uzmanı: kaynak + kazanımdan RAG ile soru taslağı üretir (henüz havuza inmez).
 questionsRoutes.post("/generate", requireRole("content_creator"), async (c) => {
   const body = await c.req.json<{
+    title?: string;
     documentId: string;
     learningOutcomeId: string;
     rubricId?: string;
@@ -26,6 +27,7 @@ questionsRoutes.post("/generate", requireRole("content_creator"), async (c) => {
   }
 
   const generationJobId = await questionsService.enqueueGeneration(c.env, {
+    title: body.title?.trim() || null,
     documentId: body.documentId,
     learningOutcomeId: body.learningOutcomeId,
     rubricId: body.rubricId ?? null,
@@ -35,6 +37,12 @@ questionsRoutes.post("/generate", requireRole("content_creator"), async (c) => {
   });
 
   return c.json({ generationJobId }, 202);
+});
+
+// Sınav oluşturma ekranındaki soru havuzu — onaylı soruları hangi üretim
+// partisinden geldiğine göre grupluyor (bkz. CreateExamPage.tsx).
+questionsRoutes.get("/generation-batches", requireRole("content_creator", "instructor", "admin"), async (c) => {
+  return c.json({ batches: await questionsService.listGenerationBatches(c.env) });
 });
 
 // Frontend'in ilerleme/tamamlanma durumunu göstermesi için — sayfayı tekrar

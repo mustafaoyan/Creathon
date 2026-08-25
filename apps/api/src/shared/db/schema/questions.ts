@@ -30,6 +30,10 @@ export type GenerationJobStatus = (typeof GENERATION_JOB_STATUSES)[number];
 
 export const aiGenerationJobs = sqliteTable("ai_generation_jobs", {
   id: text("id").primaryKey(),
+  // İçerik uzmanının kendi girdiği, o üretim "partisini" tanımlayan başlık —
+  // boş bırakılırsa null kalır, sınav oluşturma ekranındaki soru havuzu o
+  // durumda tarih/saate düşer (bkz. CreateExamPage.tsx).
+  title: text("title"),
   documentId: text("document_id")
     .notNull()
     .references(() => sourceDocuments.id),

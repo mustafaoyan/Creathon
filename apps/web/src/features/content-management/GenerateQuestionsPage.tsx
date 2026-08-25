@@ -34,6 +34,7 @@ export function GenerateQuestionsPage() {
   const [outcomes, setOutcomes] = useState<OutcomeRow[]>([]);
   const [rubrics, setRubrics] = useState<RubricRow[]>([]);
 
+  const [title, setTitle] = useState("");
   const [documentId, setDocumentId] = useState("");
   const [learningOutcomeId, setLearningOutcomeId] = useState("");
   const [rubricId, setRubricId] = useState("");
@@ -108,7 +109,11 @@ export function GenerateQuestionsPage() {
 
     setError(null);
     try {
+      // Boş bırakılırsa kazanım başlığını varsayılan olarak kullanıyoruz — sınav
+      // oluşturma ekranındaki soru havuzunda partiler isimsiz görünmesin diye.
+      const batchTitle = title.trim() || outcomes.find((outcome) => outcome.id === learningOutcomeId)?.title || "";
       const { generationJobId } = await apiClient.post<{ generationJobId: string }>("/api/questions/generate", {
+        title: batchTitle,
         documentId,
         learningOutcomeId,
         rubricId: rubricId || undefined,
@@ -145,6 +150,16 @@ export function GenerateQuestionsPage() {
       </div>
 
       <form onSubmit={generate} className="flex flex-col gap-3">
+        <input
+          className="rounded-md border border-input px-3 py-2"
+          placeholder="Parti başlığı (opsiyonel — boş bırakılırsa kazanım adı kullanılır)"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+        />
+        <p className="-mt-2 text-xs text-muted-foreground">
+          Bu başlık, sınav oluşturma ekranındaki soru havuzunda bu üretim partisini tanımlamak için kullanılır.
+        </p>
+
         <select
           className="rounded-md border border-input px-3 py-2"
           value={documentId}

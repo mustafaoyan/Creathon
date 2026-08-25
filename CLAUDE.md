@@ -87,14 +87,15 @@ apps/api/src/
   rag/                chunker, vectorize-client, retriever
 
 apps/web/src/
-  worker/index.tsx    SSR + /api/* service-binding proxy + role-home redirect ("/" -> role sayfası)
-  app/                App.tsx (HTML doküman), router.tsx (rol bazlı route tablosu)
-  features/           auth (LoginPage — carousel + gizli/reveal rol kartları), content-management,
-                      exam-management, exam-taking, admin-dashboard
-  components/         ui/ (shadcn), layout/RoleGuardedLayout.tsx (auth durumuna göre gate + Sidebar
-                      entegrasyonu), layout/TeknofestNav.tsx (sticky üst nav, login + tüm authed
-                      ekranlarda ortak), layout/Sidebar.tsx (authed ekranlarda kayan sol menü:
-                      avatar, rol bazlı linkler, alt kısımda Çıkış Yap)
+  worker/index.tsx    SSR + /api/* service-binding proxy + post-login redirect ("/" -> /welcome, TÜM roller)
+  app/                App.tsx (HTML doküman), router.tsx (route tablosu — her route'ta roles[] + opsiyonel bare)
+  features/           auth (LoginPage — carousel + gizli/reveal rol kartları), home (WelcomePage,
+                      MyProfilePage), content-management, exam-management, exam-taking, admin-dashboard
+  components/         ui/ (shadcn + toast-container.tsx), layout/RoleGuardedLayout.tsx (auth durumuna
+                      göre gate + Sidebar entegrasyonu + bare route desteği), layout/TeknofestNav.tsx
+                      (fixed üst nav, login + tüm authed ekranlarda ortak), layout/Sidebar.tsx (authed
+                      ekranlarda kayan sol menü: avatar, "Bilgilerim" + rol bazlı linkler, alt kısımda
+                      Çıkış Yap)
 ```
 
 ## Mevcut Durum
@@ -141,10 +142,15 @@ fazladan yetki. (Not: bu madde sonradan düzeltildi — onay artık sadece `cont
   cascade layer'ları yüzünden katmansız (unlayered) bir `position` kuralı, `fixed`/`sticky` gibi
   Tailwind utility'lerini sessizce eziyor (yaşanmış gerçek bug, bkz. globals.css'teki yorum).
 - Authed ekranlarda tam ekran uzay arka planı (`space-globe.jpg`) + sol tarafta hamburger ile
-  açılan `Sidebar` (üstte avatar + "Profil Resmini Değiştir", ortada role özel linkler, en altta
-  kırmızı hover'lı "Çıkış Yap").
-- Giriş sonrası kullanıcı doğrudan rolüne uygun sayfaya yönlendiriliyor (`role-home.ts` +
-  worker'daki redirect), genel bir "Merhaba X" ara ekranı yok.
+  açılan `Sidebar` (üstte avatar + "Profil Resmini Değiştir", ortada "Bilgilerim" + role özel
+  linkler, en altta kırmızı hover'lı "Çıkış Yap").
+- **2026-08-25: Bu karar TERSİNE çevrildi** — giriş sonrası artık kullanıcı rolüne uygun sayfaya
+  DEĞİL, ortak bir `/welcome` ekranına gidiyor (büyük "HOŞ GELDİNİZ", `role-home.ts` silindi).
+  Gerçek işlevlere erişim artık sadece Sidebar (☰ menü) üzerinden. `/welcome` bir **`bare`
+  route** (`router.tsx`'te `bare: true`) — `RoleGuardedLayout`'un varsayılan koyu "kart" kutusuna
+  sarılmadan doğrudan uzay arka planının üstünde render ediliyor; metin rengi bu yüzden
+  `text-foreground` değil sabit `text-white` (bare modda arkasında theme-adaptif kart yok, arka
+  plan her zaman koyu).
 
 **2026-08-25: 3 gerçek eksik kapatıldı (bir denetim listesinden):**
 - **Profil resmi yükleme gerçek** — `POST /api/users/me/avatar` (R2'ye `avatars/{userId}`
@@ -235,6 +241,27 @@ kaydı yoksa ama sınav `published`sa ilk girişte kendisine otomatik atıyor (`
 `onConflictDoNothing` kullanıyor). `CreateExamPage.tsx`'teki öğrenci seçim adımı kaldırıldı, sadece
 "Yayınla" var. Backend'deki manuel `POST /exams/:id/assign` endpoint'i dokunulmadan duruyor
 (ileride elle override gerekirse), sadece frontend artık çağırmıyor.
+
+**"Premium" UI cilası (2026-08-25):** kırmızı/uzay tema korunarak (kullanıcı onayıyla — jüri için
+marka tutarlılığı) üzerine glassmorphism (`.rbx-glass`), buton hover'da glow+scale, çok yavaş
+"canlı" arka plan animasyonu (`.rbx-space-alive`), tüm `border-input` alanlarında odak parıltısı
+(tek CSS kuralı, `globals.css`) ve global bir **toast bildirim sistemi** eklendi:
+`lib/toast.ts` (basit pub-sub) + `components/ui/toast-container.tsx`, `App.tsx`'e bir kere monte
+edilir, `fixed right-4 top-20 z-[9999]` — sayfa kaydırılsa da kaybolmuyor. `toast.success/error/info(...)`
+herhangi bir sayfadan çağrılabilir.
+
+**4 UX düzeltmesi (2026-08-25, kullanıcı testinde bulundu):**
+- Sınav oluştururken uzun soru metinleri alt satıra geçince checkbox metinden uzaklaşıyordu —
+  `CreateExamPage.tsx`'te `items-center` → `items-start` + checkbox'a `mt-1 shrink-0`, global
+  `label{text-align:center}` kuralını override eden `text-left`.
+- Yeni "Bilgilerim" sayfası (`/profile`, tüm roller) — ad-soyad, e-posta, rol; öğrenciyse ayrıca
+  atanmış sınav/sonuç geçmişi (`/api/exams/my` tekrar kullanılıyor). Sınıf/grup alanı şemada
+  olmadığı için gösterilmiyor.
+- **Sidebar açıkken sayfa yatayda kayıp arka plansız (siyah) bir boşluk açığa çıkarıyordu** — kök
+  neden: içerik kutusu `margin-left: 16rem` alıyordu ama genişliği hâlâ `%100`'dü, kutu
+  konteynerin dışına taşıyordu (`bg-fixed` arka plan viewport'a sabit olduğu için taşan alanı hiç
+  kaplamıyor). `RoleGuardedLayout.tsx`'te artık sidebar açıkken `w-[calc(100%-16rem)]` ile
+  genişlik de düşüyor; ek güvenlik ağı olarak `html,body{overflow-x:hidden}` eklendi.
 
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.

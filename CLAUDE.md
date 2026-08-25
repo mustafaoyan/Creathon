@@ -274,6 +274,22 @@ Ayrıca Yönetici Paneli'ndeki istatistik kartlarına (`DashboardPage.tsx`) `tit
 ikonuyla ne ifade ettiklerini açıklayan tooltip eklendi (ör. "AI Soru Kabul Oranı" = onaylanan/
 üretilen toplam AI sorusu).
 
+**Nav dikişi + admin şerit çakışması + overscroll siyah alan (2026-08-25, kullanıcı testinde
+bulundu, 3 ayrı bug):**
+- Nav (`TeknofestNav.tsx`) kendi arka plan görseli + gradyan katmanını taşıyordu — sayfanın
+  geri kalanı aynı görseli kullansa bile farklı kırpma/tint yüzünden görünür bir renk tonu farkı
+  yaratıyordu (teknofest.org.tr'de nav tamamen şeffaf). Nav artık kendi arka planı olmayan şeffaf
+  bir çubuk. Giriş ekranında ayrıca `HeroCarousel`, `pt-16` yerine `min-h-screen` ile nav'ın
+  ARKASINDAN (y:0'dan) başlıyor — aksi halde nav'ın şeffaf alanının arkasındaki statik kök arka
+  planla Hero'nun kendi değişen slayt fotoğrafı arasında nav'ın alt kenarında dikiş oluşuyordu.
+- Admin başka bir role "gözünden" bakarken nav'ın altına eklenen uyarı şeridi, Sidebar'ın sabit
+  ☰ düğmesiyle (hep `top-20`'de sabitti) çakışıyordu. `RoleGuardedLayout` artık `bannerOffset`
+  bilgisini `Sidebar`'a geçiyor, düğme/panel şerit varsa aşağı kayıyor.
+- **İçerik kısa olan sayfalarda bile** (ör. boş liste) trackpad/mobil "elastic" taşma (overscroll
+  bounce) belgenin gerçek sonrasını `html`'in arka planıyla boyuyor — uzay arka planı sadece belirli
+  sarmalayıcı div'lerde tanımlıydı, `html`'de değil, taşma alanı düz siyah görünüyordu. Aynı görsel
+  artık `globals.css`'te `html` seviyesinde de tanımlı.
+
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

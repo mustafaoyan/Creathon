@@ -6,16 +6,21 @@ nihai kararı her zaman bir insana (eğitmene) bırakan bir sınav platformu.
 
 Bu dosya, bu repoda açılan her Claude Code oturumuna otomatik yükleniyor — proje hakkında
 konuşma geçmişini bilmeyen biri (başka bir makine, başka biri) buradan hızlıca bağlam kazanır.
+**Bu dosya periyodik olarak baştan yazılıp güncel duruma göre sadeleştiriliyor** — geçmişteki her
+denemeyi/hata düzeltmeyi kronolojik anlatmak yerine, kalıcı olarak geçerli mimari kararları ve
+tekrar yaşanabilecek gerçek tuzakları (gotcha) özetliyor.
 
 ## Teknoloji Yığını
 
 - **Monorepo:** pnpm workspace (`apps/*`, `packages/*`), Turborepo yok — sade `pnpm -r` script'leri.
 - **Backend (`apps/api`):** Hono, Cloudflare Workers. D1 (SQLite, Drizzle ORM), R2 (dosya depolama),
-  Vectorize (embedding arama), Workers AI (`bge-m3` çok dilli embedding), Cloudflare Queues
-  (asenkron PDF işleme).
+  Vectorize (embedding arama), Workers AI (`bge-m3` çok dilli embedding + şu an soru
+  üretimi/puanlama için de `Llama 3.3 70B`), Cloudflare Queues (asenkron PDF işleme + soru üretimi).
 - **Frontend (`apps/web`):** Hono ile serve edilen Vite SSR + React 19 + Shadcn UI + Tailwind v4.
 - **Auth:** Google OAuth, sunucu tarafı session (D1 `sessions` tablosu, cookie).
-- **AI:** Anthropic Claude, Cloudflare AI Gateway arkasında.
+- **AI sağlayıcı:** Ports & Adapters (bkz. aşağı) — şu an aktif adaptör **`workers-ai`**
+  (Cloudflare'in kendi modelleri, ücretsiz kota). `anthropic` adaptörü de yazılı ve hazır ama
+  Anthropic hesabında kredi olmadığı için kullanılamıyor (detay: "Production Durumu" bölümü).
 - **Paylaşılan:** `packages/shared-types` — RBAC rolleri ve DTO'lar hem `@rubrix/api` hem
   `@rubrix/web` tarafından buradan içe aktarılıyor.
 
@@ -25,9 +30,9 @@ konuşma geçmişini bilmeyen biri (başka bir makine, başka biri) buradan hız
   routes/service/repository katmanına sahip, bağımsız bir Worker'a ayrılabilecek kadar izole.
   Gerçek çoklu-Worker mikroservis **bilinçli olarak tercih edilmedi**: MVP aşamasında deploy/geliştirme
   hızını korumak öncelikliydi.
-- **AI katmanı Ports & Adapters ile izole** (`apps/api/src/ai/ports`, `ai/providers/anthropic`) —
-  başka bir LLM'e geçmek yeni bir `ai/providers/<isim>` adaptörü eklemekten ibaret, hiçbir
-  çağıran kod değişmez.
+- **AI katmanı Ports & Adapters ile izole** (`apps/api/src/ai/ports`, `ai/providers/{anthropic,workers-ai}`)
+  — başka bir LLM'e geçmek yeni bir `ai/providers/<isim>` adaptörü eklemekten ibaret, hiçbir
+  çağıran kod değişmez. Aktif adaptör `wrangler.jsonc`'taki `AI_PROVIDER` env var'ı ile seçiliyor.
 - **RAG:** `apps/api/src/rag/` — chunk → Workers AI ile embed → Vectorize'a upsert →
   soru üretiminde top-k benzerlik araması. Üretilen her sorunun hangi kaynak chunk'lardan
   geldiği (`questions.source_chunk_ids`) izlenebilirlik için saklanıyor (halüsinasyon denetimi).
@@ -38,6 +43,19 @@ konuşma geçmişini bilmeyen biri (başka bir makine, başka biri) buradan hız
   `apps/web/vite.config.ts`'teki `auxiliaryWorkers` sayesinde çalışıyor — `apps/api` ve
   `apps/web` ayrı `wrangler dev`/`vite dev` süreçleri olarak çalıştırılırsa binding çözülmez,
   sadece `pnpm --filter @rubrix/web dev` yeterli (ikisini birden ayağa kaldırır).
+  **Prod'da kritik bir kısıtlama var:** Cloudflare, aynı hesaptaki iki worker'ın service binding
+  ile birbirini çağırmasını `*.workers.dev` hostname'i üzerinden ENGELLİYOR ("error code: 1042")
+  — bu yüzden `rubrix-web` artık sadece özel domain'den (`app.hititai.com`) erişilebilir,
+  `workers_dev` bilinçli olarak kapalı (bkz. Production Durumu).
+- **AI çıktısı hiçbir zaman doğrudan yayına/nota dönüşmez** — her zaman `pending_review`/
+  `ai_evaluation` gibi bir ara durumda insan onayı bekler (human-in-the-loop). Bunu bozan bir
+  değişiklik yapılmamalı.
+- **Asenkron işler kuyrukta, sayfa kapansa da devam eder** — PDF işleme (`DOC_QUEUE`) ve soru
+  üretimi (`QUESTION_GEN_QUEUE`) ikisi de `POST` isteğinde senkron await edilmiyor; sadece bir
+  iş kaydı oluşturup kuyruğa atıyor, gerçek iş `src/index.ts`'teki tek `queue()` handler'ında
+  (`batch.queue` ile ayırt edilir) arka planda çalışıyor. Frontend job durumunu polling ile takip
+  ediyor. 3 dakikadan uzun "processing" kalan bir iş, okuma anında otomatik "failed" işaretleniyor
+  (lazy reconciliation — ayrı bir cron gerekmiyor).
 
 ## Rol Bazlı Yetkilendirme (RBAC) — kesin kural
 
@@ -48,314 +66,158 @@ eğitmen soru üretemez, vb.) — bu bir öneri değil, üzerine kod yazılan sa
 **Login ekranı iki kademeli:** nav'da doğrudan **"ÖĞRENCİ GİRİŞİ 🚀"** butonu var (öğrenci
 platformun asıl kullanıcı kitlesi olduğu için headline rol) — yanında **"DİĞER GİRİŞLER"** metin
 linki var; buna tıklanınca kalan 3 rolün (Eğitmen, İçerik Uzmanı, admin dahil) kartları ayrı ayrı
-açılıyor. Hangi kart tıklanırsa `requestedRole` o olarak Google OAuth'a taşınıyor.
+açılıyor. Hangi kart tıklanırsa `requestedRole` o olarak Google OAuth'a taşınıyor. Buton metni
+**"Google ile Devam Et"** (fiilen Google OAuth'a yönlendiriyor — T3 Vakfı'nın kendi kimlik
+doğrulama sistemi henüz yok, "T3 ile giriş" gibi görünen bir metin kafa karıştırıyordu).
 
 **Rol bazında self-servis seviyesi farklı — 3 katman:**
 - **`student`** — tamamen açık self-servis, hiçbir kısıtlama yok.
 - **`content_creator` / `instructor`** — **sadece admin'in `role_allowlist` tablosuna eklediği
-  e-posta adresleri** için self-servis (2026-08-25'te eklendi — kullanıcı bu iki rolün herkese açık
-  olmasının güvenlik açığı olduğunu fark etti). `users.repository.ts#createFromGoogle`, ilgili rol
-  için normalize edilmiş (trim+lowercase) e-postayı `role_allowlist`'te arıyor; bulamazsa hesap
-  eskisi gibi `status: pending, role: null` ile oluşuyor (admin `Kullanıcı Yönetimi`'nden manuel
-  atayabilir). Admin API: `GET/POST /api/users/role-allowlist`, `DELETE /:id` (hepsi admin-only) —
+  e-posta adresleri** için self-servis (herkese açık olması bilinçli olarak kapatıldı — güvenlik
+  açığıydı). `users.repository.ts#createFromGoogle`, ilgili rol için normalize edilmiş
+  (trim+lowercase) e-postayı `role_allowlist`'te arıyor; bulamazsa hesap `status: pending,
+  role: null` ile oluşuyor (admin `Kullanıcı Yönetimi`'nden manuel atayabilir). Admin API:
+  `GET/POST /api/users/role-allowlist`, `DELETE /:id` (hepsi admin-only) —
   `UserManagementPage.tsx`'te "Eğitmen / İçerik Uzmanı İzin Listesi" bölümünden yönetiliyor.
-  **Bu tarihten ÖNCE self-servisle oluşmuş instructor/content_creator hesapları etkilenmedi** —
-  kontrol sadece yeni kayıtta (ilk girişte) çalışıyor, mevcut aktif hesapları geriye dönük iptal
+  Kontrol sadece yeni kayıtta (ilk girişte) çalışıyor, mevcut aktif hesapları geriye dönük iptal
   etmiyor.
-- **`admin`** — bir davet koduyla korunuyor. `ADMIN_INVITE_CODE` secret'ı (`Bindings`, prod'da
-  `wrangler secret put` ile girildi — değeri sadece gerçek adminlere elden/güvenli kanaldan
-  iletilir, repoda yok). `GET /api/auth/google`, `role=admin` isteğinde `?code=` query param'ını bu
-  secret'la karşılaştırıyor; eşleşmezse Google'a hiç gitmeden `403 invalid_admin_code` döndürüyor
-  (`auth.routes.ts`). Frontend'de Eğitim Yöneticisi kartına bir "Admin Kodu" input'u eklendi
-  (`LoginPage.tsx#RoleLoginCard`), kod boşken giriş butonu disabled.
+- **`admin`** — bir davet koduyla korunuyor. `ADMIN_INVITE_CODE` secret'ı (prod'da
+  `wrangler secret put` ile girildi, repoda yok). `GET /api/auth/google`, `role=admin` isteğinde
+  `?code=` query param'ını bu secret'la karşılaştırıyor; eşleşmezse Google'a hiç gitmeden
+  `403 invalid_admin_code` döndürüyor. Frontend'de Eğitim Yöneticisi kartına bir "Admin Kodu"
+  input'u var, kod boşken giriş butonu disabled.
 
 `UserManagementPage.tsx` (`PATCH /api/users/:id/role`) her durumda duruyor — rolleri sonradan
 değiştirmek/geri almak/askıya almak için (allowlist'ten bağımsız, admin'in her zamanki genel yetkisi).
-
-AI çıktısı (üretilen soru, önerilen puan) **hiçbir zaman doğrudan yayına/nota dönüşmez** —
-her zaman `pending_review`/`ai_evaluation` gibi bir ara durumda insan onayı bekler
-(human-in-the-loop). Bunu bozan bir değişiklik yapılmamalı.
 
 ## Klasör Yapısı
 
 ```
 apps/api/src/
-  shared/db/schema/   18 tablolu Drizzle şeması (users, content, questions, exams, grading, audit)
+  shared/db/schema/   Drizzle şeması (users, content, questions, exams, grading, audit) — migration 0005'te
   shared/middleware/  requireAuth (session), requireRole (RBAC guard)
   modules/            auth, users, content, questions, rubrics, exams, grading, reporting
-  ai/                 ports (arayüzler) + providers/anthropic (varsayılan adaptör) + prompts
+  ai/                 ports (arayüzler) + providers/{anthropic,workers-ai} + prompts
   rag/                chunker, vectorize-client, retriever
 
 apps/web/src/
   worker/index.tsx    SSR + /api/* service-binding proxy + post-login redirect ("/" -> /welcome, TÜM roller)
-  app/                App.tsx (HTML doküman), router.tsx (route tablosu — her route'ta roles[] + opsiyonel bare)
-  features/           auth (LoginPage — carousel + gizli/reveal rol kartları), home (WelcomePage,
-                      MyProfilePage), content-management, exam-management, exam-taking, admin-dashboard
-  components/         ui/ (shadcn + toast-container.tsx), layout/RoleGuardedLayout.tsx (auth durumuna
-                      göre gate + Sidebar entegrasyonu + bare route desteği), layout/TeknofestNav.tsx
-                      (fixed üst nav, login + tüm authed ekranlarda ortak), layout/Sidebar.tsx (authed
-                      ekranlarda kayan sol menü: avatar, "Bilgilerim" + rol bazlı linkler, alt kısımda
-                      Çıkış Yap)
+  app/                App.tsx (HTML doküman + favicon), router.tsx (route tablosu — bkz. "Sayfa Haritası")
+  features/
+    auth/             LoginPage — tam ekran carousel + gizli/reveal rol kartları, mobilde ☰ menü
+    home/             WelcomePage (bare route, ortak karşılama), MyProfilePage (/profile, tüm roller)
+    content-management/  UploadDocumentPage (yükleme + kazanım tanımlama BİRLİKTE), GenerateQuestionsPage
+                          (kaynak seçilince kazanım otomatik), QuestionReviewPanel
+    exam-management/  CreateExamPage (parti bazlı soru havuzu), GradingReviewPage
+    exam-taking/       ExamRunnerPage
+    admin-dashboard/   DashboardPage (özet istatistikler), UserManagementPage, RoleViewsPage,
+                        OutcomesReportPage, AuditLogPage — hepsi ayrı route, ☰ menüde ayrı ayrı
+  components/
+    ui/               shadcn bileşenleri + toast-container.tsx
+    layout/           RoleGuardedLayout.tsx (auth gate + h-screen/overflow-hidden arka plan mimarisi +
+                       Sidebar entegrasyonu + bare route desteği), TeknofestNav.tsx (fixed, şeffaf,
+                       login+authed ortak, mobilde ☰ menü), Sidebar.tsx (kayan sol menü: avatar +
+                       "Bilgilerim" + rol bazlı linkler + Çıkış Yap)
+  lib/                toast.ts (pub-sub bildirim sistemi), api-client.ts, auth-client.ts
 ```
 
-## Mevcut Durum
+## Sayfa Haritası (rol → route)
 
-**Production'da canlı:** https://app.hititai.com (2026-08-25'ten itibaren — özel domain,
-Cloudflare Custom Domain olarak `apps/web/wrangler.jsonc`'ta `routes` ile bağlı).
-Eski `https://rubrix-web.tahauguducu.workers.dev` artık ÇALIŞMIYOR — `workers_dev` bilinçli
-olarak kapatıldı: Cloudflare, aynı hesaptaki iki worker'ın service binding ile birbirini
-çağırmasını (bizim `/api/*` proxy deseni, rubrix-web → rubrix-api) `*.workers.dev` üzerinden
-engelliyor (her istekte "error code: 1042") — custom domain'de bu kısıtlama yok. Google OAuth
-redirect URI de `app.hititai.com`'a güncellendi (`apps/api/wrangler.jsonc`); Google Cloud
-Console'daki OAuth client'ın "Authorized redirect URIs" listesine de eklenmesi gerekiyor
-(kod tarafında yapılamayan tek adım — dashboard erişimi gerektiriyor).
-Cloudflare hesabı: `Tahauguducu@gmail.com's Account`, `account_id: 4c93a1fdd11680cf952f1bf1c7f8f9b9`
-— `wrangler.jsonc`'larda sabitlendi çünkü ekip birden fazla Cloudflare hesabına erişimli.
-Gerçek D1/R2/Vectorize/Queue/AI Gateway kaynakları kurulu, Google OAuth gerçek client'la
-çalışıyor, `wrangler d1 migrations apply --remote` ile remote DB güncel tutuluyor.
+| Rol | Route | Sayfa |
+|---|---|---|
+| (herkes, auth'suz) | `/login` | LoginPage |
+| (herkes, auth'lu) | `/welcome` | WelcomePage (bare) |
+| (herkes, auth'lu) | `/profile` | MyProfilePage |
+| content_creator | `/content/upload` | UploadDocumentPage (belge yükle + kazanım tanımla) |
+| content_creator | `/content/generate` | GenerateQuestionsPage (AI ile soru üret) |
+| content_creator | `/content/review` | QuestionReviewPanel (soru onay) |
+| instructor | `/exams/new` | CreateExamPage (soru havuzundan sınav oluştur) |
+| instructor | `/exams/grading` | GradingReviewPage (AI puanlama onayı) |
+| student | `/exams/take` | ExamRunnerPage (sınavlarım + çözüm ekranı) |
+| admin | `/dashboard`, `/admin` | DashboardPage (özet istatistikler) |
+| admin | `/admin/users` | UserManagementPage |
+| admin | `/admin/role-views` | RoleViewsPage ("... gözüyle" — diğer rollerin ekranlarını gez) |
+| admin | `/admin/outcomes` | OutcomesReportPage (sınıf geneli kazanım raporu) |
+| admin | `/admin/audit-log` | AuditLogPage (giriş/çıkış kayıtları) |
 
-**2026-08-25: Briefe karşı denetim yapıldı, 8 gerçek eksik bulunup kapatıldı.** Backend/API
-mantığı MVP'nin 6 zorunlu maddesini karşılıyordu ama frontend'de ciddi boşluklar vardı —
-hepsi kapatıldı:
-1. Kazanım tanımlama arayüzü yoktu → `LearningOutcomesPage.tsx` (`/content/outcomes`) eklendi.
-2. `learning_outcomes`'ta "konu"/"seviye" alanı yoktu → `topic`/`level` (`OUTCOME_LEVELS`) eklendi.
-3. Soru üretimini tetikleyecek arayüz yoktu → `GenerateQuestionsPage.tsx` (`/content/generate`).
-4. Soru onay panelinde MCQ şıkları görünmüyordu, düzenleme yoktu → `GET /api/questions` artık
-   MCQ soruları için `options` (isCorrect dahil) döndürüyor, panel düzenleme moduna sahip.
-5. Sınav oluşturma sadece taslak bırakıyordu, yayınlama/atama arayüzü yoktu → `CreateExamPage.tsx`
-   artık oluşturduktan sonra öğrenci seçip yayınlıyor (`GET /api/users/students` eklendi —
-   admin-only blok'un dışında, instructor+admin erişebiliyor; `GET /api/exams` de eklendi).
-6. Rubrik oluşturma arayüzü yoktu → `GenerateQuestionsPage.tsx` içine inline hızlı oluşturma
-   eklendi (açık uçlu soru üretimi zaten rubrik gerektirdiği için aynı sayfaya alındı).
-7. Öğrenci sonucunu hiçbir yerde göremiyordu → `ExamRunnerPage.tsx`'teki "Atanan Sınavlarım"
-   listesi artık puanı gösteriyor (`assignmentsForStudent` `exam_attempts`'e join edildi).
-8. Sadece tek-öğrenci bazlı kazanım raporu vardı, sınıf geneli yoktu → `GET /api/reporting/outcomes`
-   + Dashboard'da "Öğrenme Çıktıları (Sınıf Geneli)" bölümü (en zayıf kazanım üstte sıralı).
+## Production Durumu
 
-Sadece madde 6'daki (soru onayını hem içerik uzmanı hem eğitmen yapabiliyor, brief'te sadece
-içerik uzmanına atanmış) küçük bir yetki-kapsamı farkı bilinçli olarak düzeltilmedi — hata değil,
-fazladan yetki. (Not: bu madde sonradan düzeltildi — onay artık sadece `content_creator`.)
+- **Canlı adres:** https://app.hititai.com — Cloudflare Custom Domain olarak `apps/web/wrangler.jsonc`'ta
+  `routes` ile bağlı. Eski `https://rubrix-web.tahauguducu.workers.dev` ÇALIŞMIYOR (bilinçli —
+  bkz. Mimari Kararlar'daki "error code 1042" notu). Google OAuth redirect URI
+  (`apps/api/wrangler.jsonc`) ve Google Cloud Console'daki "Authorized redirect URIs" ikisi de
+  `app.hititai.com`'a güncel.
+- **Cloudflare hesabı:** `Tahauguducu@gmail.com's Account`, `account_id: 4c93a1fdd11680cf952f1bf1c7f8f9b9`
+  — `wrangler.jsonc`'larda sabitlendi çünkü ekip birden fazla Cloudflare hesabına erişimli.
+- Gerçek D1/R2/Vectorize/Queue/AI Gateway kaynakları kurulu, Google OAuth gerçek client'la
+  çalışıyor, `wrangler d1 migrations apply --remote` ile remote DB güncel tutuluyor (şu an
+  migration `0005`).
+- **AI sağlayıcı `workers-ai` (Llama 3.3 70B) — Anthropic'e geçilmedi.** Anthropic hesabında
+  kredi yok ("credit balance too low"), birden fazla kez "kredi eklendi" denendi, hep aynı hata
+  devam etti. `AI_PROVIDER`'ı `"anthropic"`a çevirmeden önce mutlaka gerçek bir sınav
+  gönderimiyle (açık uçlu soru + `wrangler tail`) doğrulanmalı — sadece "kredi eklendi" sözüne
+  güvenilmemeli.
+- **Test verisi:** Production D1'de gerçek admin hesabına (`mstfoyn63@gmail.com`) ek olarak
+  `user_test_content` / `user_test_instructor` / `user_test_student` adında sabit test kullanıcıları
+  ve karşılık gelen `sess_test_*` session id'leri var (doğrudan SQL ile eklendi, gerçek Google
+  hesabı değil). Silinmedi, kullanıcı henüz karar vermedi.
+- Uçtan uca gerçek veriyle doğrulandı: RAG destekli soru üretimi (kaynak metinden gerçekçi MCQ +
+  açık uçlu sorular, doğru şıklar, `sourceChunkIds` izlenebilirliği) ve rubrik bazlı puanlama
+  (kriter bazlı gerekçe) ikisi de canlıda çalışıyor.
 
-**Login/dashboard UX, gerçek tarayıcı testleri sonrası birkaç turda yeniden tasarlandı:**
-- Login: uzay temalı tam ekran carousel (7 slayt, senkron fotoğraf+alıntı; crossfade yüzdeleri
-  `HERO_SLIDES.length`'e göre JS'te hesaplanıp `<style>` ile enjekte ediliyor — sabit yüzde
-  kullanılırsa slayt sayısı değişince pencereler üst üste biner). Rol kartları nav'daki "ÖĞRENCİ
-  GİRİŞİ 🚀" / "DİĞER GİRİŞLER" tıklanana kadar gizli (yukarıdaki RBAC bölümüne bkz.); her kartta
-  buton sırası sabit: 1) T3 Hesabı ile Giriş Yap, 2) Google Hesabı ile Giriş Yap.
-- Üst nav (`TeknofestNav`) **`fixed`** (sticky DEĞİL — sticky, altındaki full-screen hero'nun
-  stacking context'ine bağımlı kalıp kayboluyordu), hem login hem tüm authed ekranlarda ortak;
-  nav artık normal akışta yer kaplamadığı için onu kullanan her yerde `NAV_HEIGHT_CLASS` (`pt-16`)
-  ile eşleşen üst boşluk var. Tüm etkileşimli öğelerde `cursor-pointer` + hover geçişi zorunlu
-  (bkz. `Button` bileşeni). `.rbx-starfield` CSS sınıfına ASLA `position` eklenmesin — Tailwind v4
-  cascade layer'ları yüzünden katmansız (unlayered) bir `position` kuralı, `fixed`/`sticky` gibi
-  Tailwind utility'lerini sessizce eziyor (yaşanmış gerçek bug, bkz. globals.css'teki yorum).
-- Authed ekranlarda tam ekran uzay arka planı (`space-globe.jpg`) + sol tarafta hamburger ile
-  açılan `Sidebar` (üstte avatar + "Profil Resmini Değiştir", ortada "Bilgilerim" + role özel
-  linkler, en altta kırmızı hover'lı "Çıkış Yap").
-- **2026-08-25: Bu karar TERSİNE çevrildi** — giriş sonrası artık kullanıcı rolüne uygun sayfaya
-  DEĞİL, ortak bir `/welcome` ekranına gidiyor (büyük "HOŞ GELDİNİZ", `role-home.ts` silindi).
-  Gerçek işlevlere erişim artık sadece Sidebar (☰ menü) üzerinden. `/welcome` bir **`bare`
-  route** (`router.tsx`'te `bare: true`) — `RoleGuardedLayout`'un varsayılan koyu "kart" kutusuna
-  sarılmadan doğrudan uzay arka planının üstünde render ediliyor; metin rengi bu yüzden
-  `text-foreground` değil sabit `text-white` (bare modda arkasında theme-adaptif kart yok, arka
-  plan her zaman koyu).
+## Bilinen Tuzaklar (Gotcha'lar) — tekrar yaşanmasın diye
 
-**2026-08-25: 3 gerçek eksik kapatıldı (bir denetim listesinden):**
-- **Profil resmi yükleme gerçek** — `POST /api/users/me/avatar` (R2'ye `avatars/{userId}`
-  key'iyle yazıyor, ayrı bir kolon gerekmiyor çünkü key kullanıcı id'sinden türetiliyor),
-  `GET /api/users/:id/avatar` servis ediyor; `avatarUrl` bu endpoint'e işaret ediyor.
-  Önceden sadece bir bildirim gösteriyordu.
-- **Sınav süresi artık gerçekten uygulanıyor** — `CreateExamPage`'de süre alanı,
-  `ExamRunnerPage`'de geri sayım + otomatik gönderim var; kritik olan, sunucu tarafında da
-  `exams.service.ts#assertAttemptNotExpired` süresi dolmuş attempt'lere yeni cevabı reddediyor
-  (sadece istemci taraflı sayaç güvenli değil). **Not:** `durationMinutes: 0` özel durumunda
-  `exam.durationMinutes &&` kontrolü falsy olduğu için süre sınırı sessizce atlanıyordu —
-  `!= null` kontrolüne çevrildi, curl ile uçtan uca doğrulandı.
-- `UserManagementPage`'e isim/e-posta/rol/duruma göre client-side arama kutusu eklendi.
+- **Tailwind v4 cascade layer:** `globals.css`'te `@layer` DIŞINDA (katmansız) yazılan bir CSS
+  kuralı, aynı özelliği (örn. `position`, `background`) veren Tailwind utility class'larının
+  ÖNÜNE geçer — sınıf sırası/specificity önemli değil. İki kez yaşandı: `.rbx-starfield`'a
+  `position` eklenince nav'ın `fixed` class'ı görmezden gelindi; `.rbx-glass`'ın `background`'ı
+  bir panelin `bg-[#050814]` class'ını eziyordu. **Kural: özel (unlayered) CSS class'ları asla
+  Tailwind utility'lerinin de set ettiği bir property'yi set etmesin.**
+- **`bg-fixed` arka plan asla element'in kendi yüksekliğinden fazlasını kaplamaz** — sadece
+  viewport'a göre POZİSYONLANIR, element'in kendi border-box'ının dışına asla taşmaz. Bir
+  element'in gerçek yüksekliği (iç içe flex/min-height zinciri yüzünden) viewport'tan kısa
+  kalırsa, o element'in altında/dışında düz siyah bir alan görünür. **Kalıcı çözüm** (bkz.
+  `RoleGuardedLayout.tsx`): arka planı taşıyan dış katmanlar `min-h-screen` DEĞİL, kesin
+  `h-screen` + `overflow-hidden` olmalı (viewport'un TAMAMI, ne eksik ne fazla); içerik uzunsa
+  sadece EN İÇTEKİ sarmalayıcı `overflow-y-auto` ile kendi içinde kaysın.
+- **`overscroll-behavior` gibi kaydırma davranışını değiştiren CSS kuralları asla `html`/`body`'ye
+  körlemesine eklenmesin** — bir ekrandaki "elastic bounce" sorununu çözerken başka bir ekrandaki
+  GERÇEK (bounce olmayan) kaydırmayı kırabilir. Sadece gerçekten sorunlu olan spesifik container'a
+  uygulanmalı; yukarıdaki `h-screen`+`overflow-hidden` deseni zaten body-seviyesi bounce'ı yapısal
+  olarak imkânsız kılıyor, ayrıca bir kurala genelde gerek kalmıyor.
+- **Cloudflare Worker service binding + `*.workers.dev`:** aynı hesaptaki iki worker birbirini
+  service binding ile çağırıyorsa (bizim `/api/*` proxy deseni), bu çağrı `*.workers.dev`
+  hostname'i üzerinden erişildiğinde Cloudflare tarafından ENGELLENİR ("error code: 1042").
+  Custom domain'de bu kısıtlama yok. Prod'da `workers_dev` bu yüzden bilinçli olarak kapalı.
+  `routes` alanı eklenince wrangler `workers_dev`'i varsayılan olarak kapatıyor — açık kalması
+  isteniyorsa (istenmiyor, bkz. yukarı) `workers_dev: true` açıkça yazılmalı.
+- **Kuyruk/job race condition'ları:** bir job'ın durumunu güncelleyen her repository metodu
+  (`markGenerationJobProcessing`, `completeGenerationJob`, `failGenerationJob`) mevcut durumu
+  `WHERE status = ...` ile kontrol etmeli — aksi halde kullanıcı iptal ettikten hemen sonra
+  kuyruk consumer'ı işi bitirirse, "failed" durumu sessizce "completed"a geri dönebilir.
+- **Falsy-ama-geçerli değerler (`0`, `""`) `&&`/varsayılan-değer kontrolleriyle karıştırılmasın:**
+  `exam.durationMinutes &&` (0 dakika = süresiz sanılıyordu, `!= null` olmalı), controlled
+  number input'ta state hep sayı tutulursa (0 dahil) kullanıcı alanı silip yeni rakam yazamaz
+  (state `number | ""` olmalı, boşken `placeholder="0"`).
+- **Açık uçlu soru rubriksiz onaylanırsa öğrenci cevabı hiç değerlendirilmeden sessizce atlanır**
+  — bu yüzden `questions.service.ts#review`, açık uçlu + rubriksiz onayı `422` ile reddediyor;
+  sonradan rubrik eklenirse `POST /questions/:id/regrade` geriye dönük puanlıyor.
+- **Bir sınava tekrar giriş engeli:** `attempt.submittedAt` varsa `startAttempt`/`submit` `409`
+  döndürür — kontrol edilmezse bitmiş bir sınava geri girilebilir.
+- **Google hesap adı düzenlenebilir olmalı** — `userinfo.name` bazen mağaza/cihaz adı gibi
+  profesyonel olmayan bir değer taşıyabiliyor, "daha doğru" bir Google alanı yok; kullanıcı kendi
+  adını `/profile`'dan (`PATCH /api/users/me`) düzeltebiliyor.
+- **Server-render edilen sayfalarda ayrı React ağaçları (Sidebar, üst başlık) sunucudan gelen
+  `initialUser`'ı kullanıyor** — bir alt sayfada kullanıcı bilgisi (ör. isim) güncellenince tek
+  bir state güncellemesi onları senkron tutmaz, `window.location.reload()` gerekir.
 
-**Test verisi:** Production D1'de gerçek admin hesabına (`mstfoyn63@gmail.com`) ek olarak
-`user_test_content` / `user_test_instructor` / `user_test_student` adında sabit test kullanıcıları
-ve karşılık gelen `sess_test_*` session id'leri var (doğrudan SQL ile eklendi, gerçek Google
-hesabı değil) — yukarıdaki 8 maddeyi curl ile uçtan uca doğrulamak için kullanıldı. Silinmedi,
-kullanıcı henüz karar vermedi; tarayıcıda gerçek hesaplarla test ederken bunlarla karışmasın diye
-burada not düşülüyor.
+## Bekliyor (bilinçli olarak yapılmadı)
 
-**2026-08-25: AI özellikleri artık prod'da gerçekten çalışıyor — Anthropic kredisi olmadan.**
-Anthropic API, `claude.ai`'nin aksine, model seviyesinden bağımsız olarak her zaman önceden
-yüklenmiş kredi istiyor (`credit balance too low`) — bu kredi hâlâ yok. Ama Ports & Adapters
-mimarisi tam bunun için kurulmuştu: `ai/providers/workers-ai/*` adaptörü (Llama 3.3 70B,
-`response_format: json_schema` ile yapılandırılmış çıktı) eklendi, `AI_PROVIDER` şu an
-`"workers-ai"` (Cloudflare'in kendi modelleri, günde 10.000 Neuron ücretsiz kota — kredi kartı
-gerekmiyor). Kredi eklenince `wrangler.jsonc`'ta `AI_PROVIDER`'ı `"anthropic"`a çevirmek yeterli
-— **ama "kredi eklendi" denemesi 2026-08-25'te bir kez daha test edildi, aynı
-`credit balance too low` hatası devam ediyor** (muhtemelen kredi yanlış hesaba/API key'e
-eklendi ya da henüz işlenmedi) — tekrar `"workers-ai"`a alındı. Anthropic'e geçmeden önce
-gerçek bir sınav gönderimiyle (açık uçlu soru + `wrangler tail`) doğrulanmadan geçiş yapılmamalı.
-
-Uçtan uca gerçek veriyle doğrulandı: RAG destekli soru üretimi (kaynak metinden gerçekçi MCQ +
-açık uçlu sorular, doğru şıklar, `sourceChunkIds` izlenebilirliği) ve rubrik bazlı puanlama
-(akıcı/tutarlı Türkçe gerekçe + kriter bazlı döküm) ikisi de canlıda test edildi ve çalışıyor.
-Test sırasında bulunup düzeltilen bug: Workers AI'nin varsayılan `max_tokens`'ı JSON çıktısını
-yarıda kesiyordu — `workers-ai-client.ts`'te `max_tokens: 4096` eklendi.
-
-**Soru üretimi kuyruğa taşındı (kullanıcı testinde bulunan 2 gerçek UX bug'ı için).**
-`POST /api/questions/generate` artık RAG+AI çağrısını senkron await ETMİYOR — sadece
-`ai_generation_jobs` kaydı oluşturup yeni `rubrix-question-generation` kuyruğuna
-(`QUESTION_GEN_QUEUE`) atıyor ve hemen dönüyor. Gerçek iş `questions.service.ts#processGenerationJob`
-içinde, `src/index.ts`'teki tek `queue()` handler'ında (`batch.queue` ile DOC_QUEUE'dan ayırt
-ediliyor) çalışıyor — tarayıcı sekmesi kapansa/sayfa değişse de iş arka planda tamamlanıyor.
-Frontend (`GenerateQuestionsPage.tsx`) job'ı `GET /generate/:jobId` ile 2sn'de bir polling'le takip
-ediyor (spinner + geçen süre sayacı), mount olduğunda da `GET /generate-status/latest` ile
-kullanıcının en son işini otomatik bulup gösteriyor. `ai_generation_jobs`'a bunun için `rubricId`/
-`multipleChoiceCount`/`openEndedCount` eklendi (migration `0003`) — consumer, orijinal isteğin
-body'sine artık erişemediği için parametreleri job kaydından okuyor.
-
-**Kuyruğa taşımanın kendi bug'ları da vardı, onlar da düzeltildi:**
-- **Sıkışan iş / zaman aşımı:** çok büyük tek bir istek (ör. 30 soru) consumer'ın zaman/CPU
-  limitini aşıp try/catch'e hiç girmeden ölebiliyor — ne completed ne failed, sonsuza kadar
-  "processing". Artık (a) tek işte en fazla `MAX_QUESTIONS_PER_JOB=10` soru (giriş validasyonu),
-  (b) 3 dakikadan uzun süredir queued/processing kalan bir iş, durum sorgulandığında otomatik
-  "failed" işaretleniyor (lazy reconciliation, `questions.service.ts`'te `reconcileIfStale`).
-- **İptal butonu + race condition:** `POST /generate/:jobId/cancel` eklendi. Bunu güvenli yapmak
-  için gerçek bir race bulunup düzeltildi — `markGenerationJobProcessing` hiçbir durum kontrolü
-  yapmadan "processing"e çekiyordu; kullanıcı iptal ettikten (status: failed) hemen sonra consumer
-  bu satıra gelirse "failed"ı sessizce geri açıyordu. Artık `WHERE status='queued'` ile korunuyor,
-  ve AI çağrısı bittiğinde iş "processing" değilse (iptal/zaman aşımı) üretilen sorular havuza
-  hiç eklenmiyor.
-- **Süre sayacı sıfırlanması:** frontend elapsed-time hesabı sayfa açılış anını değil
-  `job.createdAt`'i (sunucu zamanı) baz alıyor — sayfadan çıkıp geri girmek artık sayacı sıfırlamıyor.
-
-**Sınava tekrar giriş engeli + rubriksiz açık uçlu sorunun sessiz hatası (kullanıcı testinde
-bulundu, ikisi de gerçek prod verisiyle doğrulandı):**
-- `examsService.startAttempt`/`submit`, `attempt.submittedAt` varsa `409 exam_already_submitted`
-  döndürüyor — önceden bir attempt bulunursa sorgusuzca tekrar döndürülüyordu, bu yüzden bitmiş
-  bir sınava geri girilebiliyordu. `ExamRunnerPage.tsx`'te "Sınavı Bitir" artık direkt göndermiyor,
-  "Devam Et" / "Yine de Bitir" iki butonlu bir uyarı gösteriyor; submit sonrası liste yenileniyor.
-- **Kök neden bulundu — açık uçlu bir soru rubriksiz onaylanmışsa, `submit()` o cevabı
-  `ai_evaluations`'a hiç düşürmeden sessizce atlıyordu** — Puanlama Onayı paneli "değerlendirilecek
-  sınav yok" derken aslında sessizce atlanan bir cevap vardı. Artık `questions.service.ts#review`
-  açık uçlu + rubriksiz onayı `422` ile reddediyor; `QuestionReviewPanel.tsx`'te rubrik seçilmeden
-  "Onayla" disabled. `PATCH /questions/:id` artık `rubricId` de kabul ediyor, yeni
-  `POST /questions/:id/regrade` bir soruya sonradan rubrik eklendiğinde o soruya verilmiş ama hiç
-  değerlendirilmemiş cevapları geriye dönük puanlıyor (prod'daki 2 gerçek sıkışmış cevap bu yolla
-  düzeltildi).
-
-**Sınav yayınlarken elle öğrenci seçme kaldırıldı (kullanıcının bilinçli kararı — "şimdilik").**
-Yayınlanmış her sınav, öğrenci olarak giren HERKESE görünüyor — hem yayınlandığı anda kayıtlı
-olan hem de ileride kayıt olacak öğrencilere de, dinamik/lazy bir çözümle: `listForStudent`
-gerçek `exam_assignments` kayıtlarını + henüz hiç görülmemiş yayınlanmış sınavları (sanal
-"assigned" satırı, `id: virtual_<examId>`) birleştirip dönüyor; `startAttempt`, öğrencinin gerçek
-kaydı yoksa ama sınav `published`sa ilk girişte kendisine otomatik atıyor (`assignStudents` artık
-`onConflictDoNothing` kullanıyor). `CreateExamPage.tsx`'teki öğrenci seçim adımı kaldırıldı, sadece
-"Yayınla" var. Backend'deki manuel `POST /exams/:id/assign` endpoint'i dokunulmadan duruyor
-(ileride elle override gerekirse), sadece frontend artık çağırmıyor.
-
-**"Premium" UI cilası (2026-08-25):** kırmızı/uzay tema korunarak (kullanıcı onayıyla — jüri için
-marka tutarlılığı) üzerine glassmorphism (`.rbx-glass`), buton hover'da glow+scale, çok yavaş
-"canlı" arka plan animasyonu (`.rbx-space-alive`), tüm `border-input` alanlarında odak parıltısı
-(tek CSS kuralı, `globals.css`) ve global bir **toast bildirim sistemi** eklendi:
-`lib/toast.ts` (basit pub-sub) + `components/ui/toast-container.tsx`, `App.tsx`'e bir kere monte
-edilir, `fixed right-4 top-20 z-[9999]` — sayfa kaydırılsa da kaybolmuyor. `toast.success/error/info(...)`
-herhangi bir sayfadan çağrılabilir.
-
-**4 UX düzeltmesi (2026-08-25, kullanıcı testinde bulundu):**
-- Sınav oluştururken uzun soru metinleri alt satıra geçince checkbox metinden uzaklaşıyordu —
-  `CreateExamPage.tsx`'te `items-center` → `items-start` + checkbox'a `mt-1 shrink-0`, global
-  `label{text-align:center}` kuralını override eden `text-left`.
-- Yeni "Bilgilerim" sayfası (`/profile`, tüm roller) — ad-soyad, e-posta, rol; öğrenciyse ayrıca
-  atanmış sınav/sonuç geçmişi (`/api/exams/my` tekrar kullanılıyor). Sınıf/grup alanı şemada
-  olmadığı için gösterilmiyor.
-- **Sidebar açıkken sayfa yatayda kayıp arka plansız (siyah) bir boşluk açığa çıkarıyordu** — kök
-  neden: içerik kutusu `margin-left: 16rem` alıyordu ama genişliği hâlâ `%100`'dü, kutu
-  konteynerin dışına taşıyordu (`bg-fixed` arka plan viewport'a sabit olduğu için taşan alanı hiç
-  kaplamıyor). `RoleGuardedLayout.tsx`'te artık sidebar açıkken `w-[calc(100%-16rem)]` ile
-  genişlik de düşüyor; ek güvenlik ağı olarak `html,body{overflow-x:hidden}` eklendi.
-
-**Google adı düzenlenebilir + istatistik tooltip'leri (2026-08-25, kullanıcı testinde bulundu):**
-Google hesap adı bazen mağaza/cihaz adı gibi profesyonel olmayan bir değer taşıyabiliyor
-("vefa phone" gibi) — Google'ın kendi `userinfo.name` alanı zaten bu, "daha doğru" bir alan yok.
-Çözüm: kullanıcı kendi görünen adını `/profile` ("Bilgilerim") sayfasından düzenleyebiliyor,
-yeni `PATCH /api/users/me` (`usersService.updateOwnName`, trim + 100 karakter sınırı). Kaydettikten
-sonra `window.location.reload()` yapılıyor — Sidebar/üst başlık ayrı bir yerde sunucudan gelen
-`initialUser`'ı kullandığı için, tek bir React state güncellemesi onları senkron tutmaz.
-Ayrıca Yönetici Paneli'ndeki istatistik kartlarına (`DashboardPage.tsx`) `title` + küçük "i"
-ikonuyla ne ifade ettiklerini açıklayan tooltip eklendi (ör. "AI Soru Kabul Oranı" = onaylanan/
-üretilen toplam AI sorusu).
-
-**Nav dikişi + admin şerit çakışması + overscroll siyah alan (2026-08-25, kullanıcı testinde
-bulundu, 3 ayrı bug):**
-- Nav (`TeknofestNav.tsx`) kendi arka plan görseli + gradyan katmanını taşıyordu — sayfanın
-  geri kalanı aynı görseli kullansa bile farklı kırpma/tint yüzünden görünür bir renk tonu farkı
-  yaratıyordu (teknofest.org.tr'de nav tamamen şeffaf). Nav artık kendi arka planı olmayan şeffaf
-  bir çubuk. Giriş ekranında ayrıca `HeroCarousel`, `pt-16` yerine `min-h-screen` ile nav'ın
-  ARKASINDAN (y:0'dan) başlıyor — aksi halde nav'ın şeffaf alanının arkasındaki statik kök arka
-  planla Hero'nun kendi değişen slayt fotoğrafı arasında nav'ın alt kenarında dikiş oluşuyordu.
-- Admin başka bir role "gözünden" bakarken nav'ın altına eklenen uyarı şeridi, Sidebar'ın sabit
-  ☰ düğmesiyle (hep `top-20`'de sabitti) çakışıyordu. `RoleGuardedLayout` artık `bannerOffset`
-  bilgisini `Sidebar`'a geçiyor, düğme/panel şerit varsa aşağı kayıyor.
-- **İçerik kısa olan sayfalarda bile** (ör. boş liste) trackpad/mobil "elastic" taşma (overscroll
-  bounce) belgenin gerçek sonrasında siyah bir alan gösteriyordu. İlk denenen çözüm — uzay
-  görselini `html`'e de arka plan olarak eklemek — YETMEDİ (kullanıcı testinde hâlâ görüldü):
-  bazı tarayıcılarda elastic bounce, CSS background'ı hiç kullanmayan native bir taşma animasyonu,
-  boyayarak düzeltilemiyor. Asıl çözüm: `html, body { overscroll-behavior-y: none; }` ile taşmayı
-  kaynağından tamamen kapatmak (`globals.css`) — html'deki görsel de fallback olarak kaldı.
-  **Bu da tek başına yetmedi** (kullanıcı testinde authed ekranlarda hâlâ görüldü) — asıl kök
-  neden, arka planı taşıyan `RoleGuardedLayout.tsx`'teki iki dış div'in `min-h-screen` (EN AZ
-  100vh, ama içerik + iç içe flex zinciri yüzünden GERÇEK yüksekliği garanti değildi)
-  kullanmasıydı. **Kalıcı çözüm — mimariyi değiştirdik:** o iki dış div artık KESİN OLARAK
-  `h-screen` + `overflow-hidden` (viewport'un TAMAMI, ne eksik ne fazla, belge hiç kaymıyor);
-  içerik uzunsa sadece EN İÇTEKİ sarmalayıcı (`overflow-y-auto`) kendi içinde kayıyor — nav/sidebar
-  zaten `fixed` olduğu için bundan etkilenmiyor. Bu desen (dış katman = kesin viewport boyutu,
-  iç katman = kendi içinde kayan) ileride benzer bir "arka plan kısa kaldı" bug'ı için de referans.
-  Ayrıca giriş ekranında "Diğer Girişler" sonrası `scrollIntoView` başlığı nav'ın (fixed) arkasında
-  bırakıyordu (`scroll-mt-20` eklendi, `LoginPage.tsx`) ve başlık/alt metin tema varsayılan rengini
-  kullandığı için açık modda koyu arka plan üstünde okunmaz olabiliyordu (artık explicit
-  `text-white`).
-  **`overscroll-behavior-y: none` (html+body geneli) SONRADAN KALDIRILDI** — bounce'ı engellerken
-  giriş ekranındaki GERÇEK (bounce olmayan) aşağı kaydırmayı da bozdu, kullanıcı "Diğer
-  Girişler"den sonra Eğitim Yöneticisi kartına hiç ulaşamadı. Authed ekranlarda zaten
-  h-screen+overflow-hidden ile body-seviyesi kaydırma/bounce yapısal olarak imkânsız hale
-  geldiği için bu genel kurala gerek kalmadı — **ders: `overscroll-behavior` gibi kaydırma
-  davranışını değiştiren kurallar asla `html`/`body`'ye körlemesine eklenmemeli, sadece
-  gerçekten sorunlu olan spesifik container'a uygulanmalı.**
-
-**Favicon eklendi (2026-08-25, kullanıcı testinde bulundu):** hiç favicon yoktu, tarayıcı sekmesinde
-jenerik belge ikonu görünüyordu. Ayrı `.ico` dosyası yerine `App.tsx`'te tek satırlık inline SVG
-data URI (koyu lacivert + kırmızı "R") — ekstra asset/derleme adımı gerektirmiyor.
-
-**Sınav oluşturmada parti bazlı soru havuzu (2026-08-25, kullanıcı testinde bulundu — önceden
-TÜM onaylı sorular tek karışık liste halindeydi):** `ai_generation_jobs`'a `title` kolonu eklendi
-(migration `0005`, içerik uzmanı `GenerateQuestionsPage.tsx`'te opsiyonel bir "parti başlığı"
-giriyor, boş bırakırsa kazanım adına düşüyor). `CreateExamPage.tsx`'te artık süre alanının altında
-bir **"Soru Havuzu"** tuşu var — açınca onaylı sorular üretim partisine (`generationJobId`) göre
-gruplanmış buton listesi olarak geliyor (her buton = içerik uzmanının başlığı + tarih/saat).
-Bir partiye girip soru seçip **"Sınava Ekle"**ye basınca seçim GLOBAL bir sete yazılıp parti
-listesine ("üst menü") dönülüyor — eğitmen böylece farklı partilere sırayla girip seçim
-biriktirebiliyor (tek bir partiyle sınırlı değil). Toplam seçili sayısı hem havuzun üstündeki
-"Sınavı Oluştur" kutucuğunda hem parti listesinin köşesindeki rozette gösteriliyor. Backend'de
-yeni `GET /questions/generation-batches` sadece en az bir onaylı sorusu olan partileri döndürüyor
-(`questions.repository.ts#listCompletedJobsWithApprovedQuestions`, `aiGenerationJobs` ⋈ `questions`);
-sınav oluşturma endpoint'i (`POST /exams`) zaten rastgele `questionIds` kabul ediyordu, o yüzden
-farklı partilerden karışık seçim için backend'de ayrıca bir değişiklik gerekmedi.
-
-**"Kazanım Tanımla" ayrı sayfası kaldırıldı, İçerik Yükle'ye taşındı (2026-08-25, kullanıcı testinde
-bulundu — kullanıcı bu sayfayı "işlevsiz" olarak değerlendirdi):** `LearningOutcomesPage.tsx`
-(`/content/outcomes`) silindi, formu artık `UploadDocumentPage.tsx`'in ikinci bölümü — belge
-yükledikten sonra hemen o belgeye kazanım tanımlanabiliyor. `GenerateQuestionsPage.tsx`'te de
-"Kazanım seç" manuel dropdown'ı kaldırıldı — `documentId` değiştiğinde bir `useEffect`, o belgeye
-bağlı kazanımları (`outcome.documentId === documentId`) otomatik filtreleyip gösteriyor: tek eşleşme
-varsa direkt seçili bilgi satırı, birden fazlaysa küçük bir seçim listesi, hiç yoksa İçerik Yükle'ye
-yönlendiren bir not. Aynı turda ayrıca: `UploadDocumentPage.tsx`'e gerçek bir "Dosya Seç" butonu
-eklendi (önceden çıplak native `<input type=file>` vardı — Sidebar'daki avatar yükleme ile aynı
-gizli-input + buton deseni kullanıldı); her iki sayfanın kök div'ine `mx-auto` eklendi (form bloğu
-karta göre sola yapışıktı, "ortalanmamış" görünüyordu); placeholder'lardaki parantezli örnek
-metinler kaldırıldı, "(opsiyonel)" artık alanın içinde değil dışındaki etiketin yanında.
-
-**Bekliyor (bilinçli olarak yapılmadı):**
-- ~~Özel domain yok, `workers.dev` kullanılıyor.~~ 2026-08-25: `app.hititai.com` bağlandı (bkz. yukarı).
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın
-  ürettiği runtime type'larına geçiş — şimdilik deprecated ama çalışır durumda, bilinçli olarak
-  yapılmadı.
+  ürettiği runtime type'larına geçiş — şimdilik deprecated ama çalışır durumda.
+- Anthropic'e geçiş — kredi sorunu çözülmedi (bkz. Production Durumu).
+- Production'daki `sess_test_*` / `user_test_*` test verilerinin temizlenmesi — kullanıcı henüz
+  karar vermedi.
 
 ## Geliştirme
 
@@ -365,7 +227,13 @@ pnpm --filter @rubrix/web dev   # http://localhost:5173 — api'yi de service bi
 pnpm --filter @rubrix/api dev   # apps/api'yi tek başına denemek için (http://localhost:8787)
 pnpm db:generate                # şema değişince Drizzle migration üret
 pnpm db:migrate:local           # lokal D1'e uygula
+pnpm db:migrate:remote          # (apps/api içinde) prod D1'e uygula
 ```
 
 `.dev.vars.example` dosyalarını `.dev.vars` olarak kopyalayıp gerçek secret'ları
 (`GOOGLE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`) girmeden Google login ve AI özellikleri çalışmaz.
+
+Her deploy öncesi: `pnpm --filter @rubrix/api typecheck` ve `pnpm --filter @rubrix/web typecheck`
+temiz olmalı. Deploy sırası: önce `apps/api` (`wrangler deploy --minify`), sonra `apps/web`
+(`pnpm build && wrangler deploy`) — web, api'yi service binding ile çağırdığı için api'nin güncel
+olması önce gelir.

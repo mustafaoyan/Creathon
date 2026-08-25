@@ -291,6 +291,19 @@ bulundu, 3 ayrı bug):**
   bazı tarayıcılarda elastic bounce, CSS background'ı hiç kullanmayan native bir taşma animasyonu,
   boyayarak düzeltilemiyor. Asıl çözüm: `html, body { overscroll-behavior-y: none; }` ile taşmayı
   kaynağından tamamen kapatmak (`globals.css`) — html'deki görsel de fallback olarak kaldı.
+  **Bu da tek başına yetmedi** (kullanıcı testinde authed ekranlarda hâlâ görüldü) — asıl kök
+  neden, arka planı taşıyan `RoleGuardedLayout.tsx`'teki iki dış div'in `min-h-screen` (EN AZ
+  100vh, ama içerik + iç içe flex zinciri yüzünden GERÇEK yüksekliği garanti değildi)
+  kullanmasıydı. **Kalıcı çözüm — mimariyi değiştirdik:** o iki dış div artık KESİN OLARAK
+  `h-screen` + `overflow-hidden` (viewport'un TAMAMI, ne eksik ne fazla, belge hiç kaymıyor);
+  içerik uzunsa sadece EN İÇTEKİ sarmalayıcı (`overflow-y-auto`) kendi içinde kayıyor — nav/sidebar
+  zaten `fixed` olduğu için bundan etkilenmiyor. Bu desen (dış katman = kesin viewport boyutu,
+  iç katman = kendi içinde kayan) ileride benzer bir "arka plan kısa kaldı" bug'ı için de referans.
+  Ayrıca giriş ekranında "Diğer Girişler" sonrası `scrollIntoView` başlığı nav'ın (fixed) arkasında
+  bırakıyordu (`scroll-mt-20` eklendi, `LoginPage.tsx`) ve başlık/alt metin tema varsayılan rengini
+  kullandığı için açık modda koyu arka plan üstünde okunmaz olabiliyordu (artık explicit
+  `text-white`) — "Eğitim Yöneticisi girişine erişemiyorum" şikayetine bunlar da katkıda bulunmuş
+  olabilir.
 
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.

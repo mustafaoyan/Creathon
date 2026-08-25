@@ -319,6 +319,25 @@ bulundu, 3 ayrı bug):**
   davranışını değiştiren kurallar asla `html`/`body`'ye körlemesine eklenmemeli, sadece
   gerçekten sorunlu olan spesifik container'a uygulanmalı.**
 
+**Favicon eklendi (2026-08-25, kullanıcı testinde bulundu):** hiç favicon yoktu, tarayıcı sekmesinde
+jenerik belge ikonu görünüyordu. Ayrı `.ico` dosyası yerine `App.tsx`'te tek satırlık inline SVG
+data URI (koyu lacivert + kırmızı "R") — ekstra asset/derleme adımı gerektirmiyor.
+
+**Sınav oluşturmada parti bazlı soru havuzu (2026-08-25, kullanıcı testinde bulundu — önceden
+TÜM onaylı sorular tek karışık liste halindeydi):** `ai_generation_jobs`'a `title` kolonu eklendi
+(migration `0005`, içerik uzmanı `GenerateQuestionsPage.tsx`'te opsiyonel bir "parti başlığı"
+giriyor, boş bırakırsa kazanım adına düşüyor). `CreateExamPage.tsx`'te artık süre alanının altında
+bir **"Soru Havuzu"** tuşu var — açınca onaylı sorular üretim partisine (`generationJobId`) göre
+gruplanmış buton listesi olarak geliyor (her buton = içerik uzmanının başlığı + tarih/saat).
+Bir partiye girip soru seçip **"Sınava Ekle"**ye basınca seçim GLOBAL bir sete yazılıp parti
+listesine ("üst menü") dönülüyor — eğitmen böylece farklı partilere sırayla girip seçim
+biriktirebiliyor (tek bir partiyle sınırlı değil). Toplam seçili sayısı hem havuzun üstündeki
+"Sınavı Oluştur" kutucuğunda hem parti listesinin köşesindeki rozette gösteriliyor. Backend'de
+yeni `GET /questions/generation-batches` sadece en az bir onaylı sorusu olan partileri döndürüyor
+(`questions.repository.ts#listCompletedJobsWithApprovedQuestions`, `aiGenerationJobs` ⋈ `questions`);
+sınav oluşturma endpoint'i (`POST /exams`) zaten rastgele `questionIds` kabul ediyordu, o yüzden
+farklı partilerden karışık seçim için backend'de ayrıca bir değişiklik gerekmedi.
+
 **Bekliyor (bilinçli olarak yapılmadı):**
 - ~~Özel domain yok, `workers.dev` kullanılıyor.~~ 2026-08-25: `app.hititai.com` bağlandı (bkz. yukarı).
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

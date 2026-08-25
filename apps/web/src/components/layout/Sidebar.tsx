@@ -30,10 +30,14 @@ export function Sidebar({
   user,
   open,
   onOpenChange,
+  bannerOffset,
 }: {
   user: SessionUser;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** true: nav'ın altında "Yönetici olarak görüntülüyorsun" şeridi de var —
+   * sabit konumlu ☰ düğmesi/panel bunun ALTINDA başlamalı, üstüne binmemeli. */
+  bannerOffset?: boolean;
 }) {
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
   const [avatarStatus, setAvatarStatus] = useState<string | null>(null);
@@ -66,9 +70,9 @@ export function Sidebar({
   return (
     <>
       <aside
-        className={`rbx-glass fixed bottom-0 left-0 top-16 z-40 flex flex-col overflow-hidden bg-[#0b1330]/70 text-white transition-[width] duration-300 ${
-          open ? "w-64" : "w-0"
-        }`}
+        className={`rbx-glass fixed bottom-0 left-0 z-40 flex flex-col overflow-hidden bg-[#0b1330]/70 text-white transition-[width] duration-300 ${
+          bannerOffset ? "top-[5.75rem]" : "top-16"
+        } ${open ? "w-64" : "w-0"}`}
       >
         <div className="flex w-64 justify-end px-3 pt-3">
           <button
@@ -137,7 +141,9 @@ export function Sidebar({
           type="button"
           onClick={() => onOpenChange(true)}
           aria-label="Menüyü aç"
-          className="fixed left-4 top-20 z-40 cursor-pointer rounded-md bg-[#0b1330]/90 p-2.5 text-white shadow-lg transition-colors hover:bg-[#0b1330]"
+          className={`fixed left-4 z-40 cursor-pointer rounded-md bg-[#0b1330]/90 p-2.5 text-white shadow-lg transition-colors hover:bg-[#0b1330] ${
+            bannerOffset ? "top-[6.75rem]" : "top-20"
+          }`}
         >
           ☰
         </button>

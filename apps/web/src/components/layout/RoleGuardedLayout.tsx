@@ -99,7 +99,13 @@ function AuthenticatedLayout({
     >
       <div className={`rbx-space-alive flex min-h-screen flex-1 flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75 ${NAV_HEIGHT_CLASS}`}>
         <TeknofestNav action={{ label: "ÇIKIŞ YAP", onClick: handleLogout }} />
-        <Sidebar user={user} open={sidebarOpen} onOpenChange={setSidebarOpen} />
+        {/* Sidebar'ın kendi menü açma düğmesi (☰) nav'ın hemen altına sabit
+            konumlanıyor — admin başka bir role "gözünden" bakarken görünen
+            uyarı şeridi de nav'ın hemen altına normal akışta ekleniyor, bu
+            yüzden ☰ düğmesi o şeridin ÜSTÜNE biniyordu (kullanıcı testinde
+            bulundu). Sidebar'a şeridin var olup olmadığını bildirip düğmeyi
+            buna göre aşağı kaydırıyoruz. */}
+        <Sidebar user={user} open={sidebarOpen} onOpenChange={setSidebarOpen} bannerOffset={viewingAsAdmin} />
         {/* w-[calc(100%-16rem)] kasıtlı: ml-64 tek başına, zaten flex-1 ile
             %100 genişliğe sahip bir kutuyu konteynerin dışına taşırıyordu —
             sayfa yatayda kayıyor, sağda kaydırma sırasında arka plansız

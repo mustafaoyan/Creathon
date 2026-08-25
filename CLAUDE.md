@@ -302,8 +302,14 @@ bulundu, 3 ayrı bug):**
   Ayrıca giriş ekranında "Diğer Girişler" sonrası `scrollIntoView` başlığı nav'ın (fixed) arkasında
   bırakıyordu (`scroll-mt-20` eklendi, `LoginPage.tsx`) ve başlık/alt metin tema varsayılan rengini
   kullandığı için açık modda koyu arka plan üstünde okunmaz olabiliyordu (artık explicit
-  `text-white`) — "Eğitim Yöneticisi girişine erişemiyorum" şikayetine bunlar da katkıda bulunmuş
-  olabilir.
+  `text-white`).
+  **`overscroll-behavior-y: none` (html+body geneli) SONRADAN KALDIRILDI** — bounce'ı engellerken
+  giriş ekranındaki GERÇEK (bounce olmayan) aşağı kaydırmayı da bozdu, kullanıcı "Diğer
+  Girişler"den sonra Eğitim Yöneticisi kartına hiç ulaşamadı. Authed ekranlarda zaten
+  h-screen+overflow-hidden ile body-seviyesi kaydırma/bounce yapısal olarak imkânsız hale
+  geldiği için bu genel kurala gerek kalmadı — **ders: `overscroll-behavior` gibi kaydırma
+  davranışını değiştiren kurallar asla `html`/`body`'ye körlemesine eklenmemeli, sadece
+  gerçekten sorunlu olan spesifik container'a uygulanmalı.**
 
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.

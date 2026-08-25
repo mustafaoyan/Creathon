@@ -177,12 +177,22 @@ export const examsService = {
     const ai = createAiServices(env);
     const pending = await examsRepository.ungradedAnswersForQuestion(db, questionId);
 
+    let regraded = 0;
+    let failed = 0;
     for (const answer of pending) {
       if (!answer.answerText) continue;
-      await scoreOpenEndedAnswer(db, ai, { questionId, answerId: answer.id, answerText: answer.answerText });
+      // submit()'teki aynı gerekçe: bir cevabın puanlaması başarısız olursa
+      // (ör. geçici AI hatası) diğer cevapların puanlanması engellenmesin,
+      // tüm istek 500 ile çökmesin.
+      try {
+        await scoreOpenEndedAnswer(db, ai, { questionId, answerId: answer.id, answerText: answer.answerText });
+        regraded++;
+      } catch {
+        failed++;
+      }
     }
 
-    return { regraded: pending.length };
+    return { regraded, failed };
   },
 };
 

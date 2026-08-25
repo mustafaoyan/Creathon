@@ -40,9 +40,7 @@ export function TeknofestNav({
     >
       <div className="absolute inset-0 bg-gradient-to-r from-[#050b24]/90 via-[#0b1f4d]/75 to-[#123a7a]/65" />
       <div className="relative z-10 flex w-full items-center justify-between gap-4">
-        <span className="flex items-center gap-2 text-lg font-extrabold tracking-wide">
-          <span aria-hidden="true">🚀</span> RUBRIX
-        </span>
+        <span className="text-lg font-extrabold tracking-wide">RUBRIX</span>
         <div className="flex items-center gap-6">
           <div className="hidden items-center gap-6 text-sm font-semibold sm:flex">
             <button

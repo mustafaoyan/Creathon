@@ -44,14 +44,46 @@ export const examsService = {
     await examsRepository.assignStudents(createDb(env.DB), examId, studentIds);
   },
 
-  listForStudent(env: Bindings, studentId: string) {
-    return examsRepository.assignmentsForStudent(createDb(env.DB), studentId);
+  /** Öğrenci elle seçilip atanmıyor artık — yayınlanmış her sınav, giren her
+   * öğrenciye görünür. Gerçek assignment kaydı olanlar (durumu/puanı takip
+   * edilenler) + henüz hiç görülmemiş yayınlanmış sınavlar (sanal "assigned"
+   * satırı) birleştiriliyor; gerçek kayıt startAttempt'te ilk girişte oluşuyor. */
+  async listForStudent(env: Bindings, studentId: string) {
+    const db = createDb(env.DB);
+    const [assigned, published] = await Promise.all([
+      examsRepository.assignmentsForStudent(db, studentId),
+      examsRepository.listPublished(db),
+    ]);
+
+    const assignedExamIds = new Set(assigned.map((a) => a.examId));
+    const notYetSeen = published
+      .filter((exam) => !assignedExamIds.has(exam.id))
+      .map((exam) => ({
+        id: `virtual_${exam.id}`,
+        examId: exam.id,
+        status: "assigned" as const,
+        title: exam.title,
+        durationMinutes: exam.durationMinutes,
+        totalScore: null,
+        submittedAt: null,
+      }));
+
+    return [...assigned, ...notYetSeen];
   },
 
   async startAttempt(env: Bindings, examId: string, studentId: string) {
     const db = createDb(env.DB);
-    const assignment = await examsRepository.findAssignment(db, examId, studentId);
-    if (!assignment) throw new HttpError(403, "not_assigned_to_exam");
+    let assignment = await examsRepository.findAssignment(db, examId, studentId);
+    if (!assignment) {
+      // Öğrenci daha önce bu sınava hiç bakmamış — yayınlanmışsa şimdi
+      // (ilk girişte, lazy) kendisine atanıyor. Yayınlanmamış/silinmiş bir
+      // sınava kimse giremez.
+      const exam = await examsRepository.findById(db, examId);
+      if (!exam || exam.status !== "published") throw new HttpError(403, "exam_not_available");
+      await examsRepository.assignStudents(db, examId, [studentId]);
+      assignment = await examsRepository.findAssignment(db, examId, studentId);
+      if (!assignment) throw new HttpError(500, "assignment_creation_failed");
+    }
 
     let attempt = await examsRepository.findAttemptByAssignment(db, assignment.id);
     // Bir kez "Sınavı Bitir" denince bir daha geri girilemez — istemci taraflı

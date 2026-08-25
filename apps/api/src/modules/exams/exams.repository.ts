@@ -68,16 +68,32 @@ export const examsRepository = {
     await db.update(exams).set({ status: "published" }).where(eq(exams.id, examId));
   },
 
+  /** Öğrenci elle seçilmiyor artık — yayınlanmış her sınav, giren her öğrenciye
+   * açık. onConflictDoNothing kasıtlı: aynı öğrenci için tekrar çağrılırsa
+   * (ör. startAttempt'teki "kayıt anında ata" yolu ile çift tıklama/yarış
+   * durumu) unique(examId, studentId) kısıtı hata fırlatmasın. */
   async assignStudents(db: Database, examId: string, studentIds: string[]) {
-    await db.insert(examAssignments).values(
-      studentIds.map((studentId) => ({
-        id: newId("assign"),
-        examId,
-        studentId,
-        status: "assigned" as const,
-        assignedAt: new Date(),
-      })),
-    );
+    await db
+      .insert(examAssignments)
+      .values(
+        studentIds.map((studentId) => ({
+          id: newId("assign"),
+          examId,
+          studentId,
+          status: "assigned" as const,
+          assignedAt: new Date(),
+        })),
+      )
+      .onConflictDoNothing();
+  },
+
+  /** Yayınlanmış tüm sınavlar — bir öğrencinin henüz hiç görmediği (assignment
+   * kaydı olmayan) sınavları da listesine eklemek için kullanılıyor. */
+  listPublished(db: Database) {
+    return db
+      .select({ id: exams.id, title: exams.title, durationMinutes: exams.durationMinutes })
+      .from(exams)
+      .where(eq(exams.status, "published"));
   },
 
   assignmentsForStudent(db: Database, studentId: string) {

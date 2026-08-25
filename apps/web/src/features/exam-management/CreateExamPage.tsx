@@ -85,13 +85,14 @@ export function CreateExamPage() {
       />
       <div className="flex flex-col gap-2">
         {approved.map((question) => (
-          <label key={question.id} className="flex items-center gap-2">
+          <label key={question.id} className="flex items-start gap-2 text-left">
             <input
               type="checkbox"
+              className="mt-1 shrink-0"
               checked={selectedQuestions.has(question.id)}
               onChange={() => toggleQuestion(question.id)}
             />
-            {question.body}
+            <span>{question.body}</span>
           </label>
         ))}
         {approved.length === 0 && (

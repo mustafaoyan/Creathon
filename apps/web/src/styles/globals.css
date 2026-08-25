@@ -45,6 +45,16 @@ body {
   color: var(--color-foreground);
 }
 
+/* Sidebar açılırken içerik kutusunun margin-left ile itilmesi (bkz.
+   RoleGuardedLayout.tsx) genişlik hesabı yanlış olursa sayfayı yatayda
+   taşırabiliyor — arka plan görseli (bg-fixed, viewport'a göre sabit) o
+   taşan alanı hiç kaplamıyor, siyah bir boşluk olarak görünüyordu. Kök
+   neden ayrıca düzeltildi (bkz. o dosyadaki not); bu satır ek bir güvenlik
+   ağı — sayfa hiçbir zaman yatayda kaymamalı. */
+html, body {
+  overflow-x: hidden;
+}
+
 /* Her ekranda metinler ortalı — form alanlarına dokunmuyor (yazma UX'i bozulmasın). */
 h1, h2, h3, h4, h5, h6, p, label {
   text-align: center;

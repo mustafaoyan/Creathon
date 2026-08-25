@@ -19,10 +19,14 @@ async function handleLogout() {
 export function RoleGuardedLayout({
   user,
   requiredRoles,
+  bare,
   children,
 }: {
   user: SessionUser | null;
   requiredRoles: UserRole[];
+  /** true: içerik varsayılan koyu "kart" kutusuna sarılmadan doğrudan uzay
+   * arka planının üstünde render edilir (ör. karşılama ekranı). */
+  bare?: boolean;
   children: ReactNode;
 }) {
   if (requiredRoles.length === 0) {
@@ -66,18 +70,24 @@ export function RoleGuardedLayout({
     );
   }
 
-  return <AuthenticatedLayout user={user} viewingAsAdmin={viewingAsAdmin} requiredRoles={requiredRoles}>{children}</AuthenticatedLayout>;
+  return (
+    <AuthenticatedLayout user={user} viewingAsAdmin={viewingAsAdmin} requiredRoles={requiredRoles} bare={bare}>
+      {children}
+    </AuthenticatedLayout>
+  );
 }
 
 function AuthenticatedLayout({
   user,
   viewingAsAdmin,
   requiredRoles,
+  bare,
   children,
 }: {
   user: SessionUser;
   viewingAsAdmin: boolean;
   requiredRoles: UserRole[];
+  bare?: boolean;
   children: ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -90,8 +100,12 @@ function AuthenticatedLayout({
       <div className={`rbx-space-alive flex min-h-screen flex-1 flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75 ${NAV_HEIGHT_CLASS}`}>
         <TeknofestNav action={{ label: "ÇIKIŞ YAP", onClick: handleLogout }} />
         <Sidebar user={user} open={sidebarOpen} onOpenChange={setSidebarOpen} />
+        {/* w-[calc(100%-16rem)] kasıtlı: ml-64 tek başına, zaten flex-1 ile
+            %100 genişliğe sahip bir kutuyu konteynerin dışına taşırıyordu —
+            sayfa yatayda kayıyor, sağda kaydırma sırasında arka plansız
+            (siyah) bir boşluk açığa çıkıyordu (bildirilen bug tam buydu). */}
         <div
-          className={`flex flex-1 flex-col transition-[margin] duration-300 ${sidebarOpen ? "ml-64" : "ml-0"}`}
+          className={`flex flex-1 flex-col transition-all duration-300 ${sidebarOpen ? "ml-64 w-[calc(100%-16rem)]" : "ml-0 w-full"}`}
         >
           {viewingAsAdmin && (
             <div className="bg-accent px-6 py-1.5 text-xs font-medium text-accent-foreground">
@@ -103,9 +117,13 @@ function AuthenticatedLayout({
             {user.name} · {ROLE_LABELS[user.role as UserRole]}
           </div>
           <main className="flex-1 p-6">
-            <div className="mx-auto max-w-5xl rounded-lg bg-background p-6 shadow-2xl ring-1 ring-primary/10">
-              {children}
-            </div>
+            {bare ? (
+              children
+            ) : (
+              <div className="mx-auto max-w-5xl rounded-lg bg-background p-6 shadow-2xl ring-1 ring-primary/10">
+                {children}
+              </div>
+            )}
           </main>
         </div>
       </div>

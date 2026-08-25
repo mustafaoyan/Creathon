@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import type { UserRole } from "@/lib/auth-client";
 import { LoginPage } from "@/features/auth/LoginPage";
 import { WelcomePage } from "@/features/home/WelcomePage";
+import { MyProfilePage } from "@/features/home/MyProfilePage";
 import { UploadDocumentPage } from "@/features/content-management/UploadDocumentPage";
 import { LearningOutcomesPage } from "@/features/content-management/LearningOutcomesPage";
 import { GenerateQuestionsPage } from "@/features/content-management/GenerateQuestionsPage";
@@ -17,15 +18,17 @@ export type AppRoute = {
   component: ComponentType;
   /** Empty = public route (no auth/role check). */
   roles: UserRole[];
+  /** true: içerik varsayılan koyu kart kutusuna sarılmadan doğrudan uzay
+   * arka planının üstünde render edilir (bkz. RoleGuardedLayout). */
+  bare?: boolean;
 };
+
+const ALL_ROLES: UserRole[] = ["content_creator", "instructor", "student", "admin"];
 
 export const ROUTES: AppRoute[] = [
   { path: "/login", component: LoginPage, roles: [] },
-  {
-    path: "/welcome",
-    component: WelcomePage,
-    roles: ["content_creator", "instructor", "student", "admin"],
-  },
+  { path: "/welcome", component: WelcomePage, roles: ALL_ROLES, bare: true },
+  { path: "/profile", component: MyProfilePage, roles: ALL_ROLES },
   { path: "/content/upload", component: UploadDocumentPage, roles: ["content_creator"] },
   { path: "/content/outcomes", component: LearningOutcomesPage, roles: ["content_creator"] },
   { path: "/content/generate", component: GenerateQuestionsPage, roles: ["content_creator"] },

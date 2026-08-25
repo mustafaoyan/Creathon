@@ -41,7 +41,7 @@ export function App({
           {isHome ? (
             <HomePage user={initialUser} />
           ) : (
-            <RoleGuardedLayout user={initialUser} requiredRoles={route?.roles ?? []}>
+            <RoleGuardedLayout user={initialUser} requiredRoles={route?.roles ?? []} bare={route?.bare}>
               {Page ? <Page /> : <NotFound />}
             </RoleGuardedLayout>
           )}

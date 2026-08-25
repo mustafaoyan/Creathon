@@ -38,7 +38,8 @@ export function Sidebar({
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
   const [avatarStatus, setAvatarStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const links = user.role ? ROLE_LINKS[user.role] : [];
+  // "Bilgilerim" rolden bağımsız, herkeste var — role özel linklerin önüne ekleniyor.
+  const links = [{ href: "/profile", label: "Bilgilerim" }, ...(user.role ? ROLE_LINKS[user.role] : [])];
   const initial = user.name.trim().charAt(0).toUpperCase() || "?";
 
   async function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {

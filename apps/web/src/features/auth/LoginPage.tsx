@@ -150,7 +150,6 @@ function HeroCarousel() {
 }
 
 function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
-  const [showT3Notice, setShowT3Notice] = useState(false);
   const [adminCode, setAdminCode] = useState("");
   const copy = ROLE_COPY[role];
   const isAdmin = role === "admin";
@@ -180,35 +179,23 @@ function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
         />
       )}
 
-      <div className="flex w-full flex-col gap-2">
-        <Button
-          variant="outline"
-          className="w-full"
-          disabled={adminCodeMissing}
-          onClick={() => setShowT3Notice(true)}
-        >
+      {/* T3 Vakfı'nın kendi kimlik doğrulama sistemine henüz erişimimiz yok —
+          buton T3 ile giriş gibi görünüyor ama fiilen Google OAuth'a
+          yönlendiriyor. T3 erişimi açıldığında burası gerçek T3 akışına
+          bağlanacak, arayüz/metin değişmeyecek. */}
+      <a
+        href={getGoogleLoginUrl(role, adminCode)}
+        className={`w-full ${adminCodeMissing ? "pointer-events-none" : ""}`}
+        aria-disabled={adminCodeMissing}
+      >
+        <Button className="w-full" disabled={adminCodeMissing}>
           T3 Hesabı ile Giriş Yap
         </Button>
-        <a
-          href={getGoogleLoginUrl(role, adminCode)}
-          className={`w-full ${adminCodeMissing ? "pointer-events-none" : ""}`}
-          aria-disabled={adminCodeMissing}
-        >
-          <Button className="w-full" disabled={adminCodeMissing}>
-            Google Hesabı ile Giriş Yap
-          </Button>
-        </a>
-      </div>
+      </a>
 
       {isAdmin && (
         <p className="text-xs text-muted-foreground">
           Bu rol, davet koduna sahip olmayan hesaplarca alınamaz.
-        </p>
-      )}
-
-      {showT3Notice && (
-        <p className="text-xs text-muted-foreground">
-          T3 hesabıyla giriş yakında aktif olacak. Şimdilik Google ile devam edebilirsin.
         </p>
       )}
     </div>

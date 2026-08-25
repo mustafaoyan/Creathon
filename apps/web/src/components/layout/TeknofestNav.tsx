@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 export const SPACE_BG_URL = '/hero/space-globe.jpg';
 
 type NavAction = { label: string; onClick?: () => void; href?: string };
@@ -7,6 +9,13 @@ type NavTextLink = { label: string; onClick: () => void };
  * adds to its content (NAV_HEIGHT_CLASS below), since the nav is `fixed` and
  * no longer reserves space in normal document flow. */
 export const NAV_HEIGHT_CLASS = "pt-16";
+
+const ABOUT_ROLES = [
+  { label: "İçerik Uzmanı", detail: "Kaynak içerik yükler, kazanım tanımlar, AI soru üretimini tetikler." },
+  { label: "Eğitmen", detail: "Sınav oluşturur, AI'nin puanlama önerisini inceleyip son kararı verir." },
+  { label: "Öğrenci", detail: "Atanan sınavlara girer, sonuçlarını takip eder." },
+  { label: "Eğitim Yöneticisi", detail: "Sistem genelinde tamamlanma oranlarını ve istatistikleri izler." },
+];
 
 /** Shared top nav — used on the login page (action = reveal role choice) and
  * on every authenticated screen (action = log out), so the look is consistent
@@ -18,13 +27,15 @@ export function TeknofestNav({
   secondaryLink,
 }: {
   action: NavAction;
-  /** Login ekranında "Öğrenci Girişi" butonunun yanında, RUBRIX NEDİR/ROLLER
-   * ile aynı stilde bir metin linki — diğer 3 rolün giriş kartlarını açar. */
+  /** Login ekranında "Öğrenci Girişi" butonunun yanında, RUBRIX NEDİR ile aynı
+   * stilde bir metin linki — diğer 3 rolün giriş kartlarını açar. */
   secondaryLink?: NavTextLink;
 }) {
+  const [showAbout, setShowAbout] = useState(false);
+
   return (
     <nav
-      className="rbx-starfield fixed inset-x-0 top-0 z-50 flex h-16 items-center overflow-hidden bg-cover bg-center px-6 text-white"
+      className="rbx-starfield fixed inset-x-0 top-0 z-50 flex h-16 items-center overflow-visible bg-cover bg-center px-6 text-white"
       style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}
     >
       <div className="absolute inset-0 bg-gradient-to-r from-[#050b24]/90 via-[#0b1f4d]/75 to-[#123a7a]/65" />
@@ -34,12 +45,14 @@ export function TeknofestNav({
         </span>
         <div className="flex items-center gap-6">
           <div className="hidden items-center gap-6 text-sm font-semibold sm:flex">
-            <a href="#nedir" className="cursor-pointer transition-colors hover:text-primary">
+            <button
+              type="button"
+              onClick={() => setShowAbout((prev) => !prev)}
+              aria-expanded={showAbout}
+              className="cursor-pointer transition-colors hover:text-primary"
+            >
               RUBRIX NEDİR
-            </a>
-            <a href="#roller" className="cursor-pointer transition-colors hover:text-primary">
-              ROLLER
-            </a>
+            </button>
             {secondaryLink && (
               <button
                 type="button"
@@ -69,6 +82,34 @@ export function TeknofestNav({
           <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold">2026</span>
         </div>
       </div>
+
+      {showAbout && (
+        <div className="rbx-reveal rbx-glass absolute left-1/2 top-full z-20 mt-3 w-[92vw] max-w-md -translate-x-1/2 rounded-xl bg-[#0b1330]/90 p-5 text-left shadow-2xl">
+          <div className="mb-3 flex items-start justify-between gap-4">
+            <h3 className="text-base font-bold text-white">RubriX Nedir?</h3>
+            <button
+              type="button"
+              onClick={() => setShowAbout(false)}
+              aria-label="Kapat"
+              className="cursor-pointer rounded-md p-1 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+          <p className="mb-4 text-sm leading-relaxed text-white/80">
+            RubriX, TEKNOFEST T3 Vakfı için geliştirilen yapay zekâ destekli bir ölçme ve değerlendirme
+            platformudur. Kaynak içerikten sınav sorusu üretir, açık uçlu yanıtları rubrik bazlı AI ile
+            ön değerlendirir — ama nihai kararı her zaman bir insana (eğitmene) bırakır.
+          </p>
+          <ul className="flex flex-col gap-2">
+            {ABOUT_ROLES.map((role) => (
+              <li key={role.label} className="text-xs text-white/70">
+                <span className="font-semibold text-white">{role.label}:</span> {role.detail}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </nav>
   );
 }

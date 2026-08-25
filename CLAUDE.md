@@ -100,9 +100,17 @@ apps/web/src/
 
 ## Mevcut Durum
 
-**Production'da canlı:** https://rubrix-web.tahauguducu.workers.dev (Cloudflare hesabı
-`Tahauguducu@gmail.com's Account`, `account_id: 4c93a1fdd11680cf952f1bf1c7f8f9b9` —
-`wrangler.jsonc`'larda sabitlendi çünkü ekip birden fazla Cloudflare hesabına erişimli).
+**Production'da canlı:** https://app.hititai.com (2026-08-25'ten itibaren — özel domain,
+Cloudflare Custom Domain olarak `apps/web/wrangler.jsonc`'ta `routes` ile bağlı).
+Eski `https://rubrix-web.tahauguducu.workers.dev` artık ÇALIŞMIYOR — `workers_dev` bilinçli
+olarak kapatıldı: Cloudflare, aynı hesaptaki iki worker'ın service binding ile birbirini
+çağırmasını (bizim `/api/*` proxy deseni, rubrix-web → rubrix-api) `*.workers.dev` üzerinden
+engelliyor (her istekte "error code: 1042") — custom domain'de bu kısıtlama yok. Google OAuth
+redirect URI de `app.hititai.com`'a güncellendi (`apps/api/wrangler.jsonc`); Google Cloud
+Console'daki OAuth client'ın "Authorized redirect URIs" listesine de eklenmesi gerekiyor
+(kod tarafında yapılamayan tek adım — dashboard erişimi gerektiriyor).
+Cloudflare hesabı: `Tahauguducu@gmail.com's Account`, `account_id: 4c93a1fdd11680cf952f1bf1c7f8f9b9`
+— `wrangler.jsonc`'larda sabitlendi çünkü ekip birden fazla Cloudflare hesabına erişimli.
 Gerçek D1/R2/Vectorize/Queue/AI Gateway kaynakları kurulu, Google OAuth gerçek client'la
 çalışıyor, `wrangler d1 migrations apply --remote` ile remote DB güncel tutuluyor.
 
@@ -312,7 +320,7 @@ bulundu, 3 ayrı bug):**
   gerçekten sorunlu olan spesifik container'a uygulanmalı.**
 
 **Bekliyor (bilinçli olarak yapılmadı):**
-- Özel domain yok, `workers.dev` kullanılıyor.
+- ~~Özel domain yok, `workers.dev` kullanılıyor.~~ 2026-08-25: `app.hititai.com` bağlandı (bkz. yukarı).
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın
   ürettiği runtime type'larına geçiş — şimdilik deprecated ama çalışır durumda, bilinçli olarak
   yapılmadı.

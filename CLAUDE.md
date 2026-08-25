@@ -185,6 +185,21 @@ kullanıcının en son işini otomatik bulup gösteriyor. `ai_generation_jobs`'a
 `multipleChoiceCount`/`openEndedCount` eklendi (migration `0003`) — consumer, orijinal isteğin
 body'sine artık erişemediği için parametreleri job kaydından okuyor.
 
+**Kuyruğa taşımanın kendi bug'ları da vardı, onlar da düzeltildi:**
+- **Sıkışan iş / zaman aşımı:** çok büyük tek bir istek (ör. 30 soru) consumer'ın zaman/CPU
+  limitini aşıp try/catch'e hiç girmeden ölebiliyor — ne completed ne failed, sonsuza kadar
+  "processing". Artık (a) tek işte en fazla `MAX_QUESTIONS_PER_JOB=10` soru (giriş validasyonu),
+  (b) 3 dakikadan uzun süredir queued/processing kalan bir iş, durum sorgulandığında otomatik
+  "failed" işaretleniyor (lazy reconciliation, `questions.service.ts`'te `reconcileIfStale`).
+- **İptal butonu + race condition:** `POST /generate/:jobId/cancel` eklendi. Bunu güvenli yapmak
+  için gerçek bir race bulunup düzeltildi — `markGenerationJobProcessing` hiçbir durum kontrolü
+  yapmadan "processing"e çekiyordu; kullanıcı iptal ettikten (status: failed) hemen sonra consumer
+  bu satıra gelirse "failed"ı sessizce geri açıyordu. Artık `WHERE status='queued'` ile korunuyor,
+  ve AI çağrısı bittiğinde iş "processing" değilse (iptal/zaman aşımı) üretilen sorular havuza
+  hiç eklenmiyor.
+- **Süre sayacı sıfırlanması:** frontend elapsed-time hesabı sayfa açılış anını değil
+  `job.createdAt`'i (sunucu zamanı) baz alıyor — sayfadan çıkıp geri girmek artık sayacı sıfırlamıyor.
+
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

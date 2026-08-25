@@ -263,6 +263,17 @@ herhangi bir sayfadan çağrılabilir.
   kaplamıyor). `RoleGuardedLayout.tsx`'te artık sidebar açıkken `w-[calc(100%-16rem)]` ile
   genişlik de düşüyor; ek güvenlik ağı olarak `html,body{overflow-x:hidden}` eklendi.
 
+**Google adı düzenlenebilir + istatistik tooltip'leri (2026-08-25, kullanıcı testinde bulundu):**
+Google hesap adı bazen mağaza/cihaz adı gibi profesyonel olmayan bir değer taşıyabiliyor
+("vefa phone" gibi) — Google'ın kendi `userinfo.name` alanı zaten bu, "daha doğru" bir alan yok.
+Çözüm: kullanıcı kendi görünen adını `/profile` ("Bilgilerim") sayfasından düzenleyebiliyor,
+yeni `PATCH /api/users/me` (`usersService.updateOwnName`, trim + 100 karakter sınırı). Kaydettikten
+sonra `window.location.reload()` yapılıyor — Sidebar/üst başlık ayrı bir yerde sunucudan gelen
+`initialUser`'ı kullandığı için, tek bir React state güncellemesi onları senkron tutmaz.
+Ayrıca Yönetici Paneli'ndeki istatistik kartlarına (`DashboardPage.tsx`) `title` + küçük "i"
+ikonuyla ne ifade ettiklerini açıklayan tooltip eklendi (ör. "AI Soru Kabul Oranı" = onaylanan/
+üretilen toplam AI sorusu).
+
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

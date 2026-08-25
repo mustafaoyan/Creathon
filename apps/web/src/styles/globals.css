@@ -50,15 +50,22 @@ body {
    sonrasını `html`'in arka planıyla boyaması anlamına gelir — bizim uzay
    arka planımız bugüne kadar sadece belirli sarmalayıcı div'lerde
    (`bg-fixed` + inline style) tanımlıydı, `html`'de değil. `html` boşsa
-   tarayıcı o taşma alanını düz siyah/beyaz gösteriyordu (bildirilen bug tam
-   buydu). Aynı görseli kök elementte de tanımlayınca taşma alanında da
-   aynı gökyüzü devam ediyor. */
+   tarayıcı o taşma alanını düz siyah/beyaz gösteriyordu. Aynı görseli kök
+   elementte de tanımladık AMA bu tek başına yetmedi (kullanıcı testinde
+   hâlâ görüldü) — bazı tarayıcılarda "elastic bounce" efekti CSS
+   background'ı hiç kullanmayan, tarayıcının kendi native taşma animasyonu
+   (bir tür OS efekti), yani boyayarak "düzeltilemiyor". Bu yüzden asıl
+   çözüm: taşmayı `overscroll-behavior` ile TAMAMEN KAPATMAK — kullanıcının
+   önerdiği "ya kaydırılmasın" seçeneği. */
 html {
   background-color: #050814;
   background-image: url("/hero/space-globe.jpg");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+}
+html, body {
+  overscroll-behavior-y: none;
 }
 
 /* Sidebar açılırken içerik kutusunun margin-left ile itilmesi (bkz.

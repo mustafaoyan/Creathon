@@ -16,6 +16,7 @@ export const gradingRepository = {
         answerText: studentAnswers.answerText,
         questionBody: questions.body,
         attemptId: studentAnswers.attemptId,
+        rubricId: questions.rubricId,
       })
       .from(aiEvaluations)
       .innerJoin(studentAnswers, eq(studentAnswers.id, aiEvaluations.studentAnswerId))

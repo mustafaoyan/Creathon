@@ -7,8 +7,33 @@ import { rubricsRepository } from "../rubrics/rubrics.repository";
 import { HttpError } from "../../shared/middleware/error-handler";
 
 export const gradingService = {
-  pendingReviews(env: Bindings) {
-    return gradingRepository.pendingReviews(createDb(env.DB));
+  /** Ham criteriaBreakdown sadece criterionId taşıyor — eğitmenin rubriğin
+   * hangi kriterine göre puanlandığını görebilmesi için (brief'in "AI'nin
+   * gerekçesini rubriğe göre gösterme" gereksinimi) her satıra rubric_criteria
+   * tablosundan gerçek kriter metnini ekliyoruz. */
+  async pendingReviews(env: Bindings) {
+    const db = createDb(env.DB);
+    const rows = await gradingRepository.pendingReviews(db);
+
+    const criteriaLabelsByRubric = new Map<string, Map<string, string>>();
+    for (const rubricId of new Set(rows.map((row) => row.rubricId).filter((id): id is string => !!id))) {
+      const criteria = await rubricsRepository.criteriaFor(db, rubricId);
+      criteriaLabelsByRubric.set(rubricId, new Map(criteria.map((c) => [c.id, c.criterion])));
+    }
+
+    return rows.map((row) => {
+      const labels = row.rubricId ? criteriaLabelsByRubric.get(row.rubricId) : undefined;
+      const breakdown: { criterionId: string; score: number; comment: string }[] = JSON.parse(
+        row.criteriaBreakdown,
+      );
+      return {
+        ...row,
+        criteriaBreakdown: breakdown.map((entry) => ({
+          ...entry,
+          criterion: labels?.get(entry.criterionId) ?? "Kriter",
+        })),
+      };
+    });
   },
 
   async finalizeGrade(

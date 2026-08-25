@@ -139,6 +139,19 @@ fazladan yetki. (Not: bu madde sonradan düzeltildi — onay artık sadece `cont
 - Giriş sonrası kullanıcı doğrudan rolüne uygun sayfaya yönlendiriliyor (`role-home.ts` +
   worker'daki redirect), genel bir "Merhaba X" ara ekranı yok.
 
+**2026-08-25: 3 gerçek eksik kapatıldı (bir denetim listesinden):**
+- **Profil resmi yükleme gerçek** — `POST /api/users/me/avatar` (R2'ye `avatars/{userId}`
+  key'iyle yazıyor, ayrı bir kolon gerekmiyor çünkü key kullanıcı id'sinden türetiliyor),
+  `GET /api/users/:id/avatar` servis ediyor; `avatarUrl` bu endpoint'e işaret ediyor.
+  Önceden sadece bir bildirim gösteriyordu.
+- **Sınav süresi artık gerçekten uygulanıyor** — `CreateExamPage`'de süre alanı,
+  `ExamRunnerPage`'de geri sayım + otomatik gönderim var; kritik olan, sunucu tarafında da
+  `exams.service.ts#assertAttemptNotExpired` süresi dolmuş attempt'lere yeni cevabı reddediyor
+  (sadece istemci taraflı sayaç güvenli değil). **Not:** `durationMinutes: 0` özel durumunda
+  `exam.durationMinutes &&` kontrolü falsy olduğu için süre sınırı sessizce atlanıyordu —
+  `!= null` kontrolüne çevrildi, curl ile uçtan uca doğrulandı.
+- `UserManagementPage`'e isim/e-posta/rol/duruma göre client-side arama kutusu eklendi.
+
 **Test verisi:** Production D1'de gerçek admin hesabına (`mstfoyn63@gmail.com`) ek olarak
 `user_test_content` / `user_test_instructor` / `user_test_student` adında sabit test kullanıcıları
 ve karşılık gelen `sess_test_*` session id'leri var (doğrudan SQL ile eklendi, gerçek Google

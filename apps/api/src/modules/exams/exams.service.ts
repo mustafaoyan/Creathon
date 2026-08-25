@@ -148,7 +148,16 @@ export const examsService = {
         continue;
       }
 
-      await scoreOpenEndedAnswer(db, ai, { questionId: question.id, answerId: answer.id, answerText: answer.answerText });
+      // Bir sorunun AI puanlaması başarısız olursa (geçici model/ağ hatası)
+      // tüm gönderim çökmesin — öğrenci "buton çalışmıyor" hissiyle kalmasın.
+      // Bu soru ungradableOpenEnded'e düşer, regrade endpoint'iyle sonradan
+      // tekrar denenebilir (question.rubricId zaten var, sadece AI çağrısı
+      // başarısız oldu).
+      try {
+        await scoreOpenEndedAnswer(db, ai, { questionId: question.id, answerId: answer.id, answerText: answer.answerText });
+      } catch {
+        ungradableOpenEnded.push(examQuestion.questionId);
+      }
     }
 
     await examsRepository.markSubmitted(db, attemptId, mcqSubtotal);

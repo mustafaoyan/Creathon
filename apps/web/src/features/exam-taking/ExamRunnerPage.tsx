@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
@@ -45,7 +45,17 @@ export function ExamRunnerPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [confirmingSubmit, setConfirmingSubmit] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const confirmBannerRef = useRef<HTMLDivElement | null>(null);
+
+  // Öğrenci soruların en altındaki "Sınavı Bitir"e bastığında uyarı en üstte
+  // render oluyordu ama görünmüyordu — sayfa kaymıyordu, sadece "üstte bir
+  // yerde" duruyordu. Artık banner göründüğü an ekrana kaydırılıyor.
+  useEffect(() => {
+    if (confirmingSubmit) confirmBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [confirmingSubmit]);
 
   function refreshAssignments() {
     apiClient.get<{ assignments: Assignment[] }>("/api/exams/my").then((res) => setAssignments(res.assignments));
@@ -111,31 +121,51 @@ export function ExamRunnerPage() {
   }
 
   async function submit() {
-    if (!active) return;
-    await apiClient.post(`/api/exams/${active.examId}/attempts/${active.attemptId}/submit`);
-    setActive(null);
-    setConfirmingSubmit(false);
-    // Liste bayat kalırsa (eski durumla) "Sınava Başla" hâlâ görünür kalır —
-    // "bitirdim ama tekrar girebildim" hissinin bir parçası tam olarak buydu.
-    refreshAssignments();
+    if (!active || submitting) return;
+    // Açık uçlu sorular varsa gönderim, her biri için gerçek bir AI puanlama
+    // çağrısı bekliyor — birkaç saniye sürebilir. Önceden hiçbir geri bildirim
+    // yoktu, "buton çalışmıyor" gibi görünüyordu (aslında çalışıp bekliyordu
+    // ya da sessizce hata veriyordu). Artık ikisi de görünür.
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await apiClient.post(`/api/exams/${active.examId}/attempts/${active.attemptId}/submit`);
+      setActive(null);
+      setConfirmingSubmit(false);
+      // Liste bayat kalırsa (eski durumla) "Sınava Başla" hâlâ görünür kalır —
+      // "bitirdim ama tekrar girebildim" hissinin bir parçası tam olarak buydu.
+      refreshAssignments();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error && err.message.includes("exam_already_submitted")
+          ? "Bu sınav zaten gönderilmiş."
+          : "Sınav gönderilemedi — internet bağlantını kontrol edip tekrar dene.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (active) {
     return (
       <div className="flex max-w-xl flex-col gap-4">
         {confirmingSubmit && (
-          <div className="flex flex-col gap-3 rounded-md border border-destructive bg-destructive/10 p-4">
+          <div
+            ref={confirmBannerRef}
+            className="flex flex-col gap-3 rounded-md border border-destructive bg-destructive/10 p-4"
+          >
             <p className="text-sm font-semibold text-destructive">
               Dikkat: Sınavı bitirirsen bu sınava bir daha giremezsin. Devam etmek istiyor musun?
             </p>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setConfirmingSubmit(false)}>
+              <Button size="sm" variant="outline" disabled={submitting} onClick={() => setConfirmingSubmit(false)}>
                 Devam Et (sınava dön)
               </Button>
-              <Button size="sm" variant="destructive" onClick={submit}>
-                Yine de Bitir
+              <Button size="sm" variant="destructive" disabled={submitting} onClick={submit}>
+                {submitting ? "Gönderiliyor..." : "Yine de Bitir"}
               </Button>
             </div>
+            {submitError && <p className="text-sm text-destructive">{submitError}</p>}
           </div>
         )}
         {remainingSeconds !== null && (

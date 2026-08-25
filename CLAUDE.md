@@ -286,9 +286,11 @@ bulundu, 3 ayrı bug):**
   ☰ düğmesiyle (hep `top-20`'de sabitti) çakışıyordu. `RoleGuardedLayout` artık `bannerOffset`
   bilgisini `Sidebar`'a geçiyor, düğme/panel şerit varsa aşağı kayıyor.
 - **İçerik kısa olan sayfalarda bile** (ör. boş liste) trackpad/mobil "elastic" taşma (overscroll
-  bounce) belgenin gerçek sonrasını `html`'in arka planıyla boyuyor — uzay arka planı sadece belirli
-  sarmalayıcı div'lerde tanımlıydı, `html`'de değil, taşma alanı düz siyah görünüyordu. Aynı görsel
-  artık `globals.css`'te `html` seviyesinde de tanımlı.
+  bounce) belgenin gerçek sonrasında siyah bir alan gösteriyordu. İlk denenen çözüm — uzay
+  görselini `html`'e de arka plan olarak eklemek — YETMEDİ (kullanıcı testinde hâlâ görüldü):
+  bazı tarayıcılarda elastic bounce, CSS background'ı hiç kullanmayan native bir taşma animasyonu,
+  boyayarak düzeltilemiyor. Asıl çözüm: `html, body { overscroll-behavior-y: none; }` ile taşmayı
+  kaynağından tamamen kapatmak (`globals.css`) — html'deki görsel de fallback olarak kaldı.
 
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.

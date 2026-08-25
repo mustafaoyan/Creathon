@@ -173,6 +173,18 @@ açık uçlu sorular, doğru şıklar, `sourceChunkIds` izlenebilirliği) ve rub
 Test sırasında bulunup düzeltilen bug: Workers AI'nin varsayılan `max_tokens`'ı JSON çıktısını
 yarıda kesiyordu — `workers-ai-client.ts`'te `max_tokens: 4096` eklendi.
 
+**Soru üretimi kuyruğa taşındı (kullanıcı testinde bulunan 2 gerçek UX bug'ı için).**
+`POST /api/questions/generate` artık RAG+AI çağrısını senkron await ETMİYOR — sadece
+`ai_generation_jobs` kaydı oluşturup yeni `rubrix-question-generation` kuyruğuna
+(`QUESTION_GEN_QUEUE`) atıyor ve hemen dönüyor. Gerçek iş `questions.service.ts#processGenerationJob`
+içinde, `src/index.ts`'teki tek `queue()` handler'ında (`batch.queue` ile DOC_QUEUE'dan ayırt
+ediliyor) çalışıyor — tarayıcı sekmesi kapansa/sayfa değişse de iş arka planda tamamlanıyor.
+Frontend (`GenerateQuestionsPage.tsx`) job'ı `GET /generate/:jobId` ile 2sn'de bir polling'le takip
+ediyor (spinner + geçen süre sayacı), mount olduğunda da `GET /generate-status/latest` ile
+kullanıcının en son işini otomatik bulup gösteriyor. `ai_generation_jobs`'a bunun için `rubricId`/
+`multipleChoiceCount`/`openEndedCount` eklendi (migration `0003`) — consumer, orijinal isteğin
+body'sine artık erişemediği için parametreleri job kaydından okuyor.
+
 **Bekliyor (bilinçli olarak yapılmadı):**
 - Özel domain yok, `workers.dev` kullanılıyor.
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

@@ -84,7 +84,10 @@ export function TeknofestNav({
       </div>
 
       {showAbout && (
-        <div className="rbx-reveal rbx-glass absolute left-1/2 top-full z-20 mt-3 w-[92vw] max-w-md -translate-x-1/2 rounded-xl bg-[#0b1330]/90 p-5 text-left shadow-2xl">
+        // rbx-glass BİLEREK yok — o sınıfın katmansız `background` kuralı, Tailwind
+        // utility'lerinin (bu satırdaki bg-[#050814]) önüne geçip paneli neredeyse
+        // saydam gösteriyordu (aynı .rbx-starfield/`fixed` sorunuyla aynı kök neden).
+        <div className="rbx-reveal absolute left-1/2 top-full z-20 mt-3 w-[92vw] max-w-md -translate-x-1/2 rounded-xl border border-white/15 bg-[#050814] p-5 text-left shadow-2xl">
           <div className="mb-3 flex items-start justify-between gap-4">
             <h3 className="text-base font-bold text-white">RubriX Nedir?</h3>
             <button

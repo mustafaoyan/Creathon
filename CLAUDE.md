@@ -165,7 +165,11 @@ yüklenmiş kredi istiyor (`credit balance too low`) — bu kredi hâlâ yok. Am
 mimarisi tam bunun için kurulmuştu: `ai/providers/workers-ai/*` adaptörü (Llama 3.3 70B,
 `response_format: json_schema` ile yapılandırılmış çıktı) eklendi, `AI_PROVIDER` şu an
 `"workers-ai"` (Cloudflare'in kendi modelleri, günde 10.000 Neuron ücretsiz kota — kredi kartı
-gerekmiyor). Kredi eklenince `wrangler.jsonc`'ta `AI_PROVIDER`'ı `"anthropic"`a çevirmek yeterli.
+gerekmiyor). Kredi eklenince `wrangler.jsonc`'ta `AI_PROVIDER`'ı `"anthropic"`a çevirmek yeterli
+— **ama "kredi eklendi" denemesi 2026-08-25'te bir kez daha test edildi, aynı
+`credit balance too low` hatası devam ediyor** (muhtemelen kredi yanlış hesaba/API key'e
+eklendi ya da henüz işlenmedi) — tekrar `"workers-ai"`a alındı. Anthropic'e geçmeden önce
+gerçek bir sınav gönderimiyle (açık uçlu soru + `wrangler tail`) doğrulanmadan geçiş yapılmamalı.
 
 Uçtan uca gerçek veriyle doğrulandı: RAG destekli soru üretimi (kaynak metinden gerçekçi MCQ +
 açık uçlu sorular, doğru şıklar, `sourceChunkIds` izlenebilirliği) ve rubrik bazlı puanlama

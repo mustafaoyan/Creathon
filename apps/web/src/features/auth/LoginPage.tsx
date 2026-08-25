@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
-import { TeknofestNav, NAV_HEIGHT_CLASS } from "@/components/layout/TeknofestNav";
+import { TeknofestNav, NAV_HEIGHT_CLASS, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
 
 type Role = "content_creator" | "instructor" | "student" | "admin";
 
@@ -39,7 +39,14 @@ export function LoginPage() {
   }, [reveal]);
 
   return (
-    <div className={`flex flex-col ${NAV_HEIGHT_CLASS}`}>
+    // Nav artık kendi arka planını taşımıyor (bkz. TeknofestNav.tsx) — şeffaf
+    // nav'ın altında sorunsuz devam etmesi için aynı görsel burada, sayfanın
+    // en dışında, bg-fixed ile tanımlı; HeroCarousel'in slaytları bunun ÜSTÜNE
+    // çapraz geçişle biniyor.
+    <div
+      className={`flex flex-col bg-fixed bg-cover bg-center ${NAV_HEIGHT_CLASS}`}
+      style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}
+    >
       <TeknofestNav
         action={{ label: "ÖĞRENCİ GİRİŞİ 🚀", onClick: () => setReveal("student") }}
         secondaryLink={{ label: "DİĞER GİRİŞLER", onClick: () => setReveal("others") }}

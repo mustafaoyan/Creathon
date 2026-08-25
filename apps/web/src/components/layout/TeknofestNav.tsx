@@ -34,11 +34,14 @@ export function TeknofestNav({
   const [showAbout, setShowAbout] = useState(false);
 
   return (
-    <nav
-      className="rbx-starfield fixed inset-x-0 top-0 z-50 flex h-16 items-center overflow-visible bg-cover bg-center px-6 text-white"
-      style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}
-    >
-      <div className="absolute inset-0 bg-gradient-to-r from-[#050b24]/90 via-[#0b1f4d]/75 to-[#123a7a]/65" />
+    // Kasıtlı olarak kendi arka planı YOK — teknofest.org.tr'deki gibi çubuk,
+    // arkasındaki sayfanın (bg-fixed, aynı görsel) üstünde tamamen şeffaf
+    // duruyor. Önceden nav'ın kendi (farklı kırpılmış) arka plan görseli +
+    // gradyan katmanı vardı, bu da nav'ı sayfanın geri kalanından farklı bir
+    // renk tonunda gösteriyordu (kullanıcı testinde bulundu) — nav'ın altındaki
+    // her sayfa zaten aynı SPACE_BG_URL'i bg-fixed ile kullandığı için, nav
+    // şeffaf olunca görsel kusursuzca devam ediyor.
+    <nav className="fixed inset-x-0 top-0 z-50 flex h-16 items-center overflow-visible px-6 text-white">
       <div className="relative z-10 flex w-full items-center justify-between gap-4">
         <span className="text-lg font-extrabold tracking-wide">RUBRIX</span>
         <div className="flex items-center gap-6">

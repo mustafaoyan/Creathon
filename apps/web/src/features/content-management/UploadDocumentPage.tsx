@@ -67,6 +67,13 @@ export function UploadDocumentPage() {
     setFile(selected);
   }
 
+  // Yanlış dosya seçildiğinde tekrar "Dosya Seç"e basıp aynı dosyayı görmek
+  // yerine doğrudan temizleyebilsin diye (kullanıcı isteği).
+  function clearFile() {
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   async function handleUpload(event: FormEvent) {
     event.preventDefault();
     if (!file || !title) return;
@@ -144,7 +151,21 @@ export function UploadDocumentPage() {
           <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
             Dosya Seç
           </Button>
-          <p className="text-sm text-muted-foreground">{file ? file.name : "Dosya seçilmedi"}</p>
+          {file ? (
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">{file.name}</p>
+              <button
+                type="button"
+                onClick={clearFile}
+                aria-label="Dosyayı kaldır"
+                className="cursor-pointer text-xs text-destructive underline-offset-2 hover:underline"
+              >
+                Kaldır
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Dosya seçilmedi</p>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">
           Desteklenen dosya türleri: PDF, TXT, MD · Maksimum dosya boyutu: {MAX_FILE_SIZE_MB} MB

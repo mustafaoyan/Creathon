@@ -217,6 +217,14 @@ apps/web/src/
   değişince kaybolur. Bu yüzden `examPoolSelection.ts` gibi küçük bir `sessionStorage` sarmalayıcı
   kullanılıyor (localStorage değil — sekme kapanınca yarım kalmış taslak otomatik temizlensin).
 
+**Doğrulamalı e-posta değiştirme (Resend) — RESEND_API_KEY secret'ı eklenene kadar ÇALIŞMIYOR.**
+`/profile`'da E-posta yanındaki "Değiştir", yeni adrese `shared/lib/email.ts` üzerinden Resend HTTP
+API'siyle 6 haneli bir kod gönderiyor (`email_change_requests` tablosu, migration `0006`; kod 15dk
+geçerli, 60sn cooldown ile spam engelleniyor). `EMAIL_FROM` şu an `"RubriX <noreply@hititai.com>"`
+(`wrangler.jsonc`) ama `hititai.com` Resend'de doğrulanmadan (DNS kayıtları) gerçek gönderim
+çalışmaz — secret henüz eklenmedi, `RESEND_API_KEY` gelince `wrangler secret put` ile eklenip
+canlıda uçtan uca test edilmeli.
+
 ## Bekliyor (bilinçli olarak yapılmadı)
 
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın
@@ -224,6 +232,8 @@ apps/web/src/
 - Anthropic'e geçiş — kredi sorunu çözülmedi (bkz. Production Durumu).
 - Production'daki `sess_test_*` / `user_test_*` test verilerinin temizlenmesi — kullanıcı henüz
   karar vermedi.
+- E-posta değiştirme özelliği için Resend kurulumu (API key + hititai.com domain doğrulaması) —
+  yukarıya bkz.
 
 ## Geliştirme
 

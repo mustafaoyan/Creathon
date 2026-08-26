@@ -113,7 +113,13 @@ function AuthenticatedLayout({
             yüzden ☰ düğmesi o şeridin ÜSTÜNE biniyordu (kullanıcı testinde
             bulundu). Sidebar'a şeridin var olup olmadığını bildirip düğmeyi
             buna göre aşağı kaydırıyoruz. */}
-        <Sidebar user={user} open={sidebarOpen} onOpenChange={setSidebarOpen} bannerOffset={viewingAsAdmin} />
+        <Sidebar
+          user={user}
+          open={sidebarOpen}
+          onOpenChange={setSidebarOpen}
+          bannerOffset={viewingAsAdmin}
+          viewRole={viewingAsAdmin ? requiredRoles[0] : null}
+        />
         {/* w-[calc(100%-16rem)] kasıtlı: ml-64 tek başına, zaten flex-1 ile
             %100 genişliğe sahip bir kutuyu konteynerin dışına taşırıyordu —
             sayfa yatayda kayıyor, sağda kaydırma sırasında arka plansız

@@ -45,19 +45,35 @@ export function Sidebar({
   open,
   onOpenChange,
   bannerOffset,
+  viewRole,
 }: {
   user: SessionUser;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** true: nav'ın altında "Yönetici olarak görüntülüyorsun" şeridi de var —
-   * sabit konumlu ☰ düğmesi/panel bunun ALTINDA başlamalı, üstüne binmemeli. */
+   * sabit konumlu ☰ düğmesi/panel bunun ALTINDA başlamalı, üstüne binmemiş. */
   bannerOffset?: boolean;
+  /** Admin başka bir rolün "gözünden" bakıyorsa o rol (ör. "student") — ☰
+   * menüsü admin'in kendi linkleri yerine BU rolün linklerini gösterir, çünkü
+   * admin artık o roldeki gerçek işlemleri de yapabiliyor (bkz. rbac.ts) ve
+   * o rolün diğer sayfalarına da (ör. Soru Üret, Puanlama Onayı) gidebilmesi
+   * gerekiyor — sadece ilk açtığı sayfayla sınırlı kalmasın. Verilmezse (admin
+   * kendi ekranlarındayken) `user.role` kullanılır. */
+  viewRole?: UserRole | null;
 }) {
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
   const [avatarStatus, setAvatarStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const effectiveRole = viewRole ?? user.role;
+  const isViewingOtherRole = !!viewRole && viewRole !== user.role;
   // "Bilgilerim" rolden bağımsız, herkeste var — role özel linklerin önüne ekleniyor.
-  const links = [{ href: "/profile", label: "Bilgilerim" }, ...(user.role ? ROLE_LINKS[user.role] : [])];
+  // Admin başka bir rolü görüntülerken en üste "Yönetici Paneline Dön" eklenir ki
+  // o roldeki işini bitirince kendi ekranlarına kolayca dönebilsin.
+  const links = [
+    { href: "/profile", label: "Bilgilerim" },
+    ...(isViewingOtherRole ? [{ href: "/dashboard", label: "← Yönetici Paneline Dön" }] : []),
+    ...(effectiveRole ? ROLE_LINKS[effectiveRole] : []),
+  ];
   const initial = user.name.trim().charAt(0).toUpperCase() || "?";
 
   async function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {

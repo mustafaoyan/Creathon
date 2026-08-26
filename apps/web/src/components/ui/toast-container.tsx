@@ -25,7 +25,7 @@ export function ToastContainer() {
   if (items.length === 0) return null;
 
   return (
-    <div className="fixed right-4 top-20 z-[9999] flex w-full max-w-sm flex-col gap-2">
+    <div className="fixed right-4 top-20 z-[9999] flex w-full max-w-sm flex-col gap-2 print:hidden">
       {items.map((item) => (
         <div
           key={item.id}

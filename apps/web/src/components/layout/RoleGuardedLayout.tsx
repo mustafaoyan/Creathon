@@ -100,12 +100,16 @@ function AuthenticatedLayout({
   // — belge asla kaymıyor, arka plan asla "kısa kalmıyor". İçerik uzunsa sadece EN İÇTEKİ
   // içerik sarmalayıcısı (`overflow-y-auto`) kendi içinde kayıyor; nav ve sidebar zaten
   // `fixed` olduğu için bundan etkilenmiyor.
+  // print:h-auto print:overflow-visible: yazdırırken (bkz. globals.css'teki
+  // @media print) bu h-screen/overflow-hidden kısıtlamaları kalırsa uzun bir
+  // sonuç listesi tek sayfaya sığdırılıp geri kalanı kesiliyordu — print'te
+  // içerik kendi doğal yüksekliğine göre normal akışa dönüp sayfalara bölünebiliyor.
   return (
     <div
-      className="h-screen overflow-hidden bg-fixed bg-cover bg-center"
+      className="h-screen overflow-hidden bg-fixed bg-cover bg-center print:h-auto print:overflow-visible"
       style={{ backgroundImage: `url("${SPACE_BG_URL}")` }}
     >
-      <div className={`rbx-space-alive flex h-screen flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75 ${NAV_HEIGHT_CLASS}`}>
+      <div className={`rbx-space-alive flex h-screen flex-col bg-gradient-to-b from-[#050b24]/85 via-[#0b1f4d]/80 to-[#123a7a]/75 print:h-auto ${NAV_HEIGHT_CLASS}`}>
         <TeknofestNav action={{ label: "ÇIKIŞ YAP", onClick: handleLogout }} />
         {/* Sidebar'ın kendi menü açma düğmesi (☰) nav'ın hemen altına sabit
             konumlanıyor — admin başka bir role "gözünden" bakarken görünen
@@ -125,22 +129,22 @@ function AuthenticatedLayout({
             sayfa yatayda kayıyor, sağda kaydırma sırasında arka plansız
             (siyah) bir boşluk açığa çıkıyordu (bildirilen bug tam buydu). */}
         <div
-          className={`flex flex-1 flex-col overflow-y-auto transition-all duration-300 ${sidebarOpen ? "ml-64 w-[calc(100%-16rem)]" : "ml-0 w-full"}`}
+          className={`flex flex-1 flex-col overflow-y-auto transition-all duration-300 print:ml-0 print:w-full print:overflow-visible ${sidebarOpen ? "ml-64 w-[calc(100%-16rem)]" : "ml-0 w-full"}`}
         >
           {viewingAsAdmin && (
-            <div className="bg-accent px-6 py-1.5 text-xs font-medium text-accent-foreground">
+            <div className="bg-accent px-6 py-1.5 text-xs font-medium text-accent-foreground print:hidden">
               Yönetici olarak görüntülüyorsun — bu ekran normalde şu role özel:{" "}
               {requiredRoles.map((role) => ROLE_LABELS[role]).join(", ")}.
             </div>
           )}
-          <div className="px-6 pt-3 text-right text-sm text-white/80">
+          <div className="px-6 pt-3 text-right text-sm text-white/80 print:hidden">
             {user.name} · {ROLE_LABELS[user.role as UserRole]}
           </div>
           <main className="flex-1 p-6">
             {bare ? (
               children
             ) : (
-              <div className="mx-auto max-w-5xl rounded-lg bg-background p-6 shadow-2xl ring-1 ring-primary/10">
+              <div className="mx-auto max-w-5xl rounded-lg bg-background p-6 shadow-2xl ring-1 ring-primary/10 print:shadow-none print:ring-0">
                 {children}
               </div>
             )}

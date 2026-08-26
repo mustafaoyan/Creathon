@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
+import { Button } from "@/components/ui/button";
 
 type ExamRow = { id: string; title: string; status: string; createdAt: string };
 type ResultRow = {
@@ -35,6 +36,33 @@ const STATUS_LABELS: Record<string, string> = {
   submitted: "Gönderildi — değerlendiriliyor",
   graded: "Değerlendirildi",
 };
+
+// Excel Türkçe karakterleri (İ, ş, ç, ğ, ü, ö) BOM olmadan UTF-8 CSV'de yanlış
+// gösteriyor — dosyanın başına ﻿ eklemek Excel'e "bu UTF-8" dedirtip
+// düzeltiyor. Hücreler tırnak içine alınıp iç tırnaklar kaçırılıyor (temel CSV
+// güvenliği — isim/e-posta virgül taşımasa da).
+function downloadResultsCsv(examTitle: string, results: ResultRow[]) {
+  const header = ["Öğrenci", "E-posta", "Durum", "Puan"];
+  const rows = results.map((r) => [
+    r.studentName,
+    r.studentEmail,
+    STATUS_LABELS[r.status] ?? r.status,
+    r.totalScore !== null ? r.totalScore.toFixed(1) : "",
+  ]);
+  const csv = [header, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\r\n");
+
+  const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${examTitle}-sonuclar.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 /** Eğitmenin "Sonuçlar" ekranı — üç seviye: sınavlarım -> o sınava giren her
  * öğrenci (isme göre sıralı) -> bir öğrencinin cevap + AI değerlendirme detayı.
@@ -171,7 +199,26 @@ export function ExamResultsPage() {
         >
           ← Sınavlarıma Dön
         </button>
-        <h1 className="text-xl font-bold">{activeExam?.title}</h1>
+        <div className="flex items-center justify-between gap-3 print:hidden">
+          <h1 className="text-xl font-bold">{activeExam?.title}</h1>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!results || !activeExam}
+              onClick={() => results && activeExam && downloadResultsCsv(activeExam.title, results)}
+            >
+              CSV İndir
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
+              Yazdır / PDF
+            </Button>
+          </div>
+        </div>
+        {/* Sadece yazdırırken görünür — CSS'te @media print (globals.css) diğer
+            her şeyi (nav, sidebar, bu üstteki butonlar) gizliyor. */}
+        <h1 className="hidden text-xl font-bold print:block">{activeExam?.title}</h1>
         <div className="flex flex-col gap-1.5">
           {(results ?? []).map((result) => (
             <button

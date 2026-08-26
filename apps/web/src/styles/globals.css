@@ -217,3 +217,30 @@ h1, h2, h3, h4, h5, h6, p, label {
     transform: none;
   }
 }
+
+/* Sınav sonuçlarını "Yazdır / PDF" ile çıktı alma (kullanıcı isteği) —
+   tasarım tam ekran koyu uzay teması + beyaz metin olduğu için, hiçbir
+   düzeltme yapılmazsa yazıcıya "her şey siyah, yazılar görünmez" bir sayfa
+   giderdi. Bu blok TÜM sayfalar için genel bir yazdırma sıfırlaması:
+   arka plan görselleri (nav/authed layout'ta inline style ile ayarlanıyor,
+   bu yüzden `!important` şart — sınıf tabanlı bir override inline style'ı
+   yenemez) kaldırılıyor, metin siyaha, arka plan beyaza çekiliyor, nav/aside
+   gizleniyor. */
+@media print {
+  * {
+    background-image: none !important;
+    color: black !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+  html, body {
+    background: white !important;
+  }
+  nav, aside {
+    display: none !important;
+  }
+  .rbx-space-alive::before,
+  .rbx-starfield::before {
+    display: none !important;
+  }
+}

@@ -144,7 +144,10 @@ function AuthenticatedLayout({
             {bare ? (
               children
             ) : (
-              <div className="mx-auto max-w-5xl rounded-lg bg-background p-6 shadow-2xl ring-1 ring-primary/10 print:shadow-none print:ring-0">
+              // rbx-glass'ın kendi (katmansız) `background` kuralı bg-background'ı zaten
+              // eziyor (bkz. globals.css'teki .rbx-glass notu) — ayrıca bg-* class'ı
+              // eklemeye gerek yok, kendi border'ı da var (ring-primary/10'a gerek kalmadı).
+              <div className="rbx-glass mx-auto max-w-5xl rounded-2xl p-6 shadow-2xl print:shadow-none">
                 {children}
               </div>
             )}

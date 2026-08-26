@@ -161,12 +161,28 @@ h1, h2, h3, h4, h5, h6, p, label {
   border: 1px solid color-mix(in srgb, white 14%, transparent);
 }
 
-/* Tüm border-input alanları (proje genelinde ~20 yerde aynı sınıfla kullanılıyor)
-   için tek satırda odak parıltısı — her formu tek tek değiştirmeye gerek kalmadan. */
+/* Tüm border-input alanları (proje genelinde ~20 yerde aynı sınıfla kullanılıyor,
+   input/select/textarea hepsi) için tek noktadan "cam" görünüm — her formu tek
+   tek değiştirmeye gerek kalmadan. Metin/placeholder rengi tema token'ına değil
+   sabit açık renge bağlı: bu alanlar artık her zaman camsı/koyu bir kartın (bkz.
+   RoleGuardedLayout.tsx'teki .rbx-glass kart) üstünde duruyor, kart da her zaman
+   koyu uzay arka planının üstünde saydam — açık sistem temasında koyu-üstüne-koyu
+   (görünmez) metin riskini burada da (Google admin kodu input'u vb. dahil) bertaraf
+   ediyor. */
+.border-input {
+  background-color: color-mix(in srgb, white 5%, transparent);
+  border-color: color-mix(in srgb, white 14%, transparent);
+  color: white;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+.border-input::placeholder {
+  color: color-mix(in srgb, white 55%, transparent);
+}
 .border-input:focus-visible,
 .border-input:focus {
   outline: none;
   border-color: var(--color-primary);
+  background-color: color-mix(in srgb, white 7%, transparent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 

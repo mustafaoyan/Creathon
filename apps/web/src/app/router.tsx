@@ -9,7 +9,9 @@ import { QuestionReviewPanel } from "@/features/content-management/QuestionRevie
 import { CreateExamPage } from "@/features/exam-management/CreateExamPage";
 import { QuestionPoolPage } from "@/features/exam-management/QuestionPoolPage";
 import { GradingReviewPage } from "@/features/exam-management/GradingReviewPage";
+import { ExamResultsPage } from "@/features/exam-management/ExamResultsPage";
 import { ExamRunnerPage } from "@/features/exam-taking/ExamRunnerPage";
+import { StudentResultsPage } from "@/features/exam-taking/StudentResultsPage";
 import { DashboardPage } from "@/features/admin-dashboard/DashboardPage";
 import { UserManagementPage } from "@/features/admin-dashboard/UserManagementPage";
 import { RoleViewsPage } from "@/features/admin-dashboard/RoleViewsPage";
@@ -38,7 +40,9 @@ export const ROUTES: AppRoute[] = [
   { path: "/exams/new", component: CreateExamPage, roles: ["instructor"] },
   { path: "/exams/pool", component: QuestionPoolPage, roles: ["instructor"] },
   { path: "/exams/grading", component: GradingReviewPage, roles: ["instructor"] },
+  { path: "/exams/reports", component: ExamResultsPage, roles: ["instructor"] },
   { path: "/exams/take", component: ExamRunnerPage, roles: ["student"] },
+  { path: "/exams/results", component: StudentResultsPage, roles: ["student"] },
   { path: "/dashboard", component: DashboardPage, roles: ["admin"] },
   { path: "/admin", component: DashboardPage, roles: ["admin"] },
   { path: "/admin/users", component: UserManagementPage, roles: ["admin"] },

@@ -18,6 +18,7 @@ examsRoutes.post("/", requireRole("instructor"), async (c) => {
     title: string;
     durationMinutes?: number;
     questionIds: { questionId: string; points: number }[];
+    allowedEmails?: string[];
   }>();
 
   if (!body.title || !body.questionIds?.length) {
@@ -29,9 +30,22 @@ examsRoutes.post("/", requireRole("instructor"), async (c) => {
     createdBy: c.get("userId"),
     durationMinutes: body.durationMinutes,
     questionIds: body.questionIds,
+    allowedEmails: body.allowedEmails,
   });
 
   return c.json({ id }, 201);
+});
+
+// Eğitmenin sonuçlar ekranı: sınava giren her öğrenci ayrı, isme tıklayınca
+// cevapları + AI değerlendirmeleri.
+examsRoutes.get("/:id/results", requireRole("instructor"), async (c) => {
+  return c.json({ results: await examsService.resultsForExam(c.env, c.req.param("id")) });
+});
+
+examsRoutes.get("/:id/results/:studentId", requireRole("instructor"), async (c) => {
+  return c.json({
+    answers: await examsService.studentAnswersForExam(c.env, c.req.param("id"), c.req.param("studentId")),
+  });
 });
 
 examsRoutes.post("/:id/publish", requireRole("instructor"), async (c) => {

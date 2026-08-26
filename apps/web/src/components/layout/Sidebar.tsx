@@ -16,8 +16,12 @@ const ROLE_LINKS: Record<UserRole, { href: string; label: string }[]> = {
     { href: "/exams/new", label: "Sınav Oluştur" },
     { href: "/exams/pool", label: "Soru Havuzu" },
     { href: "/exams/grading", label: "Puanlama Onayı" },
+    { href: "/exams/reports", label: "Sonuçlar" },
   ],
-  student: [{ href: "/exams/take", label: "Sınavlarım" }],
+  student: [
+    { href: "/exams/take", label: "Sınavlarım" },
+    { href: "/exams/results", label: "Sonucum" },
+  ],
   // Önceden "Rol Görünümleri" / "Öğrenme Çıktıları" / "Giriş-Çıkış Kayıtları"
   // tek bir uzun "Yönetici Paneli" sayfasının içinde alt başlıklar olarak
   // duruyordu — kullanıcı bunların diğer rollerin sayfaları gibi ☰ menüsünde

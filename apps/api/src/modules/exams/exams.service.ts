@@ -4,6 +4,7 @@ import { createAiServices } from "../../ai/ai.factory";
 import { examsRepository } from "./exams.repository";
 import { rubricsRepository } from "../rubrics/rubrics.repository";
 import { questionsRepository } from "../questions/questions.repository";
+import { usersRepository } from "../users/users.repository";
 import { HttpError } from "../../shared/middleware/error-handler";
 import { newId } from "../../shared/lib/id";
 import { aiEvaluations } from "../../shared/db/schema";
@@ -16,6 +17,7 @@ export const examsService = {
       createdBy: string;
       durationMinutes?: number;
       questionIds: { questionId: string; points: number }[];
+      allowedEmails?: string[];
     },
   ) {
     const db = createDb(env.DB);
@@ -27,6 +29,13 @@ export const examsService = {
 
     if (data.questionIds.length > 0) {
       await examsRepository.addQuestions(db, examId, data.questionIds);
+    }
+
+    // Boş/verilmemiş = herkese açık (varsayılan). Doluysa sadece bu e-postalar
+    // sınavı görüp girebilir (bkz. listForStudent / startAttempt).
+    const emails = (data.allowedEmails ?? []).map((email) => email.trim()).filter(Boolean);
+    if (emails.length > 0) {
+      await examsRepository.addAllowedEmails(db, examId, emails);
     }
 
     return examId;
@@ -50,14 +59,24 @@ export const examsService = {
    * satırı) birleştiriliyor; gerçek kayıt startAttempt'te ilk girişte oluşuyor. */
   async listForStudent(env: Bindings, studentId: string) {
     const db = createDb(env.DB);
+    const student = await usersRepository.findById(db, studentId);
     const [assigned, published] = await Promise.all([
       examsRepository.assignmentsForStudent(db, studentId),
       examsRepository.listPublished(db),
     ]);
 
     const assignedExamIds = new Set(assigned.map((a) => a.examId));
-    const notYetSeen = published
-      .filter((exam) => !assignedExamIds.has(exam.id))
+    const notYetSeenCandidates = published.filter((exam) => !assignedExamIds.has(exam.id));
+    // İzinli e-posta listesi olan sınavlar, sadece o listedeki öğrencilere
+    // "henüz görülmemiş" olarak görünsün — herkese açık sınavlar (boş liste)
+    // eskisi gibi davranmaya devam ediyor.
+    const allowedChecks = await Promise.all(
+      notYetSeenCandidates.map((exam) =>
+        student ? examsRepository.isStudentAllowed(db, exam.id, student.email) : Promise.resolve(false),
+      ),
+    );
+    const notYetSeen = notYetSeenCandidates
+      .filter((_, index) => allowedChecks[index])
       .map((exam) => ({
         id: `virtual_${exam.id}`,
         examId: exam.id,
@@ -80,6 +99,14 @@ export const examsService = {
       // sınava kimse giremez.
       const exam = await examsRepository.findById(db, examId);
       if (!exam || exam.status !== "published") throw new HttpError(403, "exam_not_available");
+
+      // İzinli e-posta listesi varsa (eğitmen sınırladıysa), sadece o listedeki
+      // öğrenciler ilk kez girip kendine atayabilir — listede olmayan biri
+      // (ör. sınav linkini/adını bir şekilde öğrenmiş olsa bile) giremez.
+      const student = await usersRepository.findById(db, studentId);
+      const allowed = student ? await examsRepository.isStudentAllowed(db, examId, student.email) : false;
+      if (!allowed) throw new HttpError(403, "exam_not_available");
+
       await examsRepository.assignStudents(db, examId, [studentId]);
       assignment = await examsRepository.findAssignment(db, examId, studentId);
       if (!assignment) throw new HttpError(500, "assignment_creation_failed");
@@ -196,6 +223,16 @@ export const examsService = {
     await examsRepository.setAssignmentStatus(db, attempt.examAssignmentId, "submitted");
 
     return { mcqSubtotal, ungradableOpenEnded };
+  },
+
+  // Eğitmenin sonuçlar ekranı — bu sınava giren/atanmış her öğrenci, isme göre
+  // sıralı (bkz. exams.repository.ts#resultsForExam).
+  resultsForExam(env: Bindings, examId: string) {
+    return examsRepository.resultsForExam(createDb(env.DB), examId);
+  },
+
+  studentAnswersForExam(env: Bindings, examId: string, studentId: string) {
+    return examsRepository.answersForStudentInExam(createDb(env.DB), examId, studentId);
   },
 
   /** Bir soruya sonradan rubrik eklendiğinde (ör. onaylanırken unutulmuş),

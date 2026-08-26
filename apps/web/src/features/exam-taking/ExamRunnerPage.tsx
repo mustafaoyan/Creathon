@@ -177,15 +177,19 @@ export function ExamRunnerPage() {
           </p>
         )}
         {active.questions.map((question) => (
-          <div key={question.id}>
+          // İnce kırmızı çerçeve + kendi padding'i — önceden sorular arasında
+          // hiçbir görsel ayraç yoktu, uzun sorularda birbirine karışıyordu
+          // (kullanıcı testinde bulundu).
+          <div key={question.id} className="rounded-md border border-primary/50 p-4">
             <p className="font-medium">{question.body}</p>
             {question.type === "multiple_choice" && question.options ? (
-              <div className="mt-2 flex flex-col gap-2">
+              <div className="mt-2 flex flex-col gap-1.5">
                 {question.options.map((option) => (
-                  <label key={option.id} className="flex items-center gap-2">
+                  <label key={option.id} className="flex items-center gap-1.5">
                     <input
                       type="radio"
                       name={question.questionId}
+                      className="m-0 shrink-0"
                       disabled={timeIsUp}
                       checked={answers[question.questionId] === option.id}
                       onChange={() => saveAnswer(question.questionId, { selectedOptionId: option.id })}

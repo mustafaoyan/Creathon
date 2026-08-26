@@ -5,13 +5,17 @@ import {
   examQuestions,
   examAssignments,
   examAttempts,
+  examAllowedEmails,
   studentAnswers,
   questions,
   questionOptions,
   aiEvaluations,
+  finalGrades,
+  users,
   type AssignmentStatus,
 } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
+import { normalizeEmail } from "../../shared/lib/normalize-email";
 
 export const examsRepository = {
   async create(db: Database, data: { title: string; createdBy: string; durationMinutes: number | null }) {
@@ -66,6 +70,30 @@ export const examsRepository = {
 
   async publish(db: Database, examId: string) {
     await db.update(exams).set({ status: "published" }).where(eq(exams.id, examId));
+  },
+
+  async addAllowedEmails(db: Database, examId: string, emails: string[]) {
+    if (emails.length === 0) return;
+    await db
+      .insert(examAllowedEmails)
+      .values(emails.map((email) => ({ id: newId("examallow"), examId, email: normalizeEmail(email) })))
+      .onConflictDoNothing();
+  },
+
+  listAllowedEmails(db: Database, examId: string) {
+    return db.select({ email: examAllowedEmails.email }).from(examAllowedEmails).where(eq(examAllowedEmails.examId, examId));
+  },
+
+  /** Boş liste = herkese açık (mevcut varsayılan davranış). Liste doluysa sadece
+   * o e-postalar erişebilir. */
+  async isStudentAllowed(db: Database, examId: string, studentEmail: string) {
+    const allowed = await db
+      .select({ email: examAllowedEmails.email })
+      .from(examAllowedEmails)
+      .where(eq(examAllowedEmails.examId, examId));
+    if (allowed.length === 0) return true;
+    const normalized = normalizeEmail(studentEmail);
+    return allowed.some((row) => row.email === normalized);
   },
 
   /** Öğrenci elle seçilmiyor artık — yayınlanmış her sınav, giren her öğrenciye
@@ -220,5 +248,90 @@ export const examsRepository = {
       .from(questionOptions)
       .where(eq(questionOptions.questionId, questionId))
       .orderBy(questionOptions.orderIndex);
+  },
+
+  // Eğitmenin sonuçlar ekranı — bu sınava atanmış/giren her öğrenci ayrı satır,
+  // isme göre sıralı ("öğrencilerin puanını isim ve soyismine göre girsin").
+  resultsForExam(db: Database, examId: string) {
+    return db
+      .select({
+        assignmentId: examAssignments.id,
+        studentId: examAssignments.studentId,
+        studentName: users.name,
+        studentEmail: users.email,
+        status: examAssignments.status,
+        totalScore: examAttempts.totalScore,
+        submittedAt: examAttempts.submittedAt,
+      })
+      .from(examAssignments)
+      .innerJoin(users, eq(users.id, examAssignments.studentId))
+      .leftJoin(examAttempts, eq(examAttempts.examAssignmentId, examAssignments.id))
+      .where(eq(examAssignments.examId, examId))
+      .orderBy(users.name);
+  },
+
+  // Eğitmenin bir öğrencinin cevaplarını + AI değerlendirmelerini görebildiği
+  // detay ekranı — soru sırasına göre (examQuestions.orderIndex).
+  async answersForStudentInExam(db: Database, examId: string, studentId: string) {
+    const [assignment] = await db
+      .select({ id: examAssignments.id })
+      .from(examAssignments)
+      .where(and(eq(examAssignments.examId, examId), eq(examAssignments.studentId, studentId)))
+      .limit(1);
+    if (!assignment) return [];
+
+    const [attempt] = await db
+      .select({ id: examAttempts.id })
+      .from(examAttempts)
+      .where(eq(examAttempts.examAssignmentId, assignment.id))
+      .limit(1);
+    if (!attempt) return [];
+
+    const rows = await db
+      .select({
+        examQuestionId: examQuestions.id,
+        orderIndex: examQuestions.orderIndex,
+        points: examQuestions.points,
+        questionId: questions.id,
+        questionBody: questions.body,
+        questionType: questions.type,
+        selectedOptionId: studentAnswers.selectedOptionId,
+        answerText: studentAnswers.answerText,
+        aiSuggestedScore: aiEvaluations.suggestedScore,
+        aiJustification: aiEvaluations.justification,
+        aiCriteriaBreakdown: aiEvaluations.criteriaBreakdown,
+        finalScore: finalGrades.score,
+      })
+      .from(examQuestions)
+      .innerJoin(questions, eq(questions.id, examQuestions.questionId))
+      .leftJoin(
+        studentAnswers,
+        and(eq(studentAnswers.attemptId, attempt.id), eq(studentAnswers.questionId, examQuestions.questionId)),
+      )
+      .leftJoin(aiEvaluations, eq(aiEvaluations.studentAnswerId, studentAnswers.id))
+      .leftJoin(finalGrades, eq(finalGrades.studentAnswerId, studentAnswers.id))
+      .where(eq(examQuestions.examId, examId))
+      .orderBy(examQuestions.orderIndex);
+
+    // Çoktan seçmeli sorularda doğru şıkkı + tüm şıkları da ekliyoruz ki
+    // eğitmen öğrencinin neyi işaretlediğini doğru cevapla karşılaştırabilsin.
+    return Promise.all(
+      rows.map(async (row) => ({
+        ...row,
+        options:
+          row.questionType === "multiple_choice"
+            ? await db
+                .select({
+                  id: questionOptions.id,
+                  label: questionOptions.label,
+                  body: questionOptions.body,
+                  isCorrect: questionOptions.isCorrect,
+                })
+                .from(questionOptions)
+                .where(eq(questionOptions.questionId, row.questionId))
+                .orderBy(questionOptions.orderIndex)
+            : undefined,
+      })),
+    );
   },
 };

@@ -2,10 +2,7 @@ import { eq, desc, and } from "drizzle-orm";
 import type { Database } from "../../shared/db/client";
 import { users, roleAllowlist, emailChangeRequests, type UserRole, type RoleAllowlistRole } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
-
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
+import { normalizeEmail } from "../../shared/lib/normalize-email";
 
 export const usersRepository = {
   async findByGoogleId(db: Database, googleId: string) {

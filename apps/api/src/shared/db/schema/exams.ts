@@ -18,6 +18,21 @@ export const exams = sqliteTable("exams", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+// Boş = herkese açık (yayınlanan her sınav, öğrenci olarak giren herkese
+// görünür — bkz. exams.service.ts). Eğitmen sınav oluştururken burada e-posta
+// eklerse, SADECE bu e-postalara sahip öğrenciler sınavı görüp girebilir.
+export const examAllowedEmails = sqliteTable(
+  "exam_allowed_emails",
+  {
+    id: text("id").primaryKey(),
+    examId: text("exam_id")
+      .notNull()
+      .references(() => exams.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+  },
+  (table) => ({ uniqueExamEmail: unique().on(table.examId, table.email) }),
+);
+
 export const examQuestions = sqliteTable("exam_questions", {
   id: text("id").primaryKey(),
   examId: text("exam_id")

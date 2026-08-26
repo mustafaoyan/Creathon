@@ -1,6 +1,6 @@
 import { eq, desc, and } from "drizzle-orm";
 import type { Database } from "../../shared/db/client";
-import { users, roleAllowlist, type UserRole, type RoleAllowlistRole } from "../../shared/db/schema";
+import { users, roleAllowlist, emailChangeRequests, type UserRole, type RoleAllowlistRole } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
 
 function normalizeEmail(email: string) {
@@ -15,6 +15,11 @@ export const usersRepository = {
 
   async findById(db: Database, id: string) {
     const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return row ?? null;
+  },
+
+  async findByEmail(db: Database, email: string) {
+    const [row] = await db.select().from(users).where(eq(users.email, normalizeEmail(email))).limit(1);
     return row ?? null;
   },
 
@@ -93,6 +98,44 @@ export const usersRepository = {
   async updateName(db: Database, id: string, name: string) {
     await db.update(users).set({ name, updatedAt: new Date() }).where(eq(users.id, id));
     return usersRepository.findById(db, id);
+  },
+
+  async updateEmail(db: Database, id: string, email: string) {
+    await db.update(users).set({ email: normalizeEmail(email), updatedAt: new Date() }).where(eq(users.id, id));
+    return usersRepository.findById(db, id);
+  },
+};
+
+export const emailChangeRequestsRepository = {
+  /** Aynı kullanıcının önceki bekleyen isteklerini silip yenisini ekliyor —
+   * her zaman en fazla bir aktif istek olsun (eski kod boşa doğrulanabilir
+   * kalmasın). */
+  async create(db: Database, data: { userId: string; newEmail: string; code: string; expiresAt: Date }) {
+    await db.delete(emailChangeRequests).where(eq(emailChangeRequests.userId, data.userId));
+    const id = newId("emailchg");
+    await db.insert(emailChangeRequests).values({
+      id,
+      userId: data.userId,
+      newEmail: normalizeEmail(data.newEmail),
+      code: data.code,
+      expiresAt: data.expiresAt,
+      createdAt: new Date(),
+    });
+    return id;
+  },
+
+  async findLatestForUser(db: Database, userId: string) {
+    const [row] = await db
+      .select()
+      .from(emailChangeRequests)
+      .where(eq(emailChangeRequests.userId, userId))
+      .orderBy(desc(emailChangeRequests.createdAt))
+      .limit(1);
+    return row ?? null;
+  },
+
+  async deleteForUser(db: Database, userId: string) {
+    await db.delete(emailChangeRequests).where(eq(emailChangeRequests.userId, userId));
   },
 };
 

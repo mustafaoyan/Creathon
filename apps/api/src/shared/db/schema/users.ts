@@ -40,6 +40,21 @@ export const roleAllowlist = sqliteTable(
   (table) => ({ uniqueEmailRole: unique().on(table.email, table.role) }),
 );
 
+// E-posta değişikliği doğrulamalı — kullanıcı yeni e-postayı isterse, o adrese
+// 6 haneli bir kod gönderiliyor (Resend), doğru kod girilmeden `users.email`
+// değişmiyor. Aynı anda tek bir aktif istek olur (yenisi eskisini geçersiz kılar,
+// bkz. users.repository.ts#createEmailChangeRequest).
+export const emailChangeRequests = sqliteTable("email_change_requests", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  newEmail: text("new_email").notNull(),
+  code: text("code").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
   userId: text("user_id")

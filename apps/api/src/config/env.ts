@@ -17,6 +17,8 @@ export type Bindings = {
   CF_ACCOUNT_ID: string;
   CF_AI_GATEWAY_ID: string;
   AI_PROVIDER: string; // "anthropic" | "openai" — resolved by ai.factory.ts
+  RESEND_API_KEY: string; // e-posta değişikliği doğrulama kodu göndermek için (bkz. shared/lib/email.ts)
+  EMAIL_FROM: string; // ör. "RubriX <noreply@hititai.com>"
 };
 
 export type DocumentProcessingMessage = {

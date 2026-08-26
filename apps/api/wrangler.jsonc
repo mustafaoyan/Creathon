@@ -54,14 +54,14 @@
   },
 
   // Gizli olmayan config. Gizli değerler (`wrangler secret put <NAME>`):
-  //   GOOGLE_CLIENT_SECRET, ANTHROPIC_API_KEY
+  //   GOOGLE_CLIENT_SECRET, ANTHROPIC_API_KEY, RESEND_API_KEY
   "vars": {
     "GOOGLE_CLIENT_ID": "920108344500-e5e30hsr3f6kb9rirpthhkk5ojaq2g30.apps.googleusercontent.com",
     // 2026-08-25: özel domain'e geçildi (app.hititai.com). Eski workers.dev URL'i
-    // hâlâ çalışıyor ama Google OAuth callback tek bir redirect_uri kullanıyor —
-    // bu yüzden artık kullanıcılar SADECE app.hititai.com üzerinden giriş yapabilir
-    // (workers.dev'den giriş denerse OAuth adımında hata alır, uygulamanın geri
-    // kalanı yine de workers.dev'de gezilebilir durumda kalır).
+    // ÇALIŞMIYOR (bilinçli — Cloudflare aynı hesaptaki iki worker'ın service
+    // binding ile birbirini workers.dev üzerinden çağırmasını engelliyor, "error
+    // code 1042"; custom domain'de sorun yok). Google OAuth callback de zaten tek
+    // bir redirect_uri kullanıyor, artık sadece app.hititai.com üzerinden geçerli.
     "GOOGLE_REDIRECT_URI": "https://app.hititai.com/api/auth/google/callback",
     "SESSION_COOKIE_SECURE": "true",
     "CF_ACCOUNT_ID": "4c93a1fdd11680cf952f1bf1c7f8f9b9",
@@ -70,7 +70,11 @@
     // veriyor ("credit balance too low") — gerçek testte doğrulandı, "workers-ai"a
     // geri alındı. Muhtemelen kredi yanlış hesaba/API key'e eklendi ya da
     // henüz işlenmedi. Gerçekten doğrulanınca "anthropic" yapılabilir.
-    "AI_PROVIDER": "workers-ai"
+    "AI_PROVIDER": "workers-ai",
+    // Bilgilerim > E-posta Değiştir doğrulama kodları buradan gönderiliyor
+    // (bkz. shared/lib/email.ts). hititai.com Resend'de doğrulanmadan bu adres
+    // gerçek e-posta gönderemez — sadece Resend'in test/sandbox kısıtlarına tabi olur.
+    "EMAIL_FROM": "RubriX <noreply@hititai.com>"
   },
 
   "observability": {

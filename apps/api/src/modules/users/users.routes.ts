@@ -26,6 +26,23 @@ usersRoutes.patch("/me", async (c) => {
   return c.json({ user });
 });
 
+// E-posta değişikliği iki adımlı: önce yeni adrese kod gönderiliyor, sonra
+// kullanıcı o kodu girip onaylıyor. `email_and_valid_role_required` gibi
+// ayrıntılı hata kodları frontend'de kullanıcıya özel mesaj göstermek için.
+usersRoutes.post("/me/email/request-change", async (c) => {
+  const { newEmail } = await c.req.json<{ newEmail?: string }>();
+  if (typeof newEmail !== "string" || !newEmail.trim()) throw new HttpError(422, "new_email_required");
+  await usersService.requestEmailChange(c.env, c.get("userId"), newEmail);
+  return c.json({ ok: true });
+});
+
+usersRoutes.post("/me/email/confirm-change", async (c) => {
+  const { code } = await c.req.json<{ code?: string }>();
+  if (typeof code !== "string" || !code.trim()) throw new HttpError(422, "code_required");
+  const user = await usersService.confirmEmailChange(c.env, c.get("userId"), code);
+  return c.json({ user });
+});
+
 usersRoutes.post("/me/avatar", async (c) => {
   const body = await c.req.parseBody();
   const file = body["file"];

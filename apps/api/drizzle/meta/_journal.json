@@ -43,6 +43,13 @@
       "when": 1787684290903,
       "tag": "0005_whole_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1787758177200,
+      "tag": "0006_needy_bastion",
+      "breakpoints": true
     }
   ]
 }

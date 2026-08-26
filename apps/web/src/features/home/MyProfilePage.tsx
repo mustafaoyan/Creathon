@@ -30,6 +30,14 @@ export function MyProfilePage() {
   const [nameDraft, setNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
 
+  // "view": sadece göster. "editEmail": yeni adres gir + kod gönder.
+  // "editCode": kutuya gelen kodu gir + onayla.
+  const [emailStep, setEmailStep] = useState<"view" | "editEmail" | "editCode">("view");
+  const [newEmailDraft, setNewEmailDraft] = useState("");
+  const [codeDraft, setCodeDraft] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchCurrentUser().then((res) => setUser(res.user));
   }, []);
@@ -54,6 +62,55 @@ export function MyProfilePage() {
       toast.error("Ad Soyad güncellenemedi, tekrar dene.");
       setSavingName(false);
     }
+  }
+
+  const EMAIL_ERROR_LABELS: Record<string, string> = {
+    invalid_email: "Geçerli bir e-posta adresi gir.",
+    email_unchanged: "Bu zaten mevcut e-posta adresin.",
+    email_already_in_use: "Bu e-posta adresi başka bir hesapta kayıtlı.",
+    too_many_requests: "Az önce bir kod gönderildi — birkaç saniye bekleyip tekrar dene.",
+    invalid_code: "Kod yanlış.",
+    code_expired: "Kodun süresi doldu, tekrar kod iste.",
+    no_pending_email_change: "Bekleyen bir istek bulunamadı, baştan başla.",
+  };
+
+  async function requestEmailCode() {
+    setEmailError(null);
+    setEmailBusy(true);
+    try {
+      await apiClient.post("/api/users/me/email/request-change", { newEmail: newEmailDraft.trim() });
+      toast.success(`${newEmailDraft.trim()} adresine bir doğrulama kodu gönderildi.`);
+      setCodeDraft("");
+      setEmailStep("editCode");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setEmailError(EMAIL_ERROR_LABELS[message] ?? "Kod gönderilemedi, tekrar dene.");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function confirmEmailCode() {
+    setEmailError(null);
+    setEmailBusy(true);
+    try {
+      await apiClient.post("/api/users/me/email/confirm-change", { code: codeDraft.trim() });
+      toast.success("E-posta adresin güncellendi.");
+      // Ad Soyad'daki gibi — Sidebar/üst başlık ayrı bir yerde sunucudan gelen
+      // initialUser'ı kullanıyor, tutarlı görünmesi için sayfa yenileniyor.
+      window.location.reload();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setEmailError(EMAIL_ERROR_LABELS[message] ?? "Doğrulanamadı, tekrar dene.");
+      setEmailBusy(false);
+    }
+  }
+
+  function cancelEmailChange() {
+    setEmailStep("view");
+    setNewEmailDraft("");
+    setCodeDraft("");
+    setEmailError(null);
   }
 
   useEffect(() => {
@@ -111,7 +168,92 @@ export function MyProfilePage() {
             </span>
           </div>
         )}
-        <InfoRow label="E-posta" value={user.email} />
+        {emailStep === "view" && (
+          <div className="flex items-center justify-between gap-4 text-sm">
+            <span className="text-muted-foreground">E-posta</span>
+            <span className="flex items-center gap-2">
+              <span className="font-medium">{user.email}</span>
+              <button
+                type="button"
+                className="cursor-pointer text-xs text-primary underline-offset-2 hover:underline"
+                onClick={() => setEmailStep("editEmail")}
+              >
+                Değiştir
+              </button>
+            </span>
+          </div>
+        )}
+
+        {emailStep === "editEmail" && (
+          <div className="flex flex-col gap-2 text-sm">
+            <span className="text-muted-foreground">Yeni e-posta</span>
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                type="email"
+                placeholder="ornek@eposta.com"
+                className="flex-1 rounded-md border border-input px-2 py-1 text-sm"
+                value={newEmailDraft}
+                onChange={(event) => setNewEmailDraft(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && requestEmailCode()}
+                disabled={emailBusy}
+              />
+              <Button className="h-7 px-2 text-xs" onClick={requestEmailCode} disabled={emailBusy || !newEmailDraft.trim()}>
+                {emailBusy ? "Gönderiliyor..." : "Kod Gönder"}
+              </Button>
+              <button
+                type="button"
+                className="cursor-pointer text-xs text-muted-foreground underline-offset-2 hover:underline"
+                onClick={cancelEmailChange}
+                disabled={emailBusy}
+              >
+                İptal
+              </button>
+            </div>
+            {emailError && <p className="text-xs text-destructive">{emailError}</p>}
+          </div>
+        )}
+
+        {emailStep === "editCode" && (
+          <div className="flex flex-col gap-2 text-sm">
+            <span className="text-muted-foreground">
+              <strong className="font-medium text-foreground">{newEmailDraft.trim()}</strong> adresine gönderilen kod
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                inputMode="numeric"
+                placeholder="6 haneli kod"
+                className="flex-1 rounded-md border border-input px-2 py-1 text-sm"
+                value={codeDraft}
+                onChange={(event) => setCodeDraft(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && confirmEmailCode()}
+                disabled={emailBusy}
+              />
+              <Button className="h-7 px-2 text-xs" onClick={confirmEmailCode} disabled={emailBusy || !codeDraft.trim()}>
+                {emailBusy ? "Doğrulanıyor..." : "Onayla"}
+              </Button>
+              <button
+                type="button"
+                className="cursor-pointer text-xs text-muted-foreground underline-offset-2 hover:underline"
+                onClick={cancelEmailChange}
+                disabled={emailBusy}
+              >
+                İptal
+              </button>
+            </div>
+            <button
+              type="button"
+              className="w-fit cursor-pointer text-xs text-primary underline-offset-2 hover:underline"
+              onClick={requestEmailCode}
+              disabled={emailBusy}
+            >
+              Kodu Tekrar Gönder
+            </button>
+            {emailError && <p className="text-xs text-destructive">{emailError}</p>}
+          </div>
+        )}
+
         <InfoRow label="Rol" value={user.role ? ROLE_LABELS[user.role] : "—"} />
       </div>
 

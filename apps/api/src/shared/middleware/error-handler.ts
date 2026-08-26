@@ -3,7 +3,7 @@ import type { AppEnv } from "../../config/env";
 
 export class HttpError extends Error {
   constructor(
-    public status: 400 | 401 | 403 | 404 | 409 | 422 | 500,
+    public status: 400 | 401 | 403 | 404 | 409 | 410 | 422 | 429 | 500,
     message: string,
   ) {
     super(message);

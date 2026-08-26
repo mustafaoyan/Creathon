@@ -14,6 +14,7 @@ const ROLE_LINKS: Record<UserRole, { href: string; label: string }[]> = {
   ],
   instructor: [
     { href: "/exams/new", label: "Sınav Oluştur" },
+    { href: "/exams/pool", label: "Soru Havuzu" },
     { href: "/exams/grading", label: "Puanlama Onayı" },
   ],
   student: [{ href: "/exams/take", label: "Sınavlarım" }],

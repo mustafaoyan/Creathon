@@ -7,6 +7,7 @@ import { UploadDocumentPage } from "@/features/content-management/UploadDocument
 import { GenerateQuestionsPage } from "@/features/content-management/GenerateQuestionsPage";
 import { QuestionReviewPanel } from "@/features/content-management/QuestionReviewPanel";
 import { CreateExamPage } from "@/features/exam-management/CreateExamPage";
+import { QuestionPoolPage } from "@/features/exam-management/QuestionPoolPage";
 import { GradingReviewPage } from "@/features/exam-management/GradingReviewPage";
 import { ExamRunnerPage } from "@/features/exam-taking/ExamRunnerPage";
 import { DashboardPage } from "@/features/admin-dashboard/DashboardPage";
@@ -35,6 +36,7 @@ export const ROUTES: AppRoute[] = [
   { path: "/content/generate", component: GenerateQuestionsPage, roles: ["content_creator"] },
   { path: "/content/review", component: QuestionReviewPanel, roles: ["content_creator"] },
   { path: "/exams/new", component: CreateExamPage, roles: ["instructor"] },
+  { path: "/exams/pool", component: QuestionPoolPage, roles: ["instructor"] },
   { path: "/exams/grading", component: GradingReviewPage, roles: ["instructor"] },
   { path: "/exams/take", component: ExamRunnerPage, roles: ["student"] },
   { path: "/dashboard", component: DashboardPage, roles: ["admin"] },

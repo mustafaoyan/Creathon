@@ -304,6 +304,15 @@ kaldırılıyor, metin siyaha/`nav`+`aside`+toast gizleniyor. `RoleGuardedLayout
 liste tek viewport'a sığdırılıp geri kalanı kesilirdi. **Bu print deseni herhangi bir sayfada
 tekrar kullanılabilir** (sadece `ExamResultsPage`'e özel değil, layout seviyesinde genel).
 
+**Soru üretimi 0 sonuç dönünce sessizce "tamamlandı" görünüyordu (kullanıcı testinde bulundu,
+gerçek prod verisiyle kök nedeni bulundu):** kaynak belge tek bir kısa paragrafsa (ör. 660 karakter),
+AI istenen sayıda (ör. 10) kaynağa dayalı/tekrarsız soru üretemeyip boş dizi döndürebiliyor — bu
+`ai_generation_jobs`'ta `status: completed, questionsGenerated: 0` olarak görünüyor, kullanıcıya
+hiçbir açıklama gitmiyordu. `questions.service.ts#processGenerationJob`, artık `generated.length
+=== 0` durumunu açıkça `no_questions_generated` sebebiyle "failed" işaretliyor —
+`GenerateQuestionsPage.tsx`'te "kaynak muhtemelen çok kısa, daha az soru iste ya da daha uzun
+kaynak yükle" mesajı gösteriliyor.
+
 ## Bekliyor (bilinçli olarak yapılmadı)
 
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

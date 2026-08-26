@@ -134,7 +134,9 @@ apps/web/src/
 | instructor | `/exams/new` | CreateExamPage (başlık/süre + seçili soru sayısı + Sınavı Oluştur) |
 | instructor | `/exams/pool` | QuestionPoolPage (parti bazlı soru seçimi — ayrı sayfa) |
 | instructor | `/exams/grading` | GradingReviewPage (AI puanlama onayı) |
+| instructor | `/exams/reports` | ExamResultsPage (sınav → öğrenci → cevap+AI detayı) |
 | student | `/exams/take` | ExamRunnerPage (sınavlarım + çözüm ekranı) |
+| student | `/exams/results` | StudentResultsPage (Sonucum) |
 | admin | `/dashboard`, `/admin` | DashboardPage (özet istatistikler) |
 | admin | `/admin/users` | UserManagementPage |
 | admin | `/admin/role-views` | RoleViewsPage ("... gözüyle" — diğer rollerin ekranlarını gez) |
@@ -224,6 +226,26 @@ geçerli, 60sn cooldown ile spam engelleniyor). `EMAIL_FROM` şu an `"RubriX <no
 (`wrangler.jsonc`) ama `hititai.com` Resend'de doğrulanmadan (DNS kayıtları) gerçek gönderim
 çalışmaz — secret henüz eklenmedi, `RESEND_API_KEY` gelince `wrangler secret put` ile eklenip
 canlıda uçtan uca test edilmeli.
+
+**Sınav sonuçları + e-posta ile katılımcı sınırlama (kullanıcı testinde bulundu — önceden eğitmen
+sonuçları öğrenci bazında ayrı ayrı göremiyordu, sınav herkese açık dışında bir seçenek yoktu):**
+- Yeni `ExamResultsPage.tsx` (`/exams/reports`, eğitmen) — üç seviyeli tek sayfa (route değişmeden,
+  local state): sınavlarım → o sınava giren her öğrenci (isme göre sıralı) → bir öğrencinin tüm
+  cevapları + AI değerlendirmesi (kriter bazlı gerekçeyle, MCQ'da doğru/işaretlenen şık
+  vurgulanarak). Backend: `GET /exams/:id/results`, `GET /exams/:id/results/:studentId`
+  (`exams.repository.ts#resultsForExam` / `#answersForStudentInExam`).
+- Yeni `StudentResultsPage.tsx` (`/exams/results`, öğrenci — "Sonucum") — aynı `/api/exams/my`
+  verisi, sonuca odaklı ayrı bir sunum.
+- `CreateExamPage.tsx`'te opsiyonel "Katılımcıları Sınırla" alanı — e-posta eklenirse SADECE o
+  e-postalar sınavı görüp girebilir (yeni `exam_allowed_emails` tablosu, migration `0007`); boş
+  bırakılırsa **mevcut "herkese açık" varsayılanı aynen sürüyor** (daha önceki bilinçli karar
+  bozulmadı, sadece opsiyonel bir override eklendi). `listForStudent` ve `startAttempt` ikisi de
+  `examsRepository.isStudentAllowed` ile kontrol ediyor.
+
+**Sınav ekranı UX düzeltmesi:** `ExamRunnerPage.tsx`'te her soru artık ince `border-primary/50`
+çerçeveli bir kutu — önceden sorular arasında hiçbir görsel ayraç yoktu, uzun sorularda birbirine
+karışıyordu. Çoktan seçmeli radyo/etiket arası boşluk da sıkılaştırıldı (`gap-1.5` + radyo'ya
+`m-0`, tarayıcının varsayılan radio margin'i fazladan boşluk yaratıyordu).
 
 ## Bekliyor (bilinçli olarak yapılmadı)
 

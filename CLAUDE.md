@@ -233,13 +233,13 @@ apps/web/src/
   `sessionStorage` sunucuda yok — okuma `useState` initializer'ında DEĞİL, mount sonrası bir
   `useEffect`'te yapılmalı (aksi halde SSR/hydration uyuşmazlığı ya da sunucuda crash riski var).
 
-**Doğrulamalı e-posta değiştirme (Resend) — RESEND_API_KEY secret'ı eklenene kadar ÇALIŞMIYOR.**
+**Doğrulamalı e-posta değiştirme (Resend) — 2026-08-26'da tamamlandı, ÇALIŞIYOR.**
 `/profile`'da E-posta yanındaki "Değiştir", yeni adrese `shared/lib/email.ts` üzerinden Resend HTTP
 API'siyle 6 haneli bir kod gönderiyor (`email_change_requests` tablosu, migration `0006`; kod 15dk
-geçerli, 60sn cooldown ile spam engelleniyor). `EMAIL_FROM` şu an `"RubriX <noreply@hititai.com>"`
-(`wrangler.jsonc`) ama `hititai.com` Resend'de doğrulanmadan (DNS kayıtları) gerçek gönderim
-çalışmaz — secret henüz eklenmedi, `RESEND_API_KEY` gelince `wrangler secret put` ile eklenip
-canlıda uçtan uca test edilmeli.
+geçerli, 60sn cooldown ile spam engelleniyor). `EMAIL_FROM` = `"RubriX <noreply@hititai.com>"`
+(`wrangler.jsonc`). `RESEND_API_KEY` secret'ı eklendi (`wrangler secret put`) ve `hititai.com`
+Resend'de doğrulanmış durumda — doğrudan Resend API'sine (`delivered@resend.dev` test adresine)
+canlı bir gönderim yapılarak hem key hem domain doğrulaması onaylandı.
 
 **Sınav sonuçları + e-posta ile katılımcı sınırlama (kullanıcı testinde bulundu — önceden eğitmen
 sonuçları öğrenci bazında ayrı ayrı göremiyordu, sınav herkese açık dışında bir seçenek yoktu):**
@@ -273,6 +273,15 @@ olarak asla çelişemez. Ayrıca Puanlama Onayı + Sonuçlar ekranlarında puanl
 formatında (`rubrics.maxScore` join'lenip taşınıyor) — önceden çıplak sayı (`84`) neyin
 üzerinden olduğunu göstermiyordu, kullanıcı testinde "anlamadım" diye bulundu.
 
+**Genel ders — `apiClient.post`/`.patch` çağıran her form'da try/catch zorunlu.** `UploadDocumentPage.tsx`'teki
+"Kazanımı Kaydet" akışında try/catch yoktu — istek başarısız olunca (`apiClient` başarısız
+response'ta throw ediyor) hata hiç yakalanmıyordu, "Kaydediliyor..." durumu sonsuza kadar ekranda
+kalıyordu (kullanıcı testinde bulundu; backend'in kendisi canlıda aynı payload'la ayrıca test
+edilip sorunsuz çalıştığı doğrulandı — o anki hata muhtemelen geçiciydi, ama UI'ın böyle bir
+durumda kurtarılamaz şekilde takılı kalması ayrı, gerçek bir bug'dı). Bu dosyadaki diğer form'lar
+(`handleUpload`, e-posta değiştirme, isim düzenleme) zaten try/catch içeriyordu — yeni bir form
+eklerken bu desen atlanmamalı.
+
 ## Bekliyor (bilinçli olarak yapılmadı)
 
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın
@@ -280,8 +289,8 @@ formatında (`rubrics.maxScore` join'lenip taşınıyor) — önceden çıplak s
 - Anthropic'e geçiş — kredi sorunu çözülmedi (bkz. Production Durumu).
 - Production'daki `sess_test_*` / `user_test_*` test verilerinin temizlenmesi — kullanıcı henüz
   karar vermedi.
-- E-posta değiştirme özelliği için Resend kurulumu (API key + hititai.com domain doğrulaması) —
-  yukarıya bkz.
+- Prod'da bulunan, eğitmen tarafından zaten onaylanmış hatalı bir AI puanı (bkz. yukarıdaki AI
+  puan tutarsızlığı notu) — kullanıcıya soruldu, düzeltilip düzeltilmeyeceğine dair henüz cevap yok.
 
 ## Geliştirme
 

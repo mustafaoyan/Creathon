@@ -67,7 +67,11 @@ listede olmasa bile HER ZAMAN geçiriyor — "Rol Görünümleri" ile diğer rol
 admin sadece bakmıyor, o rolün TÜM işlemlerini de yapabiliyor (sınav oluşturma, soru cevaplama,
 içerik yükleme vb. — kullanıcı isteği: "tüm yetkilere sahip olsun"). Bu istisna kasıtlı ve tek bir
 yerde (`requireRole`) uygulanıyor — yeni bir endpoint eklerken ayrıca admin kontrolü eklemeye
-gerek yok, otomatik geçer.
+gerek yok, otomatik geçer. Frontend'de de `Sidebar.tsx`'e `viewRole` akıyor
+(`RoleGuardedLayout.tsx#viewingAsAdmin` üzerinden) — admin bir rolü görüntülerken ☰ menü
+admin'in KENDİ linkleri yerine o rolün linklerini gösteriyor (üstte "← Yönetici Paneline
+Dön" ile), böylece o roldeki DİĞER sayfalara da (sadece ilk açtığı sayfayla sınırlı kalmadan)
+geçebiliyor.
 
 **Login ekranı iki kademeli:** nav'da doğrudan **"ÖĞRENCİ GİRİŞİ 🚀"** butonu var (öğrenci
 platformun asıl kullanıcı kitlesi olduğu için headline rol) — yanında **"DİĞER GİRİŞLER"** metin

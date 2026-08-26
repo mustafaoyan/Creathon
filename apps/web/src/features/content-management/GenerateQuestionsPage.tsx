@@ -308,6 +308,8 @@ const FAILURE_REASON_LABELS: Record<string, string> = {
   kullanici_tarafindan_iptal_edildi: "Kullanıcı tarafından iptal edildi.",
   zaman_asimi_iptal_edildi: "İşlem çok uzun sürdü ve otomatik olarak durduruldu — daha az soru ile tekrar dene.",
   no_grounded_chunks_found_for_outcome: "Kaynak belgede bu kazanımla eşleşen bir bölüm bulunamadı.",
+  no_questions_generated:
+    "AI, istenen sayıda soruyu kaynağa dayalı ve tekrarsız üretemedi — kaynak metin muhtemelen çok kısa. Daha az soru iste ya da daha uzun/detaylı bir kaynak yükle.",
 };
 
 function GenerationJobStatusCard({

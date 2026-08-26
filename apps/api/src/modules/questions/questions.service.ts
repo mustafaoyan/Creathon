@@ -122,6 +122,13 @@ export const questionsService = {
         counts: { multipleChoice: job.multipleChoiceCount, openEnded: job.openEndedCount },
       });
 
+      // Model, kaynak çok kısa/dar olduğunda (ör. tek bir kısa paragraf) istenen
+      // sayıda kaynağa dayalı, tekrarsız soru üretemeyip boş dizi döndürebiliyor
+      // — bu SESSİZCE "tamamlandı, 0 soru" olarak görünüyordu, kullanıcı neden
+      // olduğunu anlayamıyordu (kullanıcı testinde bulundu). Artık açıkça
+      // "failed" işaretlenip anlaşılır bir sebep gösteriliyor.
+      if (generated.length === 0) throw new Error("no_questions_generated");
+
       // AI çağrısı sürerken kullanıcı iptal ettiyse (ya da zaman aşımı işaretlediyse),
       // üretilen soruları havuza hiç ekleme — "iptal ettim ama sorular yine de
       // Onay Paneli'nde çıktı" gibi bir sürpriz olmasın.

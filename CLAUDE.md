@@ -331,6 +331,14 @@ hiçbir açıklama gitmiyordu. `questions.service.ts#processGenerationJob`, art�
 `GenerateQuestionsPage.tsx`'te "kaynak muhtemelen çok kısa, daha az soru iste ya da daha uzun
 kaynak yükle" mesajı gösteriliyor.
 
+**Glassmorphism kutu sınırları çok soluktu (2026-08-26, kullanıcı testinde bulundu):**
+`.rbx-glass` ve `.border-input` (globals.css) dolgusu (arka plan/blur) iyiydi ama border-color
+opaklığı çok düşüktü (%14) — kutunun nerede bittiği belli olmuyordu ("soru adedi" input'u gibi
+küçük alanlarda özellikle). Sadece border-color opaklığı artırıldı: `.rbx-glass` %24,
+`.border-input` %26 (dolgu/blur dokunulmadı, kasıtlı — kullanıcı net olarak arka plan
+şeffaflığından değil, çerçeve görünürlüğünden bahsetti). Beğenilmezse tek satırlık bir geri
+alma: her ikisinde de `color-mix(in srgb, white N%, transparent)`'teki N'i tekrar 14 yapmak yeterli.
+
 ## Bekliyor (bilinçli olarak yapılmadı)
 
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

@@ -52,19 +52,34 @@ export function DashboardPage() {
   );
 }
 
+// "i" rozeti önceden sadece native `title` (hover) tooltip'ine güveniyordu —
+// dokunmatik ekranda hiç açılmıyordu, masaüstünde de fark edilmesi zordu
+// (kullanıcı testinde bulundu: "bilgi çıkmıyor"). Artık RUBRIX NEDİR ile aynı
+// tıkla-aç/kapa deseni: buton, açıklamayı görünür bir kutuda gösteriyor.
 function StatCard({ label, value, help }: { label: string; value: string; help: string }) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="rounded-md border border-border p-4" title={help}>
+    <div className="relative rounded-md border border-border p-4">
       <p className="flex items-center gap-1 text-sm text-muted-foreground">
         {label}
-        <span
-          className="inline-flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full border border-muted-foreground/50 text-[10px] leading-none"
-          aria-label={help}
+        <button
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          aria-expanded={open}
+          aria-label={`${label} açıklaması`}
+          className="inline-flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full border border-muted-foreground/50 text-[10px] leading-none hover:border-primary hover:text-primary"
         >
           i
-        </span>
+        </button>
       </p>
       <p className="text-2xl font-bold">{value}</p>
+
+      {open && (
+        <div className="absolute left-0 top-full z-10 mt-2 w-64 rounded-md border border-border bg-background p-3 text-xs text-foreground shadow-lg">
+          {help}
+        </div>
+      )}
     </div>
   );
 }

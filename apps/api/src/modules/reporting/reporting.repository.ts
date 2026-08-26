@@ -11,6 +11,7 @@ import {
   questionOptions,
   auditLogs,
   users,
+  exams,
 } from "../../shared/db/schema";
 
 export const reportingRepository = {
@@ -48,21 +49,28 @@ export const reportingRepository = {
     return row;
   },
 
-  /** Raw per-answer rows for one student; aggregated into per-outcome mastery in the service layer. */
+  /** Raw per-answer rows for one student; aggregated into per-outcome mastery in the service layer.
+   * examId/examTitle/studentId de dahil — sınıf geneli raporunda "hangi sınava ait, kaç öğrenci
+   * girdi" detayını göstermek için (bkz. classOutcomeRows ve reporting.service.ts#aggregateByOutcome). */
   studentOutcomeRows(db: Database, studentId: string) {
     return db
       .select({
         outcomeId: learningOutcomes.id,
         outcomeTitle: learningOutcomes.title,
+        outcomeCreatedAt: learningOutcomes.createdAt,
         questionType: questions.type,
         isCorrect: questionOptions.isCorrect,
         finalScore: finalGrades.score,
+        examId: exams.id,
+        examTitle: exams.title,
+        studentId: examAssignments.studentId,
       })
       .from(studentAnswers)
       .innerJoin(questions, eq(questions.id, studentAnswers.questionId))
       .innerJoin(learningOutcomes, eq(learningOutcomes.id, questions.learningOutcomeId))
       .innerJoin(examAttempts, eq(examAttempts.id, studentAnswers.attemptId))
       .innerJoin(examAssignments, eq(examAssignments.id, examAttempts.examAssignmentId))
+      .innerJoin(exams, eq(exams.id, examAssignments.examId))
       .leftJoin(finalGrades, eq(finalGrades.studentAnswerId, studentAnswers.id))
       .leftJoin(questionOptions, eq(questionOptions.id, studentAnswers.selectedOptionId))
       .where(eq(examAssignments.studentId, studentId));
@@ -75,13 +83,20 @@ export const reportingRepository = {
       .select({
         outcomeId: learningOutcomes.id,
         outcomeTitle: learningOutcomes.title,
+        outcomeCreatedAt: learningOutcomes.createdAt,
         questionType: questions.type,
         isCorrect: questionOptions.isCorrect,
         finalScore: finalGrades.score,
+        examId: exams.id,
+        examTitle: exams.title,
+        studentId: examAssignments.studentId,
       })
       .from(studentAnswers)
       .innerJoin(questions, eq(questions.id, studentAnswers.questionId))
       .innerJoin(learningOutcomes, eq(learningOutcomes.id, questions.learningOutcomeId))
+      .innerJoin(examAttempts, eq(examAttempts.id, studentAnswers.attemptId))
+      .innerJoin(examAssignments, eq(examAssignments.id, examAttempts.examAssignmentId))
+      .innerJoin(exams, eq(exams.id, examAssignments.examId))
       .leftJoin(finalGrades, eq(finalGrades.studentAnswerId, studentAnswers.id))
       .leftJoin(questionOptions, eq(questionOptions.id, studentAnswers.selectedOptionId));
   },

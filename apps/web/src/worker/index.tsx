@@ -14,8 +14,6 @@ type ViteManifest = Record<string, ViteManifestEntry>;
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-let cachedManifest: ViteManifest | null = null;
-
 app.all("/api/*", (c) => c.env.API.fetch(c.req.raw));
 
 // `assets.run_worker_first` (wrangler.jsonc) sends every request through this
@@ -68,7 +66,16 @@ async function fetchSessionUser(api: Fetcher, request: Request): Promise<Session
 
 /** In dev, Vite's dev server transforms the literal source path on the fly. In
  * production there is no such path — `vite build` only emits hashed files under
- * /assets — so we read the manifest it wrote to find the real file names. */
+ * /assets — so we read the manifest it wrote to find the real file names.
+ *
+ * ÖNEMLİ: bu manifest ARTIK modül seviyesinde cache'lenmiyor (bir zamanlar
+ * `let cachedManifest` vardı) — gerçek bir prod bug'ıydı: bir Worker isolate
+ * ayakta kaldığı sürece manifest'i sadece İLK istekte okuyup sonsuza kadar
+ * bellekte tutuyordu, bu yüzden yeni bir deploy sonrası hâlâ SICAK olan bir
+ * isolate eski JS/CSS dosya adlarını göstermeye devam ediyordu — birkaç
+ * deploy boyunca gerçek kullanıcılar eski sürümü görmüş olabilir (kullanıcı
+ * testinde bulundu: yeni özellikler prod'da yoktu). Her istekte taze okumak
+ * (küçük bir JSON dosyası, maliyeti önemsiz) bu tutarsızlığı kökten kapatıyor. */
 async function resolveClientAssets(
   assets: Fetcher,
   requestUrl: string,
@@ -77,15 +84,12 @@ async function resolveClientAssets(
     return { script: "/src/client/main.tsx", css: ["/src/styles/globals.css"] };
   }
 
-  if (!cachedManifest) {
-    const manifestUrl = new URL("/manifest.json", requestUrl);
-    const response = await assets.fetch(new Request(manifestUrl));
-    cachedManifest = await response.json<ViteManifest>();
-  }
+  const manifestUrl = new URL("/manifest.json", requestUrl);
+  const response = await assets.fetch(new Request(manifestUrl));
+  const manifest = await response.json<ViteManifest>();
 
   const entry =
-    cachedManifest["src/client/main.tsx"] ??
-    Object.values(cachedManifest).find((candidate) => candidate.isEntry);
+    manifest["src/client/main.tsx"] ?? Object.values(manifest).find((candidate) => candidate.isEntry);
 
   if (!entry) throw new Error("client_entry_not_found_in_manifest");
 

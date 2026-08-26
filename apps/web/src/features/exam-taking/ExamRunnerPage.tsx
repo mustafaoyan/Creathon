@@ -151,7 +151,7 @@ export function ExamRunnerPage() {
 
   if (active) {
     return (
-      <div className="flex max-w-xl flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
         {confirmingSubmit && (
           <div
             ref={confirmBannerRef}
@@ -218,7 +218,7 @@ export function ExamRunnerPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-4">
       <h1 className="text-xl font-bold">Atanan Sınavlarım</h1>
       {startError && <p className="text-sm text-destructive">{startError}</p>}
       {assignments.map((assignment) => (

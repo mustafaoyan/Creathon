@@ -90,6 +90,15 @@ doğrulama sistemi henüz yok, "T3 ile giriş" gibi görünen bir metin kafa kar
 `UserManagementPage.tsx` (`PATCH /api/users/:id/role`) her durumda duruyor — rolleri sonradan
 değiştirmek/geri almak/askıya almak için (allowlist'ten bağımsız, admin'in her zamanki genel yetkisi).
 
+**Bir e-posta = bir rol (kullanıcı testinde bulundu — önceden bir hesap zaten aktif bir role
+sahipken başka bir rolün giriş butonundan girmeye çalışınca SESSİZCE eski role giriş yapıyordu,
+"eğitmen girişiyle girdim ama öğrenci oldum" gibi kafa karıştırıcı bir deneyimdi).**
+`auth.service.ts#handleGoogleCallback`, `googleId` ile eşleşen bir hesap bulunduğunda artık
+`requestedRole`'ü `user.role` ile karşılaştırıyor — farklıysa `RoleMismatchError` fırlatıyor,
+`auth.routes.ts` bunu yakalayıp `/login?authError=role_mismatch&actualRole=...`'a yönlendiriyor
+(ham bir JSON hata sayfası göstermek yerine — bu bir tarayıcı redirect akışı). `LoginPage.tsx`
+bu query param'ı okuyup "Bu e-posta zaten X olarak kayıtlı" toast'ı gösteriyor ve ilgili kartı açıyor.
+
 ## Klasör Yapısı
 
 ```

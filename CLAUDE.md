@@ -224,9 +224,14 @@ apps/web/src/
   bir state güncellemesi onları senkron tutmaz, `window.location.reload()` gerekir.
 - **Bu uygulamada client-side router yok — sayfalar arası her `<a href>` tam sayfa yenilemesi.**
   Çok adımlı bir akış (ör. sınav oluştururken farklı bir sayfaya gidip soru seçip geri dönmek)
-  birden fazla route'a yayılıyorsa, seçimi React state'inde tutmak yeterli değil — sayfa
-  değişince kaybolur. Bu yüzden `examPoolSelection.ts` gibi küçük bir `sessionStorage` sarmalayıcı
-  kullanılıyor (localStorage değil — sekme kapanınca yarım kalmış taslak otomatik temizlensin).
+  birden fazla route'a yayılıyorsa, React state'inde tutmak yeterli değil — sayfa değişince
+  TÜM state kaybolur (ilk denemede sadece soru seçimini `sessionStorage`'a taşımıştık, başlık/
+  süre/katılımcı listesi hâlâ plain state'teydi — kullanıcı testinde "soru seçince diğer alanlar
+  siliniyor" olarak bulundu). **Kural: aynı çok-adımlı akıştaki TÜM form alanları aynı
+  `sessionStorage` taslağında olmalı, sadece "seçim" gibi tek bir parça değil** — bkz.
+  `examDraft.ts` (localStorage değil — sekme kapanınca yarım kalmış taslak otomatik temizlensin).
+  `sessionStorage` sunucuda yok — okuma `useState` initializer'ında DEĞİL, mount sonrası bir
+  `useEffect`'te yapılmalı (aksi halde SSR/hydration uyuşmazlığı ya da sunucuda crash riski var).
 
 **Doğrulamalı e-posta değiştirme (Resend) — RESEND_API_KEY secret'ı eklenene kadar ÇALIŞMIYOR.**
 `/profile`'da E-posta yanındaki "Değiştir", yeni adrese `shared/lib/email.ts` üzerinden Resend HTTP

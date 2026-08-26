@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
-import { getSelectedQuestionIds, setSelectedQuestionIds } from "./examPoolSelection";
+import { getSelectedQuestionIds, setSelectedQuestionIds } from "./examDraft";
 
 type QuestionOption = { id: string; label: string; body: string; isCorrect: boolean };
 type QuestionRow = {

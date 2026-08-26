@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
-import { getSelectedQuestionIds, clearSelectedQuestionIds } from "./examPoolSelection";
+import { getExamDraft, updateExamDraft, getSelectedQuestionIds, clearExamDraft } from "./examDraft";
 
 function parseEmails(raw: string): string[] {
   return Array.from(
@@ -32,9 +32,20 @@ export function CreateExamPage() {
   const [wasRestricted, setWasRestricted] = useState(false);
   const [published, setPublished] = useState(false);
 
-  // Soru Havuzu artık ayrı bir sayfa (/exams/pool) — buraya dönünce (tam sayfa
-  // yenilemeyle) seçim sayısını sessionStorage'dan okuyoruz, bkz. examPoolSelection.ts.
+  // "Soru Havuzu" ayrı bir sayfa (/exams/pool) — buraya dönüş tam sayfa
+  // yenilemesi (client-side router yok), bu form da sıfırdan mount oluyor.
+  // Taslağı (başlık/süre/katılımcı listesi/soru seçimi) sessionStorage'dan
+  // (examDraft.ts) geri yüklüyoruz ki eğitmen doldurduğu bilgileri kaybetmesin
+  // (kullanıcı testinde bulundu — "soru seçtikten sonra bilgiler kayboluyor").
+  // sessionStorage sunucuda yok, bu yüzden SSR/hydration'ı bozmamak için
+  // burada, mount sonrası bir useEffect'te okunuyor (useState initializer'ında
+  // DEĞİL).
   useEffect(() => {
+    const draft = getExamDraft();
+    setTitle(draft.title);
+    setDurationMinutes(draft.durationMinutes);
+    setAllowlistRaw(draft.allowlistRaw);
+    if (draft.allowlistRaw.trim()) setShowAllowlist(true);
     setSelectedCount(getSelectedQuestionIds().size);
   }, []);
 
@@ -46,7 +57,7 @@ export function CreateExamPage() {
       questionIds: Array.from(getSelectedQuestionIds()).map((questionId) => ({ questionId, points: 10 })),
       allowedEmails: allowedEmails.length > 0 ? allowedEmails : undefined,
     });
-    clearSelectedQuestionIds();
+    clearExamDraft();
     setWasRestricted(allowedEmails.length > 0);
     setCreatedExamId(id);
     setStatus(null);
@@ -85,7 +96,10 @@ export function CreateExamPage() {
         className="rounded-md border border-input px-3 py-2"
         placeholder="Sınav başlığı"
         value={title}
-        onChange={(event) => setTitle(event.target.value)}
+        onChange={(event) => {
+          setTitle(event.target.value);
+          updateExamDraft({ title: event.target.value });
+        }}
       />
       <input
         className="rounded-md border border-input px-3 py-2"
@@ -93,7 +107,10 @@ export function CreateExamPage() {
         min={1}
         placeholder="Süre (dakika, boş bırakılırsa süresiz)"
         value={durationMinutes}
-        onChange={(event) => setDurationMinutes(event.target.value)}
+        onChange={(event) => {
+          setDurationMinutes(event.target.value);
+          updateExamDraft({ durationMinutes: event.target.value });
+        }}
       />
 
       <div className="flex flex-col gap-2 rounded-md border border-border p-3">
@@ -118,7 +135,10 @@ export function CreateExamPage() {
               placeholder={"ogrenci1@ornek.com\nogrenci2@ornek.com"}
               rows={4}
               value={allowlistRaw}
-              onChange={(event) => setAllowlistRaw(event.target.value)}
+              onChange={(event) => {
+                setAllowlistRaw(event.target.value);
+                updateExamDraft({ allowlistRaw: event.target.value });
+              }}
             />
           </div>
         )}

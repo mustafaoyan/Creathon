@@ -131,7 +131,8 @@ apps/web/src/
 | content_creator | `/content/upload` | UploadDocumentPage (belge yükle + kazanım tanımla) |
 | content_creator | `/content/generate` | GenerateQuestionsPage (AI ile soru üret) |
 | content_creator | `/content/review` | QuestionReviewPanel (soru onay) |
-| instructor | `/exams/new` | CreateExamPage (soru havuzundan sınav oluştur) |
+| instructor | `/exams/new` | CreateExamPage (başlık/süre + seçili soru sayısı + Sınavı Oluştur) |
+| instructor | `/exams/pool` | QuestionPoolPage (parti bazlı soru seçimi — ayrı sayfa) |
 | instructor | `/exams/grading` | GradingReviewPage (AI puanlama onayı) |
 | student | `/exams/take` | ExamRunnerPage (sınavlarım + çözüm ekranı) |
 | admin | `/dashboard`, `/admin` | DashboardPage (özet istatistikler) |
@@ -210,6 +211,11 @@ apps/web/src/
 - **Server-render edilen sayfalarda ayrı React ağaçları (Sidebar, üst başlık) sunucudan gelen
   `initialUser`'ı kullanıyor** — bir alt sayfada kullanıcı bilgisi (ör. isim) güncellenince tek
   bir state güncellemesi onları senkron tutmaz, `window.location.reload()` gerekir.
+- **Bu uygulamada client-side router yok — sayfalar arası her `<a href>` tam sayfa yenilemesi.**
+  Çok adımlı bir akış (ör. sınav oluştururken farklı bir sayfaya gidip soru seçip geri dönmek)
+  birden fazla route'a yayılıyorsa, seçimi React state'inde tutmak yeterli değil — sayfa
+  değişince kaybolur. Bu yüzden `examPoolSelection.ts` gibi küçük bir `sessionStorage` sarmalayıcı
+  kullanılıyor (localStorage değil — sekme kapanınca yarım kalmış taslak otomatik temizlensin).
 
 ## Bekliyor (bilinçli olarak yapılmadı)
 

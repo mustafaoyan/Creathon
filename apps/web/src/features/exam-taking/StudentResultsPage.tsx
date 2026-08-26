@@ -36,7 +36,15 @@ export function StudentResultsPage() {
             <p className="font-medium">{assignment.title}</p>
             <p className="text-sm text-muted-foreground">{STATUS_LABELS[assignment.status] ?? assignment.status}</p>
             {(assignment.status === "submitted" || assignment.status === "graded") && assignment.totalScore !== null && (
-              <p className="mt-1 text-lg font-semibold text-primary">{assignment.totalScore.toFixed(1)} puan</p>
+              <>
+                <p className="mt-1 text-lg font-semibold text-primary">{assignment.totalScore.toFixed(1)} puan</p>
+                {assignment.status === "submitted" && (
+                  <p className="text-xs text-muted-foreground">
+                    Bu sadece çoktan seçmeli soruların puanı — açık uçlu soruların puanı eğitmen onayladıktan sonra
+                    toplam puana eklenecek.
+                  </p>
+                )}
+              </>
             )}
           </div>
         ))}

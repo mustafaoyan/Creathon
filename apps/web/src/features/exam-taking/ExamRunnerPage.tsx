@@ -229,8 +229,14 @@ export function ExamRunnerPage() {
             {(assignment.status === "submitted" || assignment.status === "graded") &&
               assignment.totalScore !== null && (
                 <p className="text-sm font-semibold text-primary">
-                  Puan: {assignment.totalScore.toFixed(1)}
-                  {assignment.status === "submitted" && " (kısmi — açık uçlu sorular onaylanınca güncellenecek)"}
+                  {assignment.status === "submitted" ? (
+                    <>
+                      Şu ana kadarki puan: {assignment.totalScore.toFixed(1)} — bu sadece çoktan seçmeli soruların
+                      puanı. Açık uçlu soruların puanı eğitmen onayladıktan sonra toplam puana eklenecek.
+                    </>
+                  ) : (
+                    <>Puan: {assignment.totalScore.toFixed(1)}</>
+                  )}
                 </p>
               )}
           </div>

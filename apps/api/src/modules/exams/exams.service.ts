@@ -290,10 +290,32 @@ async function scoreOpenEndedAnswer(
     id: newId("aieval"),
     studentAnswerId: params.answerId,
     rubricId: rubric.id,
-    suggestedScore: evaluation.suggestedScore,
+    // Modelin kendi ürettiği üst-seviye suggestedScore alanına GÜVENMİYORUZ —
+    // criteriaBreakdown'dan bağımsız üretiliyor ve gerçek prod'da tutarsız
+    // çıktığı görüldü (iki kriter de 0 iken suggestedScore 100 gelmişti,
+    // eğitmen bunu fark etmeden onaylamıştı). Kendi kriter ağırlıklı
+    // ortalamamızı hesaplayıp onu kaydediyoruz — criteriaBreakdown ile asla
+    // çelişemez, çünkü doğrudan ondan türetiliyor.
+    suggestedScore: weightedAverageScore(evaluation.criteriaBreakdown, criteria),
     justification: evaluation.justification,
     criteriaBreakdown: JSON.stringify(evaluation.criteriaBreakdown),
     aiProvider: ai.providerLabel,
     createdAt: new Date(),
   });
+}
+
+function weightedAverageScore(
+  breakdown: { criterionId: string; score: number }[],
+  criteria: { id: string; weight: number }[],
+): number {
+  const weightById = new Map(criteria.map((c) => [c.id, c.weight]));
+  let weightedSum = 0;
+  let weightTotal = 0;
+  for (const entry of breakdown) {
+    const weight = weightById.get(entry.criterionId);
+    if (weight === undefined) continue;
+    weightedSum += entry.score * weight;
+    weightTotal += weight;
+  }
+  return weightTotal === 0 ? 0 : Math.round(weightedSum / weightTotal);
 }

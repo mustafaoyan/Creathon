@@ -11,6 +11,7 @@ type PendingReview = {
   suggestedScore: number;
   justification: string;
   criteriaBreakdown: CriterionBreakdown[];
+  maxScore: number | null;
 };
 
 export function GradingReviewPage() {
@@ -53,13 +54,15 @@ export function GradingReviewPage() {
             <p className="mt-2 text-sm">{item.answerText}</p>
 
             <div className="mt-3 rounded-md bg-secondary/40 p-3 text-sm">
-              <p className="font-semibold">AI önerisi: {item.suggestedScore}</p>
+              <p className="font-semibold">
+                AI önerisi: {item.suggestedScore} / {item.maxScore ?? 100}
+              </p>
               <p className="mt-1 text-muted-foreground">{item.justification}</p>
               {item.criteriaBreakdown.length > 0 && (
                 <ul className="mt-2 flex flex-col gap-1 text-left">
                   {item.criteriaBreakdown.map((c) => (
                     <li key={c.criterionId} className="text-muted-foreground">
-                      <span className="font-medium text-foreground">{c.criterion}:</span> {c.score} — {c.comment}
+                      <span className="font-medium text-foreground">{c.criterion}:</span> {c.score} / 100 — {c.comment}
                     </li>
                   ))}
                 </ul>
@@ -71,10 +74,12 @@ export function GradingReviewPage() {
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
+                    max={item.maxScore ?? 100}
                     className="w-24 rounded-md border border-input px-2 py-1"
                     value={draftScore}
                     onChange={(event) => setDraftScore(Number(event.target.value))}
                   />
+                  <span className="text-xs text-muted-foreground">/ {item.maxScore ?? 100}</span>
                   <input
                     type="text"
                     placeholder="Değişiklik gerekçesi (opsiyonel)"

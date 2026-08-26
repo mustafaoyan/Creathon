@@ -1,10 +1,12 @@
 import { eq, and, isNull } from "drizzle-orm";
 import type { Database } from "../../shared/db/client";
-import { aiEvaluations, finalGrades, studentAnswers, questions } from "../../shared/db/schema";
+import { aiEvaluations, finalGrades, studentAnswers, questions, rubrics } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
 
 export const gradingRepository = {
-  /** AI evaluations still awaiting an instructor's final decision. */
+  /** AI evaluations still awaiting an instructor's final decision. maxScore de
+   * dahil — eğitmen "84" değil "84 / 100" görsün diye (kullanıcı testinde
+   * bulundu, "puanı anlamadım" şikayeti). */
   pendingReviews(db: Database) {
     return db
       .select({
@@ -17,11 +19,13 @@ export const gradingRepository = {
         questionBody: questions.body,
         attemptId: studentAnswers.attemptId,
         rubricId: questions.rubricId,
+        maxScore: rubrics.maxScore,
       })
       .from(aiEvaluations)
       .innerJoin(studentAnswers, eq(studentAnswers.id, aiEvaluations.studentAnswerId))
       .innerJoin(questions, eq(questions.id, studentAnswers.questionId))
       .leftJoin(finalGrades, eq(finalGrades.studentAnswerId, aiEvaluations.studentAnswerId))
+      .leftJoin(rubrics, eq(rubrics.id, questions.rubricId))
       .where(isNull(finalGrades.id));
   },
 

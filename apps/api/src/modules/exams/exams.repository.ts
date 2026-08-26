@@ -12,6 +12,7 @@ import {
   aiEvaluations,
   finalGrades,
   users,
+  rubrics,
   type AssignmentStatus,
 } from "../../shared/db/schema";
 import { newId } from "../../shared/lib/id";
@@ -300,6 +301,7 @@ export const examsRepository = {
         aiSuggestedScore: aiEvaluations.suggestedScore,
         aiJustification: aiEvaluations.justification,
         aiCriteriaBreakdown: aiEvaluations.criteriaBreakdown,
+        aiMaxScore: rubrics.maxScore,
         finalScore: finalGrades.score,
       })
       .from(examQuestions)
@@ -310,6 +312,7 @@ export const examsRepository = {
       )
       .leftJoin(aiEvaluations, eq(aiEvaluations.studentAnswerId, studentAnswers.id))
       .leftJoin(finalGrades, eq(finalGrades.studentAnswerId, studentAnswers.id))
+      .leftJoin(rubrics, eq(rubrics.id, questions.rubricId))
       .where(eq(examQuestions.examId, examId))
       .orderBy(examQuestions.orderIndex);
 

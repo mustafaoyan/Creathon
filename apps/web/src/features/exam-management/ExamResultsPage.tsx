@@ -24,6 +24,7 @@ type AnswerRow = {
   aiSuggestedScore: number | null;
   aiJustification: string | null;
   aiCriteriaBreakdown: string | null;
+  aiMaxScore: number | null;
   finalScore: number | null;
   options?: OptionRow[];
 };
@@ -125,10 +126,10 @@ export function ExamResultsPage() {
                 {answer.aiSuggestedScore !== null && (
                   <div className="rounded-md bg-secondary/40 p-3 text-sm">
                     <p className="font-semibold">
-                      AI önerisi: {answer.aiSuggestedScore}
+                      AI önerisi: {answer.aiSuggestedScore} / {answer.aiMaxScore ?? 100}
                       {answer.finalScore !== null && answer.finalScore !== answer.aiSuggestedScore && (
                         <span className="ml-2 font-normal text-muted-foreground">
-                          (eğitmen puanı: {answer.finalScore})
+                          (eğitmen puanı: {answer.finalScore} / {answer.aiMaxScore ?? 100})
                         </span>
                       )}
                     </p>
@@ -138,7 +139,7 @@ export function ExamResultsPage() {
                         {(JSON.parse(answer.aiCriteriaBreakdown) as { score: number; comment: string }[]).map(
                           (criterion, index) => (
                             <li key={index} className="text-muted-foreground">
-                              {criterion.score} — {criterion.comment}
+                              {criterion.score} / 100 — {criterion.comment}
                             </li>
                           ),
                         )}
@@ -147,7 +148,9 @@ export function ExamResultsPage() {
                   </div>
                 )}
                 {answer.finalScore !== null && answer.aiSuggestedScore === null && (
-                  <p className="text-sm font-semibold text-primary">Puan: {answer.finalScore}</p>
+                  <p className="text-sm font-semibold text-primary">
+                    Puan: {answer.finalScore} / {answer.aiMaxScore ?? 100}
+                  </p>
                 )}
               </div>
             )}

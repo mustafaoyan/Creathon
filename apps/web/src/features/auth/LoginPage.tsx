@@ -2,8 +2,16 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { TeknofestNav, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
+import { toast } from "@/lib/toast";
 
 type Role = "content_creator" | "instructor" | "student" | "admin";
+
+const ROLE_LABELS: Record<Role, string> = {
+  instructor: "Eğitmen",
+  content_creator: "İçerik Uzmanı",
+  student: "Öğrenci",
+  admin: "Eğitim Yöneticisi",
+};
 
 const ROLE_COPY: Record<Role, { title: string; description: string }> = {
   instructor: {
@@ -37,6 +45,22 @@ export function LoginPage() {
   useEffect(() => {
     if (reveal) rolesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [reveal]);
+
+  // Bir hesap zaten bir role sahipse, başka bir rolün giriş butonuyla girmeye
+  // çalışmak artık backend'de reddediliyor (auth.routes.ts) — buraya
+  // ?authError=role_mismatch&actualRole=... ile geri yönlendiriliyoruz,
+  // kullanıcının anlayacağı bir mesaj gösterip ilgili kartı açıyoruz.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get("authError");
+    if (authError !== "role_mismatch") return;
+
+    const actualRole = params.get("actualRole") as Role | null;
+    const actualRoleLabel = actualRole ? ROLE_LABELS[actualRole] : "farklı bir rol";
+    toast.error(`Bu e-posta zaten ${actualRoleLabel} olarak kayıtlı — o rolün giriş butonunu kullan.`);
+    setReveal(actualRole === "student" ? "student" : "others");
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   return (
     // Nav artık kendi arka planını taşımıyor (bkz. TeknofestNav.tsx) ve BURADA

@@ -7,7 +7,7 @@ import { createDb } from "../../shared/db/client";
 import { newId } from "../../shared/lib/id";
 import { USER_ROLES, type UserRole } from "../../shared/db/schema";
 import { usersRepository } from "../users/users.repository";
-import { authService } from "./auth.service";
+import { authService, RoleMismatchError } from "./auth.service";
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -64,7 +64,20 @@ authRoutes.get("/google/callback", async (c) => {
       ? (requestedRoleCookie as UserRole)
       : null;
 
-  const { sessionId } = await authService.handleGoogleCallback(c.env, code, requestedRole);
+  let sessionId: string;
+  try {
+    ({ sessionId } = await authService.handleGoogleCallback(c.env, code, requestedRole));
+  } catch (error) {
+    // Bu bir tarayıcı yönlendirmesi (Google buraya redirect ediyor) — ham bir
+    // JSON hata sayfası göstermek yerine giriş ekranına, kullanıcının
+    // anlayacağı bir mesajla geri dönüyoruz.
+    if (error instanceof RoleMismatchError) {
+      deleteCookie(c, OAUTH_STATE_COOKIE, { path: "/" });
+      deleteCookie(c, OAUTH_REQUESTED_ROLE_COOKIE, { path: "/" });
+      return c.redirect(`/login?authError=role_mismatch&actualRole=${error.actualRole}`);
+    }
+    throw error;
+  }
   deleteCookie(c, OAUTH_STATE_COOKIE, { path: "/" });
   deleteCookie(c, OAUTH_REQUESTED_ROLE_COOKIE, { path: "/" });
   setCookie(c, SESSION_COOKIE_NAME, sessionId, {

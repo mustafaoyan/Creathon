@@ -7,6 +7,17 @@ import { recordAuditLog } from "../../shared/lib/audit";
 import { usersRepository } from "../users/users.repository";
 import { buildGoogleAuthUrl, exchangeCodeForTokens, fetchGoogleUserInfo } from "./google-oauth";
 
+/** Bir e-posta sadece tek bir role ait olabilir — hesap zaten aktif bir role
+ * sahipse (ör. öğrenci), başka bir rolün giriş butonundan (ör. "Eğitmen
+ * Girişi") aynı Google hesabıyla girmeye çalışmak SESSİZCE eski role
+ * (öğrenci) giriş yaptırmamalı; bu kafa karıştırıcıydı (kullanıcı testinde
+ * bulundu — "eğitmen girişiyle girdim ama öğrenci olarak giriş yaptım"). */
+export class RoleMismatchError extends Error {
+  constructor(public actualRole: UserRole) {
+    super("role_mismatch");
+  }
+}
+
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 export const authService = {
@@ -28,6 +39,8 @@ export const authService = {
         avatarUrl: profile.picture,
         requestedRole,
       });
+    } else if (requestedRole && user.role && user.role !== requestedRole) {
+      throw new RoleMismatchError(user.role);
     }
     if (!user) throw new Error("user_creation_failed");
 

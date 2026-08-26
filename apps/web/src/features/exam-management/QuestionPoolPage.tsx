@@ -3,11 +3,13 @@ import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { getSelectedQuestionIds, setSelectedQuestionIds } from "./examPoolSelection";
 
+type QuestionOption = { id: string; label: string; body: string; isCorrect: boolean };
 type QuestionRow = {
   id: string;
   body: string;
   type: "multiple_choice" | "open_ended";
   generationJobId: string | null;
+  options?: QuestionOption[];
 };
 type BatchRow = { id: string; title: string | null; createdAt: string };
 
@@ -219,6 +221,19 @@ function BatchQuestionPicker({
                 {TYPE_LABELS[question.type]}
               </span>
               <span>{question.body}</span>
+              {question.type === "multiple_choice" && question.options && (
+                <span className="mt-1 flex flex-col gap-0.5">
+                  {question.options.map((option) => (
+                    <span
+                      key={option.id}
+                      className={`text-xs ${option.isCorrect ? "font-medium text-primary" : "text-muted-foreground"}`}
+                    >
+                      {option.label}. {option.body}
+                      {option.isCorrect && " ✓"}
+                    </span>
+                  ))}
+                </span>
+              )}
             </span>
           </label>
         ))}

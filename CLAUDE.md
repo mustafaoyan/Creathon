@@ -62,6 +62,12 @@ tekrar yaşanabilecek gerçek tuzakları (gotcha) özetliyor.
 4 izole rol: `content_creator` (İçerik Uzmanı), `instructor` (Eğitmen), `student` (Öğrenci),
 `admin` (Eğitim Yöneticisi). Roller birbirinin işini yapamaz (içerik uzmanı sınav oluşturamaz,
 eğitmen soru üretemez, vb.) — bu bir öneri değil, üzerine kod yazılan sabit bir gereksinim.
+**Tek istisna: `admin`.** `requireRole(...)` middleware'i (`shared/middleware/rbac.ts`) admin'i
+listede olmasa bile HER ZAMAN geçiriyor — "Rol Görünümleri" ile diğer rollerin ekranlarına giren
+admin sadece bakmıyor, o rolün TÜM işlemlerini de yapabiliyor (sınav oluşturma, soru cevaplama,
+içerik yükleme vb. — kullanıcı isteği: "tüm yetkilere sahip olsun"). Bu istisna kasıtlı ve tek bir
+yerde (`requireRole`) uygulanıyor — yeni bir endpoint eklerken ayrıca admin kontrolü eklemeye
+gerek yok, otomatik geçer.
 
 **Login ekranı iki kademeli:** nav'da doğrudan **"ÖĞRENCİ GİRİŞİ 🚀"** butonu var (öğrenci
 platformun asıl kullanıcı kitlesi olduğu için headline rol) — yanında **"DİĞER GİRİŞLER"** metin

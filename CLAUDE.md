@@ -261,6 +261,18 @@ sonuçları öğrenci bazında ayrı ayrı göremiyordu, sınav herkese açık d
 karışıyordu. Çoktan seçmeli radyo/etiket arası boşluk da sıkılaştırıldı (`gap-1.5` + radyo'ya
 `m-0`, tarayıcının varsayılan radio margin'i fazladan boşluk yaratıyordu).
 
+**AI puanı kriter bazlı puanlarla tutarsız olabiliyordu (gerçek prod verisinde bulundu — kritik):**
+`AnswerScorerPort`'un döndürdüğü `suggestedScore` (üst-seviye) ve `criteriaBreakdown` (kriter bazlı
+alt-puanlar) modelde İKİ AYRI, birbirinden bağımsız üretilen alan — Workers AI (Llama 3.3 70B) bazen
+bunları tutarsız üretiyor. Gerçek bir örnekte iki kriter de 0 puan + "yetersiz" gerekçesiyken
+suggestedScore 100 gelmişti, eğitmen fark etmeden onaylamıştı (`final_grades`'e kadar işlemişti).
+**Kalıcı çözüm:** `exams.service.ts#scoreOpenEndedAnswer`, artık modelin `suggestedScore`
+alanını HİÇ KULLANMIYOR — kendi `weightedAverageScore()` fonksiyonuyla `criteriaBreakdown`'dan
+(rubrik kriter ağırlıklarına göre) hesaplayıp onu kaydediyor; bu iki alan artık matematiksel
+olarak asla çelişemez. Ayrıca Puanlama Onayı + Sonuçlar ekranlarında puanlar artık "84 / 100"
+formatında (`rubrics.maxScore` join'lenip taşınıyor) — önceden çıplak sayı (`84`) neyin
+üzerinden olduğunu göstermiyordu, kullanıcı testinde "anlamadım" diye bulundu.
+
 ## Bekliyor (bilinçli olarak yapılmadı)
 
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

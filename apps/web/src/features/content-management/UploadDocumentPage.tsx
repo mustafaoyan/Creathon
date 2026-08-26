@@ -109,18 +109,30 @@ export function UploadDocumentPage() {
   async function createOutcome(event: FormEvent) {
     event.preventDefault();
     setOutcomeStatus("Kaydediliyor...");
-    await apiClient.post("/api/content/learning-outcomes", {
-      title: outcomeTitle,
-      description: outcomeDescription || undefined,
-      topic: topic || undefined,
-      level,
-      documentId: outcomeDocumentId || undefined,
-    });
-    setOutcomeTitle("");
-    setOutcomeDescription("");
-    setTopic("");
-    setOutcomeStatus("Kazanım eklendi.");
-    refreshOutcomes();
+    // Önceden burada try/catch yoktu — istek başarısız olunca (ör. sunucu
+    // hatası) hiçbir şey görünmüyordu, "Kaydediliyor..." sonsuza kadar
+    // ekranda kalıyordu (kullanıcı testinde bulundu).
+    try {
+      await apiClient.post("/api/content/learning-outcomes", {
+        title: outcomeTitle,
+        description: outcomeDescription || undefined,
+        topic: topic || undefined,
+        level,
+        documentId: outcomeDocumentId || undefined,
+      });
+      setOutcomeTitle("");
+      setOutcomeDescription("");
+      setTopic("");
+      setOutcomeStatus("Kazanım eklendi.");
+      refreshOutcomes();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setOutcomeStatus(
+        message === "title_required"
+          ? "Kazanım başlığı gerekli."
+          : "Kazanım kaydedilemedi — tekrar dene.",
+      );
+    }
   }
 
   return (

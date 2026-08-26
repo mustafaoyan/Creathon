@@ -304,6 +304,24 @@ kaldırılıyor, metin siyaha/`nav`+`aside`+toast gizleniyor. `RoleGuardedLayout
 liste tek viewport'a sığdırılıp geri kalanı kesilirdi. **Bu print deseni herhangi bir sayfada
 tekrar kullanılabilir** (sadece `ExamResultsPage`'e özel değil, layout seviyesinde genel).
 
+**KRİTİK: SSR worker'da modül seviyesinde cache'lenen manifest, birkaç deploy'un gerçek
+trafiğe hiç ulaşmamasına sebep oldu (2026-08-26, kullanıcı testinde bulundu).**
+`worker/index.tsx#resolveClientAssets`'te bir zamanlar `let cachedManifest` vardı — Vite build
+manifest'ini (hangi JS/CSS dosyasının hangi hash'e sahip olduğunu) SADECE İLK istekte okuyup bir
+Worker isolate ayakta kaldığı sürece (Cloudflare isolate'ları saatlerce sıcak tutabiliyor) sonsuza
+kadar bellekte tutuyordu. `wrangler deploy` "başarılı" dese ve `wrangler deployments status/list`
+doğru Version ID'yi aktif gösterse bile, hâlâ sıcak olan bir isolate eski (bir önceki deploy'un)
+JS/CSS dosya adlarını sunmaya devam ediyordu — CSV/PDF dışa aktarma, RubriX Nedir panel genişliği
+ve soru üretimi 0-sonuç mesajı dahil birkaç deploy bu yüzden gerçek kullanıcılara hiç ulaşmamıştı.
+Cloudflare CDN cache'i SANILDI (`/manifest.json`'da `CF-Cache-Status: HIT` görülünce) ama bu bir
+kırmızı ringa balığıydı — asıl sorun tamamen uygulama kodundaydı. **Kalıcı çözüm:** modül
+seviyesi cache tamamen kaldırıldı, manifest artık HER istekte taze okunuyor (küçük bir JSON
+dosyası, maliyeti önemsiz). **Ders: bir Cloudflare Worker'da `let`/modül seviyesi bir değişkenle
+"pahalı I/O'yu cache'le" optimizasyonu yapılırken, o veri bir sonraki deploy'da değişebiliyorsa
+(build manifest'i gibi) bu KESİNLİKLE yapılmamalı — isolate'in deploy'lar arası ne kadar sıcak
+kalacağı garanti edilemez, bu da "deploy başarılı ama prod hâlâ eski" gibi teşhisi çok zor bir
+sessiz bug'a yol açar.**
+
 **Soru üretimi 0 sonuç dönünce sessizce "tamamlandı" görünüyordu (kullanıcı testinde bulundu,
 gerçek prod verisiyle kök nedeni bulundu):** kaynak belge tek bir kısa paragrafsa (ör. 660 karakter),
 AI istenen sayıda (ör. 10) kaynağa dayalı/tekrarsız soru üretemeyip boş dizi döndürebiliyor — bu

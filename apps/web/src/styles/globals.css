@@ -153,12 +153,15 @@ h1, h2, h3, h4, h5, h6, p, label {
    Kasıtlı olarak kırmızı/uzay TEKNOFEST temasının üzerine ekleniyor — palet
    değişmiyor, sadece doku/derinlik/mikro-etkileşim katmanı ekleniyor. */
 
-/* Sidebar, giriş kartları gibi yüzeyler için tek noktadan buzlu cam görünümü. */
+/* Sidebar, giriş kartları gibi yüzeyler için tek noktadan buzlu cam görünümü.
+   border burada 14%'ten 24%'e çıkarıldı (kullanıcı testinde bulundu: cam dolgu
+   çok şeffaf kalınca kutunun sınırı nerede bitiyor belli olmuyordu) — sadece
+   sınır çizgisi belirginleşti, dolgu (background/blur) aynı kaldı, kasıtlı. */
 .rbx-glass {
   background: color-mix(in srgb, white 8%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid color-mix(in srgb, white 14%, transparent);
+  border: 1px solid color-mix(in srgb, white 24%, transparent);
 }
 
 /* Tüm border-input alanları (proje genelinde ~20 yerde aynı sınıfla kullanılıyor,
@@ -169,9 +172,13 @@ h1, h2, h3, h4, h5, h6, p, label {
    koyu uzay arka planının üstünde saydam — açık sistem temasında koyu-üstüne-koyu
    (görünmez) metin riskini burada da (Google admin kodu input'u vb. dahil) bertaraf
    ediyor. */
+/* border-color 14%'ten 26%'ya çıkarıldı — aynı "çok şeffaf, kutu sınırı belli
+   değil" geri bildirimi (bkz. .rbx-glass'taki not). Input'larda .rbx-glass
+   kartlarından biraz daha belirgin tutuldu (26% > 24%) çünkü input'lar daha
+   küçük/dolu alanlar, ince şerit daha kolay gözden kaçıyor. */
 .border-input {
   background-color: color-mix(in srgb, white 5%, transparent);
-  border-color: color-mix(in srgb, white 14%, transparent);
+  border-color: color-mix(in srgb, white 26%, transparent);
   color: white;
   transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
 }

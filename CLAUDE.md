@@ -292,6 +292,18 @@ durumda kurtarılamaz şekilde takılı kalması ayrı, gerçek bir bug'dı). Bu
 (`handleUpload`, e-posta değiştirme, isim düzenleme) zaten try/catch içeriyordu — yeni bir form
 eklerken bu desen atlanmamalı.
 
+**Sınav sonuçları dışa aktarma (CSV + Yazdır/PDF) — jüri demosu için "gerçek ürün" hissi katmak
+amacıyla eklendi.** `ExamResultsPage.tsx`'te bir sınavın öğrenci listesinde "CSV İndir" (BOM'lu
+UTF-8 — Excel Türkçe karakterleri BOM olmadan bozuyor) ve "Yazdır / PDF" (`window.print()` —
+tarayıcının native "PDF olarak kaydet" seçeneği kullanılıyor, ayrı bir PDF kütüphanesi eklenmedi)
+var. Bunun için **genel bir `@media print` sıfırlaması** eklendi (`globals.css`) — tasarım tam
+ekran koyu uzay teması olduğu için düzeltilmeseydi çıktı "her şey siyah, yazı görünmez" olurdu:
+tüm arka plan görselleri (`!important` şart — inline `style` background-image'ı ancak öyle yenilir)
+kaldırılıyor, metin siyaha/`nav`+`aside`+toast gizleniyor. `RoleGuardedLayout.tsx`'teki
+`h-screen`+`overflow-hidden` kısıtlamaları da `print:` varyantıyla kaldırıldı — aksi halde uzun bir
+liste tek viewport'a sığdırılıp geri kalanı kesilirdi. **Bu print deseni herhangi bir sayfada
+tekrar kullanılabilir** (sadece `ExamResultsPage`'e özel değil, layout seviyesinde genel).
+
 ## Bekliyor (bilinçli olarak yapılmadı)
 
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

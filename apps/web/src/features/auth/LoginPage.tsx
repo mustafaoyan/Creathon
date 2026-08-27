@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { getGoogleLoginUrl, juryLogin } from "@/lib/auth-client";
+import { getGoogleLoginUrl, testAccountLogin } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { TeknofestNav, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
 import { toast } from "@/lib/toast";
@@ -36,7 +36,7 @@ const ROLE_COPY: Record<Role, { title: string; description: string }> = {
  * butonu var; diğer 3 rol (Eğitmen, İçerik Uzmanı, Admin) "Diğer Girişler"
  * arkasında, ayrı ayrı kartlarla açılıyor — bir öğrenci giriş yaparken
  * eğitmenin/adminin giriş seçeneklerini görmesin diye. */
-type RevealMode = null | "student" | "others" | "jury";
+type RevealMode = null | "student" | "others";
 
 export function LoginPage() {
   const [reveal, setReveal] = useState<RevealMode>(null);
@@ -60,18 +60,6 @@ export function LoginPage() {
     toast.error(`Bu e-posta zaten ${actualRoleLabel} olarak kayıtlı — o rolün giriş butonunu kullan.`);
     setReveal(actualRole === "student" ? "student" : "others");
     window.history.replaceState(null, "", window.location.pathname);
-  }, []);
-
-  // Jüri girişi BİLEREK sitede görünür bir buton/panel değil — normal bir
-  // ziyaretçinin karşısına "gizli bir admin girişi var" diye çıkmasın diye
-  // sadece bu gizli bağlantıyla (?jury=1) açılıyor (kullanıcı isteği: "neden
-  // yeni panel üretiyorsun" — haklıydı, görünür bir ürün yüzeyi olmamalıydı).
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("jury") === "1") {
-      setReveal("jury");
-      window.history.replaceState(null, "", window.location.pathname);
-    }
   }, []);
 
   return (
@@ -109,25 +97,21 @@ export function LoginPage() {
             <span className="inline-block h-1.5 w-16 rounded-full bg-primary" />
             <h1 className="text-3xl font-bold">RubriX</h1>
             <p className="text-white/70">
-              {reveal === "student" && "Öğrenci olarak giriş yap"}
-              {reveal === "others" && "Hangi rolle giriş yapmak istiyorsun?"}
-              {reveal === "jury" && "Jüri demo girişi — aynı e-posta ve şifreyle istediğin rolü seç"}
+              {reveal === "student" ? "Öğrenci olarak giriş yap" : "Hangi rolle giriş yapmak istiyorsun?"}
             </p>
           </div>
 
-          {reveal === "student" && (
+          {reveal === "student" ? (
             <div className="flex w-full max-w-xl flex-col gap-6">
               <RoleLoginCard role="student" primary />
             </div>
-          )}
-          {reveal === "others" && (
+          ) : (
             <div className="flex w-full max-w-xl flex-col gap-6">
               <RoleLoginCard role="instructor" primary />
               <RoleLoginCard role="content_creator" />
               <RoleLoginCard role="admin" />
             </div>
           )}
-          {reveal === "jury" && <JuryLoginPanel />}
         </div>
       )}
     </div>
@@ -206,86 +190,6 @@ function HeroCarousel() {
   );
 }
 
-const JURY_ROLE_OPTIONS: { value: Role; label: string }[] = [
-  { value: "content_creator", label: "İçerik Uzmanı" },
-  { value: "instructor", label: "Eğitmen" },
-  { value: "student", label: "Öğrenci" },
-  { value: "admin", label: "Eğitim Yöneticisi" },
-];
-
-/** Google OAuth'un bilinçli tek istisnası: jüri, kendi Google hesabı olmadan,
- * TEK e-posta + TEK şifreyle, her girişte seçtiği rolün GERÇEK hesabına
- * (admin'in "başka rolü izlemesi" değil) giriyor — çıkış yapıp aynı bilgilerle
- * başka bir rol seçerek tekrar girebiliyor (bkz. apps/api
- * auth.service.ts#juryLogin). */
-function JuryLoginPanel() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>("content_creator");
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setSubmitting(true);
-    try {
-      await juryLogin(email.trim(), password, role);
-      window.location.href = "/";
-    } catch {
-      toast.error("E-posta veya şifre hatalı.");
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex w-full max-w-xl flex-col gap-4 rounded-lg border-2 border-border bg-secondary/30 p-6 backdrop-blur-sm"
-    >
-      <div className="flex flex-wrap justify-center gap-2">
-        {JURY_ROLE_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => setRole(option.value)}
-            className={`cursor-pointer rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
-              role === option.value
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border text-muted-foreground hover:border-primary/40"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-      <input
-        type="email"
-        autoComplete="off"
-        placeholder="Jüri e-postası"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        required
-        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-      />
-      <input
-        type="password"
-        autoComplete="off"
-        placeholder="Şifre"
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        required
-        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-      />
-      <Button type="submit" className="w-full" disabled={submitting}>
-        {submitting ? "Giriş yapılıyor..." : `${JURY_ROLE_OPTIONS.find((o) => o.value === role)?.label} Olarak Giriş Yap`}
-      </Button>
-      <p className="text-center text-xs text-muted-foreground">
-        Aynı e-posta ve şifreyle, her girişte farklı bir rol seçebilirsin — bu, seçtiğin rolün
-        gerçek hesabıyla oturum açar. Rol değiştirmek için çıkış yapıp tekrar gir.
-      </p>
-    </form>
-  );
-}
-
 function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
   const [adminCode, setAdminCode] = useState("");
   const copy = ROLE_COPY[role];
@@ -344,6 +248,72 @@ function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
           olur — izinli değilsen hesabın onay bekleyecek.
         </p>
       )}
+
+      <TestAccountLogin role={role} />
     </div>
+  );
+}
+
+/** Google'ın kendi hosted OAuth sayfası (accounts.google.com) bizim kontrolümüzde
+ * değil — oraya yazılan bir e-postayı biz yakalayamayız, bu yüzden test hesabı
+ * girişi ayrı bir küçük alan olarak bu kartın İÇİNDE kalıyor (yeni bir panel/
+ * sayfa/buton değil). Varsayılan olarak kapalı — sadece "Test hesabıyla gir"
+ * metnine tıklanınca 2 küçük alan açılıyor. Doğru bilgiler bu kartın rolüne
+ * (`role`) göre GERÇEK bir oturum açıyor — bkz. apps/api
+ * auth.service.ts#testAccountLogin. */
+function TestAccountLogin({ role }: { role: Role }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      await testAccountLogin(email.trim(), password, role);
+      window.location.href = "/";
+    } catch {
+      toast.error("E-posta veya şifre hatalı.");
+      setSubmitting(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="cursor-pointer text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
+      >
+        Test hesabıyla gir
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
+      <input
+        type="email"
+        autoComplete="off"
+        placeholder="E-posta"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        required
+        className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs"
+      />
+      <input
+        type="password"
+        autoComplete="off"
+        placeholder="Şifre"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        required
+        className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs"
+      />
+      <Button type="submit" variant="outline" className="w-full text-xs" disabled={submitting}>
+        {submitting ? "Giriş yapılıyor..." : "Test Hesabıyla Giriş Yap"}
+      </Button>
+    </form>
   );
 }

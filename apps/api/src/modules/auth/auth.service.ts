@@ -20,21 +20,22 @@ export class RoleMismatchError extends Error {
 
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
-/** Jüri demo girişi — Google OAuth'un tamamen dışında, bilinçli bir istisna.
- * TEK bir e-posta + TEK bir şifre — ama admin'in "başka rolü izlemesi" değil,
- * jüri her seferinde HANGİ rolle gireceğini seçiyor ve o rolün GERÇEK
- * hesabıyla (user_test_content/instructor/student/admin) oturum açıyor.
- * Çıkış yapıp aynı e-posta+şifreyle başka bir rol seçerek tekrar girebilir
- * (kullanıcı isteği: "içerik üreticisine girdi baktı çıktı, sonra aynı
- * e-postayla öğrenciye girdi..." — admin+Rol Görünümleri bunu karşılamıyordu,
- * çünkü o gerçek bir öğrenci oturumu değil, admin'in "bakışıydı"). Şifre asla
- * düz metin saklanmıyor — SHA-256(şifre + ":" + JURY_LOGIN_PEPPER) hash'i bu
- * dosyada sabit, pepper ise sadece `wrangler secret put` ile prod'da (repoda
- * yok). Bu endpoint SADECE aşağıdaki tek e-postayı ve 4 sabit demo hesabını
- * kabul ediyor — gerçek kullanıcı hesaplarına bu yoldan asla giriş yapılamaz. */
-const JURY_PASSWORD_HASH = "2ab5c0af7b14c46f72d9636ee12dc80214833f1378105e9c82cc1dd528b4f8f1";
-const JURY_EMAIL = "juri@test.rubrix";
-const JURY_ROLE_USER_IDS: Record<UserRole, string> = {
+/** Test hesabı / Master-Bypass girişi — Google OAuth'un tamamen dışında,
+ * bilinçli tek bir istisna. UI'da AYRI bir panel/sayfa/buton YOK — mevcut rol
+ * kartlarının (Öğrenci/Eğitmen/İçerik Uzmanı) İÇİNDE, "Test hesabıyla gir" adlı
+ * küçük, varsayılan olarak kapalı bir alan olarak duruyor (bkz. LoginPage.tsx
+ * #TestAccountLogin). TEK bir e-posta + TEK bir şifre — hangi kartın
+ * formundan gönderildiyse `role` o oluyor, ve o rolün GERÇEK demo hesabıyla
+ * (user_test_content/instructor/student/admin) oturum açılıyor; admin'in
+ * "başka rolü izlemesi" değil. Çıkış yapıp aynı e-posta+şifreyle başka bir
+ * kartın formunu kullanarak tekrar girilebilir. Şifre asla düz metin
+ * saklanmıyor — SHA-256(şifre + ":" + JURY_LOGIN_PEPPER) hash'i bu dosyada
+ * sabit, pepper ise sadece `wrangler secret put` ile prod'da (repoda yok).
+ * Bu endpoint SADECE aşağıdaki tek e-postayı ve 4 sabit demo hesabını kabul
+ * ediyor — gerçek kullanıcı hesaplarına bu yoldan asla giriş yapılamaz. */
+const TEST_ACCOUNT_PASSWORD_HASH = "c3526685ad8ee02308996c930940623ec1403110f9c8988c95a129038917616d";
+const TEST_ACCOUNT_EMAIL = "test@hititai.com";
+const TEST_ACCOUNT_ROLE_USER_IDS: Record<UserRole, string> = {
   content_creator: "user_test_content",
   instructor: "user_test_instructor",
   student: "user_test_student",
@@ -48,9 +49,9 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-export class InvalidJuryCredentialsError extends Error {
+export class InvalidTestAccountCredentialsError extends Error {
   constructor() {
-    super("invalid_jury_credentials");
+    super("invalid_test_account_credentials");
   }
 }
 
@@ -98,19 +99,19 @@ export const authService = {
     return { sessionId, user };
   },
 
-  async juryLogin(env: Bindings, email: string, password: string, role: string) {
+  async testAccountLogin(env: Bindings, email: string, password: string, role: string) {
     const normalizedEmail = email.trim().toLowerCase();
-    if (normalizedEmail !== JURY_EMAIL) throw new InvalidJuryCredentialsError();
+    if (normalizedEmail !== TEST_ACCOUNT_EMAIL) throw new InvalidTestAccountCredentialsError();
 
     const submittedHash = await sha256Hex(`${password}:${env.JURY_LOGIN_PEPPER}`);
-    if (submittedHash !== JURY_PASSWORD_HASH) throw new InvalidJuryCredentialsError();
+    if (submittedHash !== TEST_ACCOUNT_PASSWORD_HASH) throw new InvalidTestAccountCredentialsError();
 
-    const targetUserId = JURY_ROLE_USER_IDS[role as UserRole];
-    if (!targetUserId) throw new InvalidJuryCredentialsError();
+    const targetUserId = TEST_ACCOUNT_ROLE_USER_IDS[role as UserRole];
+    if (!targetUserId) throw new InvalidTestAccountCredentialsError();
 
     const db = createDb(env.DB);
     const user = await usersRepository.findById(db, targetUserId);
-    if (!user) throw new InvalidJuryCredentialsError();
+    if (!user) throw new InvalidTestAccountCredentialsError();
 
     const sessionId = newId("sess");
     const now = new Date();
@@ -126,7 +127,7 @@ export const authService = {
       action: "user.login",
       entityType: "user",
       entityId: user.id,
-      metadata: { email: user.email, via: "jury_login" },
+      metadata: { email: user.email, via: "test_account_login" },
     });
 
     return { sessionId, user };

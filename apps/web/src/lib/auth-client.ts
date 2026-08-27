@@ -19,13 +19,13 @@ export function getGoogleLoginUrl(
   return `/api/auth/google?${params.toString()}`;
 }
 
-/** Jüri demo girişi — Google OAuth'un dışında, bilinçli tek bir istisna
- * (bkz. apps/api auth.service.ts#juryLogin). Tek e-posta + tek şifre; jüri
- * her girişte hangi rolle gireceğini seçiyor, o rolün gerçek demo hesabıyla
- * oturum açılıyor (admin'in "başka rolü izlemesi" değil). Gerçek kullanıcı
- * hesaplarına bu yoldan giriş yapılamaz. */
-export function juryLogin(email: string, password: string, role: UserRole) {
-  return apiClient.post("/api/auth/jury-login", { email, password, role });
+/** Google OAuth'un dışında, bilinçli tek bir istisna (bkz. apps/api
+ * auth.service.ts#testAccountLogin) — mevcut rol kartlarının İÇİNDEKİ "Test
+ * hesabıyla gir" alanı bunu çağırıyor. Tek sabit e-posta+şifre; hangi kartın
+ * formundan gönderildiyse (role) o rolün gerçek demo hesabıyla oturum açılıyor.
+ * Gerçek (Google ile kayıtlı) hesaplara bu yoldan giriş yapılamaz. */
+export function testAccountLogin(email: string, password: string, role: UserRole) {
+  return apiClient.post("/api/auth/test-login", { email, password, role });
 }
 
 export function fetchCurrentUser() {

@@ -7,7 +7,7 @@ import { createDb } from "../../shared/db/client";
 import { newId } from "../../shared/lib/id";
 import { USER_ROLES, type UserRole } from "../../shared/db/schema";
 import { usersRepository } from "../users/users.repository";
-import { authService, RoleMismatchError, InvalidJuryCredentialsError } from "./auth.service";
+import { authService, RoleMismatchError, InvalidTestAccountCredentialsError } from "./auth.service";
 
 export const authRoutes = new Hono<AppEnv>();
 
@@ -91,7 +91,7 @@ authRoutes.get("/google/callback", async (c) => {
   return c.redirect(POST_LOGIN_REDIRECT);
 });
 
-authRoutes.post("/jury-login", async (c) => {
+authRoutes.post("/test-login", async (c) => {
   const body = await c.req
     .json<{ email?: string; password?: string; role?: string }>()
     .catch(() => ({}) as { email?: string; password?: string; role?: string });
@@ -100,7 +100,7 @@ authRoutes.post("/jury-login", async (c) => {
   }
 
   try {
-    const { sessionId } = await authService.juryLogin(c.env, body.email, body.password, body.role);
+    const { sessionId } = await authService.testAccountLogin(c.env, body.email, body.password, body.role);
     setCookie(c, SESSION_COOKIE_NAME, sessionId, {
       httpOnly: true,
       sameSite: "Lax",
@@ -110,8 +110,8 @@ authRoutes.post("/jury-login", async (c) => {
     });
     return c.json({ ok: true });
   } catch (error) {
-    if (error instanceof InvalidJuryCredentialsError) {
-      throw new HttpError(401, "invalid_jury_credentials");
+    if (error instanceof InvalidTestAccountCredentialsError) {
+      throw new HttpError(401, "invalid_test_account_credentials");
     }
     throw error;
   }

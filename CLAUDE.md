@@ -339,31 +339,18 @@ küçük alanlarda özellikle). Sadece border-color opaklığı artırıldı: `.
 şeffaflığından değil, çerçeve görünürlüğünden bahsetti). Beğenilmezse tek satırlık bir geri
 alma: her ikisinde de `color-mix(in srgb, white N%, transparent)`'teki N'i tekrar 14 yapmak yeterli.
 
-**Test hesabı / Master-Bypass girişi (2026-08-27) — Google OAuth'un tek bilinçli istisnası,
-AYRI BİR PANEL/SAYFA/BUTON YOK.** Dört düzeltme turundan geçti, son hâli kalıcı:
-1. İlk denemede login ekranına herkese açık bir "JÜRİ GİRİŞİ" nav butonu eklenmişti — kullanıcı
-   haklı olarak itiraz etti ("neden yeni panel üretiyorsun").
-2. Sonra 4 rol için 4 ayrı e-posta/hesap vardı; kullanıcı "tek e posta ve şifreyle halledelim" dedi.
-3. Sonra kullanıcı gerçek isteğini netleştirdi: aynı e-posta+şifreyle içerik üreticisine girip
-   bakıp çıksın, AYNI bilgilerle öğrenciye girip bakıp çıksın — admin'in "Rol Görünümleri" ile
-   başka rolü İZLEMESİ bunu karşılamıyordu (gerçek bir öğrenci oturumu değil).
-4. Son turda kullanıcı "Act as a Senior Developer" diyerek AYRI BİR PANEL/BUTON/GİRİŞ EKRANI
-   istemediğini kesin bir dille tekrarladı — `JuryLoginPanel` bileşeni ve `/api/auth/jury-login`
-   TAMAMEN SİLİNDİ. **Kalıcı çözüm:** e-posta+şifre alanları artık AYRI bir bileşen/sayfa değil,
-   mevcut `RoleLoginCard`'ların (Öğrenci/Eğitmen/İçerik Uzmanı) İÇİNDE, varsayılan olarak kapalı,
-   küçük bir "Test hesabıyla gir" metin linkiyle açılan 2 alan (`LoginPage.tsx#TestAccountLogin`).
-   **Not: "sıfır UI değişikliği" harfiyen mümkün değildi** — Google'ın kendi hosted OAuth sayfası
-   (accounts.google.com) bizim kontrolümüzde değil, oraya yazılan bir e-postayı biz yakalayamayız;
-   bu yüzden en azından bir yerde yeni bir input alanı gerekiyordu. Bu, en minimal gerçekleştirme.
-   Backend: `POST /api/auth/test-login {email, password, role}` (`auth.service.ts#testAccountLogin`)
-   — `test@hititai.com` + `test2026` TEK sabit kimliği doğruluyor, `role` (hangi kartın formundan
-   gönderildiyse) hangi demo hesaba (`user_test_content/instructor/student/admin`, zaten var olan
-   `user_test_*` hesapları) GERÇEK oturum açılacağını seçiyor. Şifre asla düz metin tutulmuyor:
-   `SHA-256(şifre + ":" + JURY_LOGIN_PEPPER)` hash'i kodda sabit, pepper `wrangler secret put
-   JURY_LOGIN_PEPPER` ile sadece prod'da (repoda yok — env var adı tarihsel nedenlerle hâlâ
-   `JURY_LOGIN_PEPPER`, yeniden adlandırmak gereksiz bir secret rotasyonu olurdu). Bu yol SADECE
-   bu tek e-postayı kabul ediyor — gerçek (Google ile kayıtlı) kullanıcı hesaplarına bu formdan
-   asla giriş yapılamaz.
+**Jüri/test hesabı girişi denendi ve TAMAMEN GERİ ALINDI (2026-08-27) — tekrar denenmesin.**
+Jürinin Google hesabı olmadan rolleri test edebilmesi için dört farklı tasarım denendi (nav
+butonu → tek hesap → rol seçimi → mevcut kartların içine gömülü bypass) — her turda kullanıcı
+UI'da herhangi bir iz/yeni alan istemediğini netleştirdi. **Teknik gerçek: bu, sıfır-UI ile
+mümkün değil** — normal giriş butonları Google'ın kendi hosted OAuth sayfasına (accounts.google.com)
+gidiyor, bu sayfa bizim kontrolümüzde değil, oraya yazılan bir e-postayı biz yakalayamayız; bu
+yüzden herhangi bir e-posta+şifre bypass'ı en az bir yeni input alanı gerektirir. Kullanıcı bunu
+kabul etmek yerine özellikten TAMAMEN VAZGEÇTİ — "jüri kendi hesabıyla test etsin" dedi. Sonuç:
+`/api/auth/google` + `/api/auth/google/callback` dışında hiçbir giriş yolu yok, login ekranı
+ilk günkü hâliyle sadece Google OAuth kartları. `user_test_*` hesapları (bkz. Production Durumu)
+D1'de duruyor ama artık hiçbir giriş yolundan erişilemiyor — silinmedi (zararsız), kullanıcı
+isterse temizlenebilir.
 
 ## Bekliyor (bilinçli olarak yapılmadı)
 

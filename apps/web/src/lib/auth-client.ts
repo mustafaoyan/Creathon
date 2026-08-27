@@ -20,10 +20,12 @@ export function getGoogleLoginUrl(
 }
 
 /** Jüri demo girişi — Google OAuth'un dışında, bilinçli tek bir istisna
- * (bkz. apps/api auth.service.ts#juryLogin). Sadece 4 sabit e-posta kabul
- * ediliyor, gerçek kullanıcı hesaplarına bu yoldan giriş yapılamaz. */
-export function juryLogin(email: string, password: string) {
-  return apiClient.post("/api/auth/jury-login", { email, password });
+ * (bkz. apps/api auth.service.ts#juryLogin). Tek e-posta + tek şifre; jüri
+ * her girişte hangi rolle gireceğini seçiyor, o rolün gerçek demo hesabıyla
+ * oturum açılıyor (admin'in "başka rolü izlemesi" değil). Gerçek kullanıcı
+ * hesaplarına bu yoldan giriş yapılamaz. */
+export function juryLogin(email: string, password: string, role: UserRole) {
+  return apiClient.post("/api/auth/jury-login", { email, password, role });
 }
 
 export function fetchCurrentUser() {

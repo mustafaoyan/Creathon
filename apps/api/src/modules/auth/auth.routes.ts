@@ -93,12 +93,14 @@ authRoutes.get("/google/callback", async (c) => {
 
 authRoutes.post("/jury-login", async (c) => {
   const body = await c.req
-    .json<{ email?: string; password?: string }>()
-    .catch(() => ({}) as { email?: string; password?: string });
-  if (!body.email || !body.password) throw new HttpError(400, "email_and_password_required");
+    .json<{ email?: string; password?: string; role?: string }>()
+    .catch(() => ({}) as { email?: string; password?: string; role?: string });
+  if (!body.email || !body.password || !body.role) {
+    throw new HttpError(400, "email_password_and_role_required");
+  }
 
   try {
-    const { sessionId } = await authService.juryLogin(c.env, body.email, body.password);
+    const { sessionId } = await authService.juryLogin(c.env, body.email, body.password, body.role);
     setCookie(c, SESSION_COOKIE_NAME, sessionId, {
       httpOnly: true,
       sameSite: "Lax",

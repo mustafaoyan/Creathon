@@ -21,17 +21,25 @@ export class RoleMismatchError extends Error {
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 /** Jüri demo girişi — Google OAuth'un tamamen dışında, bilinçli bir istisna.
- * TEK bir e-posta + şifre (kullanıcı isteği: "tek e posta ve şifreyle
- * halledelim") — admin zaten TÜM rollerin ekranlarına ayrı ayrı, tam
- * fonksiyonel yetkiyle girebiliyor (bkz. rbac.ts'teki admin istisnası +
- * Sidebar > "Rol Görünümleri"), bu yüzden jüriye 4 ayrı hesap vermeye hiç
- * gerek yok. Şifre asla düz metin saklanmıyor — SHA-256(şifre + ":" +
- * JURY_LOGIN_PEPPER) hash'i bu dosyada sabit, pepper ise sadece
- * `wrangler secret put` ile prod'da (repoda yok). Bu endpoint SADECE
- * aşağıdaki tek e-postayı kabul ediyor — gerçek kullanıcı hesaplarına bu
- * yoldan asla giriş yapılamaz. */
+ * TEK bir e-posta + TEK bir şifre — ama admin'in "başka rolü izlemesi" değil,
+ * jüri her seferinde HANGİ rolle gireceğini seçiyor ve o rolün GERÇEK
+ * hesabıyla (user_test_content/instructor/student/admin) oturum açıyor.
+ * Çıkış yapıp aynı e-posta+şifreyle başka bir rol seçerek tekrar girebilir
+ * (kullanıcı isteği: "içerik üreticisine girdi baktı çıktı, sonra aynı
+ * e-postayla öğrenciye girdi..." — admin+Rol Görünümleri bunu karşılamıyordu,
+ * çünkü o gerçek bir öğrenci oturumu değil, admin'in "bakışıydı"). Şifre asla
+ * düz metin saklanmıyor — SHA-256(şifre + ":" + JURY_LOGIN_PEPPER) hash'i bu
+ * dosyada sabit, pepper ise sadece `wrangler secret put` ile prod'da (repoda
+ * yok). Bu endpoint SADECE aşağıdaki tek e-postayı ve 4 sabit demo hesabını
+ * kabul ediyor — gerçek kullanıcı hesaplarına bu yoldan asla giriş yapılamaz. */
 const JURY_PASSWORD_HASH = "2ab5c0af7b14c46f72d9636ee12dc80214833f1378105e9c82cc1dd528b4f8f1";
-const JURY_EMAILS = new Set(["admin@test.rubrix"]);
+const JURY_EMAIL = "juri@test.rubrix";
+const JURY_ROLE_USER_IDS: Record<UserRole, string> = {
+  content_creator: "user_test_content",
+  instructor: "user_test_instructor",
+  student: "user_test_student",
+  admin: "user_test_admin",
+};
 
 async function sha256Hex(input: string): Promise<string> {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
@@ -90,15 +98,18 @@ export const authService = {
     return { sessionId, user };
   },
 
-  async juryLogin(env: Bindings, email: string, password: string) {
+  async juryLogin(env: Bindings, email: string, password: string, role: string) {
     const normalizedEmail = email.trim().toLowerCase();
-    if (!JURY_EMAILS.has(normalizedEmail)) throw new InvalidJuryCredentialsError();
+    if (normalizedEmail !== JURY_EMAIL) throw new InvalidJuryCredentialsError();
 
     const submittedHash = await sha256Hex(`${password}:${env.JURY_LOGIN_PEPPER}`);
     if (submittedHash !== JURY_PASSWORD_HASH) throw new InvalidJuryCredentialsError();
 
+    const targetUserId = JURY_ROLE_USER_IDS[role as UserRole];
+    if (!targetUserId) throw new InvalidJuryCredentialsError();
+
     const db = createDb(env.DB);
-    const user = await usersRepository.findByEmail(db, normalizedEmail);
+    const user = await usersRepository.findById(db, targetUserId);
     if (!user) throw new InvalidJuryCredentialsError();
 
     const sessionId = newId("sess");

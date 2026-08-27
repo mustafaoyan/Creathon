@@ -111,7 +111,7 @@ export function LoginPage() {
             <p className="text-white/70">
               {reveal === "student" && "Öğrenci olarak giriş yap"}
               {reveal === "others" && "Hangi rolle giriş yapmak istiyorsun?"}
-              {reveal === "jury" && "Jüri demo girişi — tek hesapla tüm rolleri gezebilirsin"}
+              {reveal === "jury" && "Jüri demo girişi — aynı e-posta ve şifreyle istediğin rolü seç"}
             </p>
           </div>
 
@@ -206,19 +206,29 @@ function HeroCarousel() {
   );
 }
 
-/** Google OAuth'un bilinçli tek istisnası: jüri, kendi Google hesabı olmadan
- * 4 rolü de ayrı ayrı deneyebilsin diye e-posta+şifre girişi (bkz. apps/api
- * auth.service.ts#juryLogin — sadece 4 sabit demo e-postası kabul ediliyor). */
+const JURY_ROLE_OPTIONS: { value: Role; label: string }[] = [
+  { value: "content_creator", label: "İçerik Uzmanı" },
+  { value: "instructor", label: "Eğitmen" },
+  { value: "student", label: "Öğrenci" },
+  { value: "admin", label: "Eğitim Yöneticisi" },
+];
+
+/** Google OAuth'un bilinçli tek istisnası: jüri, kendi Google hesabı olmadan,
+ * TEK e-posta + TEK şifreyle, her girişte seçtiği rolün GERÇEK hesabına
+ * (admin'in "başka rolü izlemesi" değil) giriyor — çıkış yapıp aynı bilgilerle
+ * başka bir rol seçerek tekrar girebiliyor (bkz. apps/api
+ * auth.service.ts#juryLogin). */
 function JuryLoginPanel() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<Role>("content_creator");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setSubmitting(true);
     try {
-      await juryLogin(email.trim(), password);
+      await juryLogin(email.trim(), password, role);
       window.location.href = "/";
     } catch {
       toast.error("E-posta veya şifre hatalı.");
@@ -231,6 +241,22 @@ function JuryLoginPanel() {
       onSubmit={handleSubmit}
       className="flex w-full max-w-xl flex-col gap-4 rounded-lg border-2 border-border bg-secondary/30 p-6 backdrop-blur-sm"
     >
+      <div className="flex flex-wrap justify-center gap-2">
+        {JURY_ROLE_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => setRole(option.value)}
+            className={`cursor-pointer rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
+              role === option.value
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border text-muted-foreground hover:border-primary/40"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
       <input
         type="email"
         autoComplete="off"
@@ -250,11 +276,11 @@ function JuryLoginPanel() {
         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
       />
       <Button type="submit" className="w-full" disabled={submitting}>
-        {submitting ? "Giriş yapılıyor..." : "Giriş Yap"}
+        {submitting ? "Giriş yapılıyor..." : `${JURY_ROLE_OPTIONS.find((o) => o.value === role)?.label} Olarak Giriş Yap`}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
-        Giriş yaptıktan sonra ☰ menüden "Rol Görünümleri"ne git — İçerik Uzmanı, Eğitmen ve
-        Öğrenci ekranlarını, ayrı bir hesaba giriş yapmadan, tam yetkiyle tek tek gezebilirsin.
+        Aynı e-posta ve şifreyle, her girişte farklı bir rol seçebilirsin — bu, seçtiğin rolün
+        gerçek hesabıyla oturum açar. Rol değiştirmek için çıkış yapıp tekrar gir.
       </p>
     </form>
   );

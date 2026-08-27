@@ -25,15 +25,11 @@ const ABOUT_ROLES = [
 export function TeknofestNav({
   action,
   secondaryLink,
-  tertiaryLink,
 }: {
   action: NavAction;
   /** Login ekranında "Öğrenci Girişi" butonunun yanında, RUBRIX NEDİR ile aynı
    * stilde bir metin linki — diğer 3 rolün giriş kartlarını açar. */
   secondaryLink?: NavTextLink;
-  /** Sadece login ekranında: jüri demo girişini açan ayrı bir metin linki
-   * (bkz. LoginPage.tsx#JuryLoginPanel) — Google OAuth'un bilinçli istisnası. */
-  tertiaryLink?: NavTextLink;
 }) {
   const [showAbout, setShowAbout] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -66,15 +62,6 @@ export function TeknofestNav({
                 className="cursor-pointer transition-colors hover:text-primary"
               >
                 {secondaryLink.label}
-              </button>
-            )}
-            {tertiaryLink && (
-              <button
-                type="button"
-                onClick={tertiaryLink.onClick}
-                className="cursor-pointer text-white/60 transition-colors hover:text-primary"
-              >
-                {tertiaryLink.label}
               </button>
             )}
           </div>
@@ -138,18 +125,6 @@ export function TeknofestNav({
               className="cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold text-white transition-colors hover:bg-white/10"
             >
               {secondaryLink.label}
-            </button>
-          )}
-          {tertiaryLink && (
-            <button
-              type="button"
-              onClick={() => {
-                tertiaryLink.onClick();
-                setMobileMenuOpen(false);
-              }}
-              className="cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold text-white/70 transition-colors hover:bg-white/10"
-            >
-              {tertiaryLink.label}
             </button>
           )}
         </div>

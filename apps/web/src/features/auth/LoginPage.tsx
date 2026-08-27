@@ -62,6 +62,18 @@ export function LoginPage() {
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
+  // Jüri girişi BİLEREK sitede görünür bir buton/panel değil — normal bir
+  // ziyaretçinin karşısına "gizli bir admin girişi var" diye çıkmasın diye
+  // sadece bu gizli bağlantıyla (?jury=1) açılıyor (kullanıcı isteği: "neden
+  // yeni panel üretiyorsun" — haklıydı, görünür bir ürün yüzeyi olmamalıydı).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("jury") === "1") {
+      setReveal("jury");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
   return (
     // Nav artık kendi arka planını taşımıyor (bkz. TeknofestNav.tsx) ve BURADA
     // pt-16 (NAV_HEIGHT_CLASS) KASITLI OLARAK KULLANILMIYOR — onu kullansaydık
@@ -79,7 +91,6 @@ export function LoginPage() {
       <TeknofestNav
         action={{ label: "ÖĞRENCİ GİRİŞİ 🚀", onClick: () => setReveal("student") }}
         secondaryLink={{ label: "DİĞER GİRİŞLER", onClick: () => setReveal("others") }}
-        tertiaryLink={{ label: "JÜRİ GİRİŞİ", onClick: () => setReveal("jury") }}
       />
       <HeroCarousel />
 

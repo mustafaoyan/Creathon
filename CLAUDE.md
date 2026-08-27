@@ -339,23 +339,26 @@ küçük alanlarda özellikle). Sadece border-color opaklığı artırıldı: `.
 şeffaflığından değil, çerçeve görünürlüğünden bahsetti). Beğenilmezse tek satırlık bir geri
 alma: her ikisinde de `color-mix(in srgb, white N%, transparent)`'teki N'i tekrar 14 yapmak yeterli.
 
-**Jüri demo girişi (2026-08-27) — Google OAuth'un tek bilinçli istisnası, TEK hesap, GİZLİ giriş.**
-Jüri kendi Google hesabı olmadan tüm rolleri deneyebilsin diye bir e-posta+şifre formu eklendi.
-İlk denemede bu login ekranına herkese açık bir "JÜRİ GİRİŞİ" nav butonu olarak eklenmişti —
-kullanıcı haklı olarak itiraz etti ("neden yeni panel üretiyorsun"): canlı sitede rastgele bir
-ziyaretçinin de görebileceği bir admin-eşdeğeri giriş formu bırakmak gereksiz bir ürün yüzeyiydi.
-Artık BİLEREK görünür bir buton/link yok — form sadece `/login?jury=1` gizli sorgu parametresiyle
-açılıyor (`LoginPage.tsx`), normal bir ziyaretçi hiçbir iz görmüyor. Backend: `POST /api/auth/jury-login`
-(`auth.service.ts#juryLogin`) — SADECE `admin@test.rubrix`'i kabul ediyor (`user_test_admin`,
-zaten var olan bir `user_test_*` hesabı, bkz. Production Durumu). İlk denemede 4 ayrı rol için 4
-ayrı hesap açılmıştı; kullanıcı "tek e posta ve şifreyle halledelim" diye düzeltti — gerekmiyordu,
-çünkü admin zaten Sidebar'daki "Rol Görünümleri" ile diğer 3 rolün ekranlarına ayrı ayrı, TAM
-fonksiyonel yetkiyle giriyor (bkz. RBAC bölümündeki admin istisnası). Şifre asla düz metin
-tutulmuyor: `SHA-256(şifre + ":" + JURY_LOGIN_PEPPER)` hash'i kodda sabit (`JURY_PASSWORD_HASH`),
-pepper `wrangler secret put JURY_LOGIN_PEPPER` ile sadece prod'da (repoda yok, şifrenin kendisi
-de BİLEREK bu dosyada değil — proje sahibinde ayrı duruyor, sızıntı riski olduğu için commit
-edilmedi). Bu yol SADECE bu tek e-postayı kabul ediyor — gerçek (Google ile kayıtlı) kullanıcı
-hesaplarına bu formdan asla giriş yapılamaz.
+**Jüri demo girişi (2026-08-27) — Google OAuth'un tek bilinçli istisnası, TEK e-posta+şifre, GİZLİ
+giriş, GERÇEK rol oturumu.** Üç düzeltme turundan geçti, son hâli:
+1. İlk denemede login ekranına herkese açık bir "JÜRİ GİRİŞİ" nav butonu eklenmişti — kullanıcı
+   haklı olarak itiraz etti ("neden yeni panel üretiyorsun"). Artık BİLEREK görünür bir buton/link
+   yok, form sadece `/login?jury=1` gizli sorgu parametresiyle açılıyor (`LoginPage.tsx`).
+2. İlk denemede 4 rol için 4 ayrı e-posta/hesap vardı; kullanıcı "tek e posta ve şifreyle
+   halledelim" dedi — tek e-posta+şifreye indirildi.
+3. Sonra kullanıcı asıl istediğini netleştirdi: aynı e-posta+şifreyle içerik üreticisine girip
+   bakıp çıksın, sonra AYNI bilgilerle öğrenciye girip bakıp çıksın — yani her girişte seçtiği
+   rolün GERÇEK oturumunu istiyordu, admin'in "Rol Görünümleri" ile başka rolü İZLEMESİNİ değil
+   (o gerçek bir öğrenci oturumu değil). Bu yüzden `POST /api/auth/jury-login` artık
+   `{email, password, role}` alıyor (`auth.service.ts#juryLogin`): e-posta+şifre TEK sabit kimliği
+   doğruluyor (`JURY_EMAIL`, `JURY_PASSWORD_HASH`), `role` ise hangi demo hesaba
+   (`user_test_content/instructor/student/admin` — zaten var olan `user_test_*` hesapları, bkz.
+   Production Durumu) gerçek oturum açılacağını seçiyor. Frontend'de (`LoginPage.tsx`'teki
+   `JuryLoginPanel`) e-posta+şifrenin üstünde 4 rol arasından seçim yapan bir buton grubu var.
+   Şifre asla düz metin tutulmuyor: `SHA-256(şifre + ":" + JURY_LOGIN_PEPPER)` hash'i kodda sabit,
+   pepper `wrangler secret put JURY_LOGIN_PEPPER` ile sadece prod'da (repoda yok, şifrenin kendisi
+   de BİLEREK bu dosyada değil — proje sahibinde ayrı duruyor). Bu yol SADECE bu tek e-postayı
+   kabul ediyor — gerçek (Google ile kayıtlı) kullanıcı hesaplarına bu formdan asla giriş yapılamaz.
 
 ## Bekliyor (bilinçli olarak yapılmadı)
 

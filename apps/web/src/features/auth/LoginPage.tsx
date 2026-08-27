@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
-import { getGoogleLoginUrl, testAccountLogin } from "@/lib/auth-client";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { getGoogleLoginUrl } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { TeknofestNav, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
 import { toast } from "@/lib/toast";
@@ -248,72 +248,6 @@ function RoleLoginCard({ role, primary }: { role: Role; primary?: boolean }) {
           olur — izinli değilsen hesabın onay bekleyecek.
         </p>
       )}
-
-      <TestAccountLogin role={role} />
     </div>
-  );
-}
-
-/** Google'ın kendi hosted OAuth sayfası (accounts.google.com) bizim kontrolümüzde
- * değil — oraya yazılan bir e-postayı biz yakalayamayız, bu yüzden test hesabı
- * girişi ayrı bir küçük alan olarak bu kartın İÇİNDE kalıyor (yeni bir panel/
- * sayfa/buton değil). Varsayılan olarak kapalı — sadece "Test hesabıyla gir"
- * metnine tıklanınca 2 küçük alan açılıyor. Doğru bilgiler bu kartın rolüne
- * (`role`) göre GERÇEK bir oturum açıyor — bkz. apps/api
- * auth.service.ts#testAccountLogin. */
-function TestAccountLogin({ role }: { role: Role }) {
-  const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setSubmitting(true);
-    try {
-      await testAccountLogin(email.trim(), password, role);
-      window.location.href = "/";
-    } catch {
-      toast.error("E-posta veya şifre hatalı.");
-      setSubmitting(false);
-    }
-  }
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="cursor-pointer text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
-      >
-        Test hesabıyla gir
-      </button>
-    );
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex w-full flex-col gap-2">
-      <input
-        type="email"
-        autoComplete="off"
-        placeholder="E-posta"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        required
-        className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs"
-      />
-      <input
-        type="password"
-        autoComplete="off"
-        placeholder="Şifre"
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        required
-        className="w-full rounded-md border border-input bg-background px-3 py-1.5 text-xs"
-      />
-      <Button type="submit" variant="outline" className="w-full text-xs" disabled={submitting}>
-        {submitting ? "Giriş yapılıyor..." : "Test Hesabıyla Giriş Yap"}
-      </Button>
-    </form>
   );
 }

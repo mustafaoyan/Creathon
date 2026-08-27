@@ -19,15 +19,6 @@ export function getGoogleLoginUrl(
   return `/api/auth/google?${params.toString()}`;
 }
 
-/** Google OAuth'un dışında, bilinçli tek bir istisna (bkz. apps/api
- * auth.service.ts#testAccountLogin) — mevcut rol kartlarının İÇİNDEKİ "Test
- * hesabıyla gir" alanı bunu çağırıyor. Tek sabit e-posta+şifre; hangi kartın
- * formundan gönderildiyse (role) o rolün gerçek demo hesabıyla oturum açılıyor.
- * Gerçek (Google ile kayıtlı) hesaplara bu yoldan giriş yapılamaz. */
-export function testAccountLogin(email: string, password: string, role: UserRole) {
-  return apiClient.post("/api/auth/test-login", { email, password, role });
-}
-
 export function fetchCurrentUser() {
   return apiClient.get<{ user: SessionUser | null }>("/api/auth/me");
 }

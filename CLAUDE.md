@@ -339,9 +339,13 @@ küçük alanlarda özellikle). Sadece border-color opaklığı artırıldı: `.
 şeffaflığından değil, çerçeve görünürlüğünden bahsetti). Beğenilmezse tek satırlık bir geri
 alma: her ikisinde de `color-mix(in srgb, white N%, transparent)`'teki N'i tekrar 14 yapmak yeterli.
 
-**Jüri demo girişi (2026-08-27) — Google OAuth'un tek bilinçli istisnası, TEK hesap.**
-Jüri kendi Google hesabı olmadan tüm rolleri deneyebilsin diye login ekranına (nav'da
-"JÜRİ GİRİŞİ") bir e-posta+şifre formu eklendi. Backend: `POST /api/auth/jury-login`
+**Jüri demo girişi (2026-08-27) — Google OAuth'un tek bilinçli istisnası, TEK hesap, GİZLİ giriş.**
+Jüri kendi Google hesabı olmadan tüm rolleri deneyebilsin diye bir e-posta+şifre formu eklendi.
+İlk denemede bu login ekranına herkese açık bir "JÜRİ GİRİŞİ" nav butonu olarak eklenmişti —
+kullanıcı haklı olarak itiraz etti ("neden yeni panel üretiyorsun"): canlı sitede rastgele bir
+ziyaretçinin de görebileceği bir admin-eşdeğeri giriş formu bırakmak gereksiz bir ürün yüzeyiydi.
+Artık BİLEREK görünür bir buton/link yok — form sadece `/login?jury=1` gizli sorgu parametresiyle
+açılıyor (`LoginPage.tsx`), normal bir ziyaretçi hiçbir iz görmüyor. Backend: `POST /api/auth/jury-login`
 (`auth.service.ts#juryLogin`) — SADECE `admin@test.rubrix`'i kabul ediyor (`user_test_admin`,
 zaten var olan bir `user_test_*` hesabı, bkz. Production Durumu). İlk denemede 4 ayrı rol için 4
 ayrı hesap açılmıştı; kullanıcı "tek e posta ve şifreyle halledelim" diye düzeltti — gerekmiyordu,

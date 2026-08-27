@@ -100,7 +100,7 @@ export function LoginPage() {
             <p className="text-white/70">
               {reveal === "student" && "Öğrenci olarak giriş yap"}
               {reveal === "others" && "Hangi rolle giriş yapmak istiyorsun?"}
-              {reveal === "jury" && "Jüri demo girişi — her rol için ayrı bir e-posta kullan"}
+              {reveal === "jury" && "Jüri demo girişi — tek hesapla tüm rolleri gezebilirsin"}
             </p>
           </div>
 
@@ -242,7 +242,8 @@ function JuryLoginPanel() {
         {submitting ? "Giriş yapılıyor..." : "Giriş Yap"}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
-        Farklı bir rolü denemek için çıkış yapıp başka bir jüri e-postasıyla tekrar giriş yap.
+        Giriş yaptıktan sonra ☰ menüden "Rol Görünümleri"ne git — İçerik Uzmanı, Eğitmen ve
+        Öğrenci ekranlarını, ayrı bir hesaba giriş yapmadan, tam yetkiyle tek tek gezebilirsin.
       </p>
     </form>
   );

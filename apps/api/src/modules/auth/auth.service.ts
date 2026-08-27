@@ -21,19 +21,17 @@ export class RoleMismatchError extends Error {
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 /** Jüri demo girişi — Google OAuth'un tamamen dışında, bilinçli bir istisna.
- * Jüri üyelerinin 4 rolü ayrı ayrı, kendi Google hesaplarını kullanmadan
- * test edebilmesi için: sabit bir e-posta + paylaşılan bir şifre. Şifre asla
- * düz metin saklanmıyor — SHA-256(şifre + ":" + JURY_LOGIN_PEPPER) hash'i bu
- * dosyada sabit, pepper ise sadece `wrangler secret put` ile prod'da (repoda
- * yok). Bu endpoint SADECE aşağıdaki 4 sabit e-postayı kabul ediyor — gerçek
- * kullanıcı hesaplarına bu yoldan asla giriş yapılamaz. */
+ * TEK bir e-posta + şifre (kullanıcı isteği: "tek e posta ve şifreyle
+ * halledelim") — admin zaten TÜM rollerin ekranlarına ayrı ayrı, tam
+ * fonksiyonel yetkiyle girebiliyor (bkz. rbac.ts'teki admin istisnası +
+ * Sidebar > "Rol Görünümleri"), bu yüzden jüriye 4 ayrı hesap vermeye hiç
+ * gerek yok. Şifre asla düz metin saklanmıyor — SHA-256(şifre + ":" +
+ * JURY_LOGIN_PEPPER) hash'i bu dosyada sabit, pepper ise sadece
+ * `wrangler secret put` ile prod'da (repoda yok). Bu endpoint SADECE
+ * aşağıdaki tek e-postayı kabul ediyor — gerçek kullanıcı hesaplarına bu
+ * yoldan asla giriş yapılamaz. */
 const JURY_PASSWORD_HASH = "2ab5c0af7b14c46f72d9636ee12dc80214833f1378105e9c82cc1dd528b4f8f1";
-const JURY_EMAILS = new Set([
-  "content@test.rubrix",
-  "instructor@test.rubrix",
-  "student@test.rubrix",
-  "admin@test.rubrix",
-]);
+const JURY_EMAILS = new Set(["admin@test.rubrix"]);
 
 async function sha256Hex(input: string): Promise<string> {
   const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));

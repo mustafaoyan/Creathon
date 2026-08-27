@@ -339,26 +339,31 @@ küçük alanlarda özellikle). Sadece border-color opaklığı artırıldı: `.
 şeffaflığından değil, çerçeve görünürlüğünden bahsetti). Beğenilmezse tek satırlık bir geri
 alma: her ikisinde de `color-mix(in srgb, white N%, transparent)`'teki N'i tekrar 14 yapmak yeterli.
 
-**Jüri demo girişi (2026-08-27) — Google OAuth'un tek bilinçli istisnası, TEK e-posta+şifre, GİZLİ
-giriş, GERÇEK rol oturumu.** Üç düzeltme turundan geçti, son hâli:
+**Test hesabı / Master-Bypass girişi (2026-08-27) — Google OAuth'un tek bilinçli istisnası,
+AYRI BİR PANEL/SAYFA/BUTON YOK.** Dört düzeltme turundan geçti, son hâli kalıcı:
 1. İlk denemede login ekranına herkese açık bir "JÜRİ GİRİŞİ" nav butonu eklenmişti — kullanıcı
-   haklı olarak itiraz etti ("neden yeni panel üretiyorsun"). Artık BİLEREK görünür bir buton/link
-   yok, form sadece `/login?jury=1` gizli sorgu parametresiyle açılıyor (`LoginPage.tsx`).
-2. İlk denemede 4 rol için 4 ayrı e-posta/hesap vardı; kullanıcı "tek e posta ve şifreyle
-   halledelim" dedi — tek e-posta+şifreye indirildi.
-3. Sonra kullanıcı asıl istediğini netleştirdi: aynı e-posta+şifreyle içerik üreticisine girip
-   bakıp çıksın, sonra AYNI bilgilerle öğrenciye girip bakıp çıksın — yani her girişte seçtiği
-   rolün GERÇEK oturumunu istiyordu, admin'in "Rol Görünümleri" ile başka rolü İZLEMESİNİ değil
-   (o gerçek bir öğrenci oturumu değil). Bu yüzden `POST /api/auth/jury-login` artık
-   `{email, password, role}` alıyor (`auth.service.ts#juryLogin`): e-posta+şifre TEK sabit kimliği
-   doğruluyor (`JURY_EMAIL`, `JURY_PASSWORD_HASH`), `role` ise hangi demo hesaba
-   (`user_test_content/instructor/student/admin` — zaten var olan `user_test_*` hesapları, bkz.
-   Production Durumu) gerçek oturum açılacağını seçiyor. Frontend'de (`LoginPage.tsx`'teki
-   `JuryLoginPanel`) e-posta+şifrenin üstünde 4 rol arasından seçim yapan bir buton grubu var.
-   Şifre asla düz metin tutulmuyor: `SHA-256(şifre + ":" + JURY_LOGIN_PEPPER)` hash'i kodda sabit,
-   pepper `wrangler secret put JURY_LOGIN_PEPPER` ile sadece prod'da (repoda yok, şifrenin kendisi
-   de BİLEREK bu dosyada değil — proje sahibinde ayrı duruyor). Bu yol SADECE bu tek e-postayı
-   kabul ediyor — gerçek (Google ile kayıtlı) kullanıcı hesaplarına bu formdan asla giriş yapılamaz.
+   haklı olarak itiraz etti ("neden yeni panel üretiyorsun").
+2. Sonra 4 rol için 4 ayrı e-posta/hesap vardı; kullanıcı "tek e posta ve şifreyle halledelim" dedi.
+3. Sonra kullanıcı gerçek isteğini netleştirdi: aynı e-posta+şifreyle içerik üreticisine girip
+   bakıp çıksın, AYNI bilgilerle öğrenciye girip bakıp çıksın — admin'in "Rol Görünümleri" ile
+   başka rolü İZLEMESİ bunu karşılamıyordu (gerçek bir öğrenci oturumu değil).
+4. Son turda kullanıcı "Act as a Senior Developer" diyerek AYRI BİR PANEL/BUTON/GİRİŞ EKRANI
+   istemediğini kesin bir dille tekrarladı — `JuryLoginPanel` bileşeni ve `/api/auth/jury-login`
+   TAMAMEN SİLİNDİ. **Kalıcı çözüm:** e-posta+şifre alanları artık AYRI bir bileşen/sayfa değil,
+   mevcut `RoleLoginCard`'ların (Öğrenci/Eğitmen/İçerik Uzmanı) İÇİNDE, varsayılan olarak kapalı,
+   küçük bir "Test hesabıyla gir" metin linkiyle açılan 2 alan (`LoginPage.tsx#TestAccountLogin`).
+   **Not: "sıfır UI değişikliği" harfiyen mümkün değildi** — Google'ın kendi hosted OAuth sayfası
+   (accounts.google.com) bizim kontrolümüzde değil, oraya yazılan bir e-postayı biz yakalayamayız;
+   bu yüzden en azından bir yerde yeni bir input alanı gerekiyordu. Bu, en minimal gerçekleştirme.
+   Backend: `POST /api/auth/test-login {email, password, role}` (`auth.service.ts#testAccountLogin`)
+   — `test@hititai.com` + `test2026` TEK sabit kimliği doğruluyor, `role` (hangi kartın formundan
+   gönderildiyse) hangi demo hesaba (`user_test_content/instructor/student/admin`, zaten var olan
+   `user_test_*` hesapları) GERÇEK oturum açılacağını seçiyor. Şifre asla düz metin tutulmuyor:
+   `SHA-256(şifre + ":" + JURY_LOGIN_PEPPER)` hash'i kodda sabit, pepper `wrangler secret put
+   JURY_LOGIN_PEPPER` ile sadece prod'da (repoda yok — env var adı tarihsel nedenlerle hâlâ
+   `JURY_LOGIN_PEPPER`, yeniden adlandırmak gereksiz bir secret rotasyonu olurdu). Bu yol SADECE
+   bu tek e-postayı kabul ediyor — gerçek (Google ile kayıtlı) kullanıcı hesaplarına bu formdan
+   asla giriş yapılamaz.
 
 ## Bekliyor (bilinçli olarak yapılmadı)
 

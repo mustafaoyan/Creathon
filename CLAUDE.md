@@ -339,6 +339,19 @@ küçük alanlarda özellikle). Sadece border-color opaklığı artırıldı: `.
 şeffaflığından değil, çerçeve görünürlüğünden bahsetti). Beğenilmezse tek satırlık bir geri
 alma: her ikisinde de `color-mix(in srgb, white N%, transparent)`'teki N'i tekrar 14 yapmak yeterli.
 
+**Jüri demo girişi (2026-08-27) — Google OAuth'un tek bilinçli istisnası.**
+Jüri üyelerinin kendi Google hesapları olmadan 4 rolü de ayrı ayrı deneyebilmesi için login
+ekranına (nav'da "JÜRİ GİRİŞİ") e-posta+şifre formu eklendi. Backend: `POST /api/auth/jury-login`
+(`auth.service.ts#juryLogin`) — sadece 4 sabit e-postayı (`content@test.rubrix`,
+`instructor@test.rubrix`, `student@test.rubrix`, `admin@test.rubrix`) kabul ediyor, şifre asla
+düz metin tutulmuyor: `SHA-256(şifre + ":" + JURY_LOGIN_PEPPER)` hash'i kodda sabit
+(`JURY_PASSWORD_HASH`), pepper ise `wrangler secret put JURY_LOGIN_PEPPER` ile sadece prod'da
+(repoda yok). Bu 4 kullanıcı zaten var olan `user_test_*` hesapları (bkz. Production Durumu) —
+admin için eksik olan `user_test_admin` de bu değişiklikle eklendi. Şifre BİLEREK bu dosyada
+(repoda) yok — proje sahibinde ayrı olarak duruyor, farklı bir rolü denemek için çıkış yapıp
+başka bir jüri e-postasıyla tekrar giriş yapmaları yeterli. Bu yol SADECE bu 4 e-postayı kabul
+ediyor — gerçek kullanıcı hesaplarına (Google ile kayıtlı) bu formdan asla giriş yapılamaz.
+
 ## Bekliyor (bilinçli olarak yapılmadı)
 
 - (Opsiyonel, wrangler tarafından önerildi) `@cloudflare/workers-types`'tan `wrangler types`'ın

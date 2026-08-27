@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { getGoogleLoginUrl } from "@/lib/auth-client";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { getGoogleLoginUrl, juryLogin } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { TeknofestNav, SPACE_BG_URL } from "@/components/layout/TeknofestNav";
 import { toast } from "@/lib/toast";
@@ -36,7 +36,7 @@ const ROLE_COPY: Record<Role, { title: string; description: string }> = {
  * butonu var; diğer 3 rol (Eğitmen, İçerik Uzmanı, Admin) "Diğer Girişler"
  * arkasında, ayrı ayrı kartlarla açılıyor — bir öğrenci giriş yaparken
  * eğitmenin/adminin giriş seçeneklerini görmesin diye. */
-type RevealMode = null | "student" | "others";
+type RevealMode = null | "student" | "others" | "jury";
 
 export function LoginPage() {
   const [reveal, setReveal] = useState<RevealMode>(null);
@@ -79,6 +79,7 @@ export function LoginPage() {
       <TeknofestNav
         action={{ label: "ÖĞRENCİ GİRİŞİ 🚀", onClick: () => setReveal("student") }}
         secondaryLink={{ label: "DİĞER GİRİŞLER", onClick: () => setReveal("others") }}
+        tertiaryLink={{ label: "JÜRİ GİRİŞİ", onClick: () => setReveal("jury") }}
       />
       <HeroCarousel />
 
@@ -97,21 +98,25 @@ export function LoginPage() {
             <span className="inline-block h-1.5 w-16 rounded-full bg-primary" />
             <h1 className="text-3xl font-bold">RubriX</h1>
             <p className="text-white/70">
-              {reveal === "student" ? "Öğrenci olarak giriş yap" : "Hangi rolle giriş yapmak istiyorsun?"}
+              {reveal === "student" && "Öğrenci olarak giriş yap"}
+              {reveal === "others" && "Hangi rolle giriş yapmak istiyorsun?"}
+              {reveal === "jury" && "Jüri demo girişi — her rol için ayrı bir e-posta kullan"}
             </p>
           </div>
 
-          {reveal === "student" ? (
+          {reveal === "student" && (
             <div className="flex w-full max-w-xl flex-col gap-6">
               <RoleLoginCard role="student" primary />
             </div>
-          ) : (
+          )}
+          {reveal === "others" && (
             <div className="flex w-full max-w-xl flex-col gap-6">
               <RoleLoginCard role="instructor" primary />
               <RoleLoginCard role="content_creator" />
               <RoleLoginCard role="admin" />
             </div>
           )}
+          {reveal === "jury" && <JuryLoginPanel />}
         </div>
       )}
     </div>
@@ -187,6 +192,59 @@ function HeroCarousel() {
         </div>
       ))}
     </section>
+  );
+}
+
+/** Google OAuth'un bilinçli tek istisnası: jüri, kendi Google hesabı olmadan
+ * 4 rolü de ayrı ayrı deneyebilsin diye e-posta+şifre girişi (bkz. apps/api
+ * auth.service.ts#juryLogin — sadece 4 sabit demo e-postası kabul ediliyor). */
+function JuryLoginPanel() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      await juryLogin(email.trim(), password);
+      window.location.href = "/";
+    } catch {
+      toast.error("E-posta veya şifre hatalı.");
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="flex w-full max-w-xl flex-col gap-4 rounded-lg border-2 border-border bg-secondary/30 p-6 backdrop-blur-sm"
+    >
+      <input
+        type="email"
+        autoComplete="off"
+        placeholder="Jüri e-postası"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        required
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+      />
+      <input
+        type="password"
+        autoComplete="off"
+        placeholder="Şifre"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        required
+        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+      />
+      <Button type="submit" className="w-full" disabled={submitting}>
+        {submitting ? "Giriş yapılıyor..." : "Giriş Yap"}
+      </Button>
+      <p className="text-center text-xs text-muted-foreground">
+        Farklı bir rolü denemek için çıkış yapıp başka bir jüri e-postasıyla tekrar giriş yap.
+      </p>
+    </form>
   );
 }
 

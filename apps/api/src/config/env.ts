@@ -19,6 +19,7 @@ export type Bindings = {
   AI_PROVIDER: string; // "anthropic" | "openai" — resolved by ai.factory.ts
   RESEND_API_KEY: string; // e-posta değişikliği doğrulama kodu göndermek için (bkz. shared/lib/email.ts)
   EMAIL_FROM: string; // ör. "RubriX <noreply@hititai.com>"
+  JURY_LOGIN_PEPPER: string; // jüri demo girişindeki şifre hash'ini doğrulamak için (bkz. auth.service.ts#juryLogin)
 };
 
 export type DocumentProcessingMessage = {
